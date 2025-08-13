@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { typeormDataSourceFactory, typeormOptionsFactory } from "./config/typeorm";
 import { RedisModule } from "./config/redis";
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { RedisModule } from "./config/redis";
       inject: [ConfigService]
     }),
     RedisModule,
+    AuthModule,
   ],
   providers: [],
   controllers: [],

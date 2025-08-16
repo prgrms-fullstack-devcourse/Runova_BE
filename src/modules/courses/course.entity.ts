@@ -11,13 +11,6 @@ import {
 import { User } from "../users/user.entity";
 import { CompletedCourse } from "./completed-course.entity";
 
-/**
- * ERD: courses
- * - user_id int NOT NULL (FK → users.id)
- * - length double NOT NULL
- * - path geometry(Polygon,4326) NOT NULL
- * - n_completed int NOT NULL default 0
- */
 @Entity({ name: "courses" })
 export class Course {
   @PrimaryGeneratedColumn()
@@ -30,19 +23,18 @@ export class Course {
   @ManyToOne(() => User, (u) => u.courses, { onDelete: "CASCADE" })
   user: User;
 
-  // 총 길이(m 단위 등). ERD의 double → PostgreSQL: double precision
+  // 총 길이 (단위는 m 등으로 API 스펙에서 고정 권장)
   @Column({ type: "double precision", nullable: false })
   length: number;
 
-  // PostGIS geometry(Polygon, 4326)
-  // TypeORM(PostgreSQL): type='geometry', spatialFeatureType='Polygon', srid=4326
+  // geometry(Polygon, 4326) — PostGIS 필요
   @Column({
     type: "geometry",
     spatialFeatureType: "Polygon",
     srid: 4326,
     nullable: false,
   })
-  path: any; // GeoJSON-like 객체를 직접 저장하지 않음. 쿼리 시 WKT/WKB 사용 또는 커스텀 변환.
+  path: any;
 
   @Column({ name: "n_completed", type: "int", default: 0, nullable: false })
   nCompleted: number;

@@ -1,5 +1,5 @@
 import { Controller, Get } from "@nestjs/common";
-import AppDataSource from "../data-source";
+import AppDataSource from "../config/typeorm/data-source";
 
 @Controller("healthz")
 export class HealthController {

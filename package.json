@@ -7,9 +7,9 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "migration:generate": "typeorm-ts-node-commonjs migration:generate src/migrations/auto -d src/config/typeorm/data-source.ts",
-    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/config/typeorm/data-source.ts",
-    "migration:run:prod": "node -e \"require('./dist/config/typeorm/data-source.js').dataSource.runMigrations()\"",
+    "migration:generate": "cross-env NODE_ENV=development typeorm-ts-node-commonjs migration:generate src/migrations/auto -d src/config/typeorm/data-source.ts",
+    "migration:run": "cross-env NODE_ENV=development typeorm-ts-node-commonjs migration:run -d src/config/typeorm/data-source.ts",
+    "migration:run:prod": "node -e \"process.env.NODE_ENV='production'; require('./dist/config/typeorm/data-source.js').default.runMigrations()\"",
     "start": "node dist/main.js",
     "start:prod": "npm run migration:run:prod && node dist/main.js"
   },
@@ -43,6 +43,7 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.7",
     "@types/supertest": "^6.0.2",
+    "cross-env": "^10.0.0",
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^16.0.0",
     "jest": "^29.7.0",
@@ -53,6 +54,7 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "typeorm-ts-node-commonjs": "^0.3.20",
     "typescript": "^5.7.3"
   },
   "jest": {

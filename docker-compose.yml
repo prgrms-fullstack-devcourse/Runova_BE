@@ -9,44 +9,17 @@ services:
     env_file:
       - .env.production
     environment:
-      # TypeORM이 참고하는 환경변수들 (예시)
-      # TYPEORM_DATA_SOURCE_PATH는 커스텀으로 쓰고 CMD에서 참조해도 됨
       DATABASE_URL: postgresql://runova:runova@db:5432/runova
       TZ: Asia/Seoul
     ports:
-      - "127.0.0.1:3000:3000" # 외부 노출 막고 Nginx만 프록시
+      - "127.0.0.1:3000:3000"
     depends_on:
       db:
         condition: service_healthy
-    # 데이터소스 경로를 환경변수로 넘기고 싶다면:
-    # command: >
-    #   sh -lc "
-    #     npx typeorm migration:run -d $TYPEORM_DATA_SOURCE_PATH &&
-    #     node dist/main.js
-    #   "
-
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: runova
-      POSTGRES_USER: runova
-      POSTGRES_PASSWORD: runova
-      TZ: Asia/Seoul
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    # 내망에서만 쓰면 포트 노출 불필요
-    # ports:
-    #   - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U runova -d runova"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
   redis:
     image: redis:7-alpine
-    # ports:
-    #   - "6379:6379"
+    ports:
+      - "6379:6379"
 
 volumes:
   pgdata:

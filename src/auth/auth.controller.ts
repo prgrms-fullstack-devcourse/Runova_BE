@@ -1,31 +1,39 @@
 import {
-  Body,
   Controller,
-  Get,
-  Ip,
   Post,
+  Get,
+  Body,
   Req,
   Res,
   UseGuards,
+  Ip,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { Response, Request } from "express";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from "@nestjs/swagger";
 
 class GoogleLoginDto {
   idToken: string;
   deviceInfo?: string;
 }
-
 class RefreshDto {
   refreshToken?: string;
 }
 
+@ApiTags("Auth")
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post("google")
+  @ApiOperation({ summary: "구글 로그인 및 회원가입" })
+  @ApiResponse({ status: 200, description: "로그인 성공" })
   async googleLogin(
     @Body() dto: GoogleLoginDto,
     @Ip() ip: string,
@@ -36,8 +44,6 @@ export class AuthController {
       dto.deviceInfo,
       ip
     );
-
-    // 모바일(RN)은 바디로, Web은 쿠키로 RT 처리 가능
     this.setRefreshCookie(res, result.refreshToken);
     return {
       accessToken: result.accessToken,
@@ -46,6 +52,8 @@ export class AuthController {
   }
 
   @Post("refresh")
+  @ApiOperation({ summary: "AccessToken 재발급" })
+  @ApiResponse({ status: 200, description: "재발급 성공" })
   async refreshToken(
     @Body() dto: RefreshDto,
     @Req() req: Request,
@@ -54,14 +62,12 @@ export class AuthController {
   ) {
     const refreshToken = dto.refreshToken || req.cookies["refresh_token"];
     const result = await this.authService.rotateRefreshToken(refreshToken, ip);
-
     this.setRefreshCookie(res, result.refreshToken);
-    return {
-      accessToken: result.accessToken,
-    };
+    return { accessToken: result.accessToken };
   }
 
   @Post("logout")
+  @ApiOperation({ summary: "로그아웃 및 세션 종료" })
   async logout(@Body() dto: RefreshDto) {
     await this.authService.logout(dto.refreshToken);
     return { ok: true };
@@ -69,6 +75,9 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get("me")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "내 정보 조회 (인증 필요)" })
+  @ApiResponse({ status: 200, description: "조회 성공" })
   async me(@Req() req: any) {
     return {
       userId: req.user.userId,

@@ -2,20 +2,13 @@ version: "3.9"
 
 services:
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     container_name: runova-backend
-    env_file:
-      - .env.production
-    environment:
-      DATABASE_URL: postgresql://runova:runova@db:5432/runova
-      TZ: Asia/Seoul
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     depends_on:
-      db:
-        condition: service_healthy
+      - redis
+    restart: always
   redis:
     image: redis:7-alpine
     ports:

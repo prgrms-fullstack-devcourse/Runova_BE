@@ -3,41 +3,86 @@ name: Deploy to EC2 (no registry)
 on:
   push:
     branches: [main, dev]
-  pull_request:
-    branches: [main]
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up QEMU (for multi-arch, optional)
+      - name: Set up QEMU (optional)
         uses: docker/setup-qemu-action@v3
 
-      - name: Set up Docker Buildx
+      - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 레지스트리 푸시 대신, 런너에서 이미지 생성 → tar 파일로 저장
-      - name: Build Docker image to local docker format
+      # 1) 이미지 빌드 → 로컬 도커 포맷으로 출력
+      - name: Build image (local docker format)
         run: |
-          # 이미지 태그(브랜치별로 구분, 기본은 SHA)
+          set -euxo pipefail
+          IMAGE_NAME=runova-backend
           IMAGE_TAG=${{ github.sha }}
-          # linux/amd64로 고정 (EC2 인스턴스 아키텍처에 맞춰 필요 시 변경)
           docker buildx build \
             --platform linux/amd64 \
-            -t runova-backend:${IMAGE_TAG} \
+            -t ${IMAGE_NAME}:${IMAGE_TAG} \
             --output type=docker \
             .
 
+      # 2) 이미지 저장(tar)
       - name: Save image as tar
         run: |
+          set -euxo pipefail
+          IMAGE_NAME=runova-backend
           IMAGE_TAG=${{ github.sha }}
-          docker save runova-backend:${IMAGE_TAG} -o runova-backend-${IMAGE_TAG}.tar
-          ls -lh runova-backend-${IMAGE_TAG}.tar
+          TAR_FILE=${IMAGE_NAME}-${IMAGE_TAG}.tar
+          docker save ${IMAGE_NAME}:${IMAGE_TAG} -o ${TAR_FILE}
+          ls -lah ${TAR_FILE}
 
+      # 3) 원격 배포 디렉터리 보장
+      - name: Prepare target directory on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          script: |
+            set -euxo pipefail
+            BASE="/home/${{ secrets.EC2_USERNAME }}/deploy/runova"
+            mkdir -p "$BASE"
+            echo "TARGET DIR: $BASE"
+            ls -lah "$BASE"
+
+      # 4) tar 업로드 (절대경로 target, 정확한 파일명)
+      - name: Upload image tar to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          source: "runova-backend-${{ github.sha }}.tar"
+          target: "/home/${{ secrets.EC2_USERNAME }}/deploy/runova"
+          overwrite: true
+          strip_components: 0
+
+      # 5) 업로드 검증 (원격에서 실제로 보이는지)
+      - name: Verify uploaded files on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          script: |
+            set -euxo pipefail
+            BASE="/home/${{ secrets.EC2_USERNAME }}/deploy/runova"
+            ls -lah "$BASE"
+            test -f "$BASE/runova-backend-${{ github.sha }}.tar"
+
+      # 6) 배포 (ENV는 Secrets에서 파일로 생성)
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -47,28 +92,29 @@ jobs:
           port: ${{ secrets.EC2_PORT }}
           script: |
             set -euxo pipefail
-            cd ~/deploy/runova
+            BASE="/home/${{ secrets.EC2_USERNAME }}/deploy/runova"
+            cd "$BASE"
 
-            # .env 파일 생성 (Secrets에 전체 내용을 저장해둠)
+            # .env.production 생성 (저장소 Secrets에 ENV_PRODUCTION로 등록해두세요)
             cat > .env.production <<'EOF'
             ${{ secrets.ENV_PRODUCTION }}
             EOF
 
-            IMAGE_TAG=${{ github.sha }}
             IMAGE_NAME=runova-backend
+            IMAGE_TAG=${{ github.sha }}
             TAR_FILE=${IMAGE_NAME}-${IMAGE_TAG}.tar
 
-            # tar 존재 확인
-            ls -lah "${TAR_FILE}"
+            echo "[1/5] ls -lah"
+            ls -lah
 
-            # 이미지 로드
+            echo "[2/5] docker load"
             docker load -i "${TAR_FILE}"
 
-            # 기존 컨테이너 정리
+            echo "[3/5] stop/remove old"
             docker stop "${IMAGE_NAME}" || true
             docker rm "${IMAGE_NAME}" || true
 
-            # 새 컨테이너 실행
+            echo "[4/5] run new"
             docker run -d \
               --name "${IMAGE_NAME}" \
               --restart unless-stopped \
@@ -76,8 +122,5 @@ jobs:
               --env-file .env.production \
               ${IMAGE_NAME}:${IMAGE_TAG}
 
-            # 정리
-            docker image prune -f || true
-
-            # 상태 점검
+            echo "[5/5] ps"
             docker ps

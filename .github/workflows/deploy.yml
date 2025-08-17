@@ -38,7 +38,7 @@ jobs:
           docker save runova-backend:${IMAGE_TAG} -o runova-backend-${IMAGE_TAG}.tar
           ls -lh runova-backend-${IMAGE_TAG}.tar
 
-      - name: Deploy to EC2
+      - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -46,26 +46,38 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
+            set -euxo pipefail
             cd ~/deploy/runova
 
-            # secrets에서 env 파일 생성
+            # .env 파일 생성 (Secrets에 전체 내용을 저장해둠)
             cat > .env.production <<'EOF'
             ${{ secrets.ENV_PRODUCTION }}
             EOF
 
             IMAGE_TAG=${{ github.sha }}
             IMAGE_NAME=runova-backend
+            TAR_FILE=${IMAGE_NAME}-${IMAGE_TAG}.tar
 
-            docker load -i ${IMAGE_NAME}-${IMAGE_TAG}.tar || true
+            # tar 존재 확인
+            ls -lah "${TAR_FILE}"
 
-            docker stop ${IMAGE_NAME} || true
-            docker rm ${IMAGE_NAME} || true
+            # 이미지 로드
+            docker load -i "${TAR_FILE}"
 
+            # 기존 컨테이너 정리
+            docker stop "${IMAGE_NAME}" || true
+            docker rm "${IMAGE_NAME}" || true
+
+            # 새 컨테이너 실행
             docker run -d \
-              --name ${IMAGE_NAME} \
+              --name "${IMAGE_NAME}" \
               --restart unless-stopped \
-              -p 3000:3000 \
+              -p 127.0.0.1:3000:3000 \
               --env-file .env.production \
               ${IMAGE_NAME}:${IMAGE_TAG}
 
+            # 정리
             docker image prune -f || true
+
+            # 상태 점검
+            docker ps

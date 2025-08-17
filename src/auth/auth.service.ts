@@ -66,7 +66,7 @@ export class AuthService {
       social = this.socialRepo.create({
         provider: "GOOGLE",
         providerUserId: sub,
-        email: email ?? null,
+        email: email ?? undefined,
         user,
       });
       await this.socialRepo.save(social);

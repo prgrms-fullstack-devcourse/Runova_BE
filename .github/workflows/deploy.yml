@@ -1,47 +1,14 @@
-name: Deploy to EC2 (no registry)
+name: Deploy to EC2 (simple-typeorm)
 
 on:
   push:
-    branches: [main, dev]
+    branches: [dev]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up QEMU (optional)
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
-
-      # 1) 이미지 빌드 → 로컬 도커 포맷으로 출력
-      - name: Build image (local docker format)
-        run: |
-          set -euxo pipefail
-          IMAGE_NAME=runova-backend
-          IMAGE_TAG=${{ github.sha }}
-          docker buildx build \
-            --platform linux/amd64 \
-            -t ${IMAGE_NAME}:${IMAGE_TAG} \
-            --output type=docker \
-            .
-
-      # 2) 이미지 저장(tar)
-      - name: Save image as tar
-        run: |
-          set -euxo pipefail
-          IMAGE_NAME=runova-backend
-          IMAGE_TAG=${{ github.sha }}
-          TAR_FILE=${IMAGE_NAME}-${IMAGE_TAG}.tar
-          docker save ${IMAGE_NAME}:${IMAGE_TAG} -o ${TAR_FILE}
-          ls -lah ${TAR_FILE}
-
-      # 3) 원격 배포 디렉터리 보장
-      - name: Prepare target directory on EC2
+      - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -50,77 +17,24 @@ jobs:
           port: ${{ secrets.EC2_PORT }}
           script: |
             set -euxo pipefail
-            BASE="/home/${{ secrets.EC2_USERNAME }}/deploy/runova"
-            mkdir -p "$BASE"
-            echo "TARGET DIR: $BASE"
-            ls -lah "$BASE"
 
-      # 4) tar 업로드 (절대경로 target, 정확한 파일명)
-      - name: Upload image tar to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT }}
-          source: "runova-backend-${{ github.sha }}.tar"
-          target: "/home/${{ secrets.EC2_USERNAME }}/deploy/runova"
-          overwrite: true
-          strip_components: 0
+            REPO_DIR=/home/${{ secrets.EC2_USERNAME }}/server
+            if [ ! -d "$REPO_DIR/.git" ]; then
+              mkdir -p "$REPO_DIR"
+              git clone https://github.com/${{ github.repository }}.git "$REPO_DIR"
+            fi
 
-      # 5) 업로드 검증 (원격에서 실제로 보이는지)
-      - name: Verify uploaded files on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT }}
-          script: |
-            set -euxo pipefail
-            BASE="/home/${{ secrets.EC2_USERNAME }}/deploy/runova"
-            ls -lah "$BASE"
-            test -f "$BASE/runova-backend-${{ github.sha }}.tar"
+            cd "$REPO_DIR"
+            git fetch origin
+            git checkout dev
+            git reset --hard origin/dev
 
-      # 6) 배포 (ENV는 Secrets에서 파일로 생성)
-      - name: Deploy on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT }}
-          script: |
-            set -euxo pipefail
-            BASE="/home/${{ secrets.EC2_USERNAME }}/deploy/runova"
-            cd "$BASE"
-
-            # .env.production 생성 (저장소 Secrets에 ENV_PRODUCTION로 등록해두세요)
+            # .env.production 내용을 ENV_FILE에 통으로 저장해 두세요
             cat > .env.production <<'EOF'
             ${{ secrets.ENV_PRODUCTION }}
             EOF
 
-            IMAGE_NAME=runova-backend
-            IMAGE_TAG=${{ github.sha }}
-            TAR_FILE=${IMAGE_NAME}-${IMAGE_TAG}.tar
-
-            echo "[1/5] ls -lah"
-            ls -lah
-
-            echo "[2/5] docker load"
-            docker load -i "${TAR_FILE}"
-
-            echo "[3/5] stop/remove old"
-            docker stop "${IMAGE_NAME}" || true
-            docker rm "${IMAGE_NAME}" || true
-
-            echo "[4/5] run new"
-            docker run -d \
-              --name "${IMAGE_NAME}" \
-              --restart unless-stopped \
-              -p 127.0.0.1:3000:3000 \
-              --env-file .env.production \
-              ${IMAGE_NAME}:${IMAGE_TAG}
-
-            echo "[5/5] ps"
+            docker compose down
+            docker compose up -d --build
+            docker compose ps
             docker ps

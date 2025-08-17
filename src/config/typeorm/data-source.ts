@@ -12,10 +12,12 @@ let ssl: any = false;
 if (process.env.DB_SSL_CA) {
   ssl = {
     ca: fs.readFileSync(process.env.DB_SSL_CA, "utf8"),
-    rejectUnauthorized: true,
+    rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === "true",
   };
 } else if ((process.env.DB_SSL || "").toLowerCase() === "true") {
-  ssl = { rejectUnauthorized: false };
+  ssl = { 
+    rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === "true" 
+  };
 }
 
 export default new DataSource({

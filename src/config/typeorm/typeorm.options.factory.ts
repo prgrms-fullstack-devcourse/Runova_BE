@@ -8,8 +8,13 @@ export function typeormOptionsFactory(
 ): TypeOrmModuleOptions {
   const ca = config.get<string>("DB_SSL_CA");
   const ssl = ca
-    ? { ca: fs.readFileSync(ca).toString(), rejectUnauthorized: true }
-    : false;
+    ? { 
+        ca: fs.readFileSync(ca).toString(), 
+        rejectUnauthorized: config.get<boolean>("DB_SSL_REJECT_UNAUTHORIZED") ?? false 
+      }
+    : config.get<boolean>("DB_SSL") 
+      ? { rejectUnauthorized: config.get<boolean>("DB_SSL_REJECT_UNAUTHORIZED") ?? false }
+      : false;
 
   return {
     type: "postgres" as any,
@@ -19,7 +24,9 @@ export function typeormOptionsFactory(
     password: config.get<string>("DB_PASSWORD")!,
     database: config.get<string>("DB_DATABASE")!,
     entities: [path.join(__dirname, "/../../**/*.entity{.ts,.js}")],
+    migrations: [path.join(__dirname, "/../../migrations/*{.ts,.js}")],
     ssl,
     logging: false,
+    synchronize: false,
   };
 }

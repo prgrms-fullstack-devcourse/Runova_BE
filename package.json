@@ -7,8 +7,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "migration:generate": "cross-env NODE_ENV=development typeorm-ts-node-commonjs migration:generate src/migrations/auto -d src/config/typeorm/data-source.ts",
-    "migration:run": "cross-env NODE_ENV=development typeorm-ts-node-commonjs migration:run -d src/config/typeorm/data-source.ts",
+    "migration:generate": "cross-env NODE_ENV=development typeorm-ts-node-commonjs migration:generate src/migrations/auto -d ormconfig.ts",
+    "migration:run": "cross-env NODE_ENV=development typeorm-ts-node-commonjs migration:run -d ormconfig.ts",
     "migration:run:prod": "node -e \"process.env.NODE_ENV='production'; require('./dist/config/typeorm/data-source.js').default.runMigrations()\"",
     "start": "node dist/main.js",
     "start:prod": "npm run migration:run:prod && node dist/main.js"

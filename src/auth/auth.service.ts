@@ -5,7 +5,6 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { OAuth2Client } from "google-auth-library";
 import { Repository } from "typeorm";
 import * as argon2 from "argon2";
 import { User } from "../modules/users/user.entity";

@@ -51,7 +51,7 @@ jobs:
             .env.production
           target: ~/deploy/runova
 
-      - name: Deploy on EC2
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -59,21 +59,21 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
-            set -euo pipefail
             cd ~/deploy/runova
+
+            # secrets에서 env 파일 생성
+            cat > .env.production <<'EOF'
+            ${{ secrets.ENV_PRODUCTION }}
+            EOF
 
             IMAGE_TAG=${{ github.sha }}
             IMAGE_NAME=runova-backend
 
-            echo "[1/5] docker load"
-            docker load -i ${IMAGE_NAME}-${IMAGE_TAG}.tar
+            docker load -i ${IMAGE_NAME}-${IMAGE_TAG}.tar || true
 
-            echo "[2/5] stop & remove old container (if exists)"
             docker stop ${IMAGE_NAME} || true
             docker rm ${IMAGE_NAME} || true
 
-            echo "[3/5] run new container"
-            # 필요 시 127.0.0.1:3000:3000 바인딩으로 외부 노출 차단 가능
             docker run -d \
               --name ${IMAGE_NAME} \
               --restart unless-stopped \
@@ -81,7 +81,4 @@ jobs:
               --env-file .env.production \
               ${IMAGE_NAME}:${IMAGE_TAG}
 
-            echo "[4/5] cleanup dangling images"
             docker image prune -f || true
-
-            echo "[5/5] done"

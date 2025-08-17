@@ -6,7 +6,7 @@ import {
   typeormDataSourceFactory,
   typeormOptionsFactory,
 } from "./config/typeorm";
-import { RedisModule } from "./config/redis";
+// import { RedisModule } from "./config/redis";
 import { HealthModule } from "./health/health.module";
 
 @Module({
@@ -20,7 +20,7 @@ import { HealthModule } from "./health/health.module";
       dataSourceFactory: typeormDataSourceFactory,
       inject: [ConfigService],
     }),
-    RedisModule,
+    // RedisModule,
     HealthModule,
   ],
   providers: [],

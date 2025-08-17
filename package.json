@@ -10,8 +10,9 @@
     "migration:generate": "cross-env NODE_ENV=development typeorm-ts-node-commonjs migration:generate src/migrations/auto -d ormconfig.ts",
     "migration:run": "cross-env NODE_ENV=development typeorm-ts-node-commonjs migration:run -d ormconfig.ts",
     "migration:run:prod": "node -e \"process.env.NODE_ENV='production'; require('./dist/config/typeorm/data-source.js').default.runMigrations()\"",
-    "start": "node dist/main.js",
-    "start:prod": "npm run migration:run:prod && node dist/main.js",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
     "docker:build": "docker build -t runova-backend .",
     "docker:run": "docker run -p 3000:3000 --env-file .env.production runova-backend",
     "deploy:ec2": "chmod +x scripts/deploy.sh && ./scripts/deploy.sh"

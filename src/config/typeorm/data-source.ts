@@ -15,8 +15,8 @@ if (process.env.DB_SSL_CA) {
     rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === "true",
   };
 } else if ((process.env.DB_SSL || "").toLowerCase() === "true") {
-  ssl = { 
-    rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === "true" 
+  ssl = {
+    rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === "true",
   };
 }
 

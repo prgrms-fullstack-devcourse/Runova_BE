@@ -1,14 +1,10 @@
-name: Deploy to EC2
+name: Deploy to EC2 (no registry)
 
 on:
   push:
     branches: [main, dev]
   pull_request:
     branches: [main]
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-deploy:
@@ -18,38 +14,44 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up QEMU (for multi-arch, optional)
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      # 레지스트리 푸시 대신, 런너에서 이미지 생성 → tar 파일로 저장
+      - name: Build Docker image to local docker format
+        run: |
+          # 이미지 태그(브랜치별로 구분, 기본은 SHA)
+          IMAGE_TAG=${{ github.sha }}
+          # linux/amd64로 고정 (EC2 인스턴스 아키텍처에 맞춰 필요 시 변경)
+          docker buildx build \
+            --platform linux/amd64 \
+            -t runova-backend:${IMAGE_TAG} \
+            --output type=docker \
+            .
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Save image as tar
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          docker save runova-backend:${IMAGE_TAG} -o runova-backend-${IMAGE_TAG}.tar
+          ls -lh runova-backend-${IMAGE_TAG}.tar
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      # 필요한 환경파일(.env.production 등)도 함께 전송 (이미 EC2에 있다면 생략 가능)
+      - name: Upload files to EC2 (image tar + env)
+        uses: appleboy/scp-action@v0.1.7
         with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          source: |
+            runova-backend-${{ github.sha }}.tar
+            .env.production
+          target: ~/deploy/runova
 
-      - name: Deploy to EC2
+      - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -57,20 +59,29 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
-            # Docker 이미지 pull
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            set -euo pipefail
+            cd ~/deploy/runova
 
-            # 기존 컨테이너 중지 및 제거
-            docker stop runova-backend || true
-            docker rm runova-backend || true
+            IMAGE_TAG=${{ github.sha }}
+            IMAGE_NAME=runova-backend
 
-            # 새 컨테이너 실행
+            echo "[1/5] docker load"
+            docker load -i ${IMAGE_NAME}-${IMAGE_TAG}.tar
+
+            echo "[2/5] stop & remove old container (if exists)"
+            docker stop ${IMAGE_NAME} || true
+            docker rm ${IMAGE_NAME} || true
+
+            echo "[3/5] run new container"
+            # 필요 시 127.0.0.1:3000:3000 바인딩으로 외부 노출 차단 가능
             docker run -d \
-              --name runova-backend \
+              --name ${IMAGE_NAME} \
               --restart unless-stopped \
               -p 3000:3000 \
               --env-file .env.production \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+              ${IMAGE_NAME}:${IMAGE_TAG}
 
-            # 사용하지 않는 이미지 정리
-            docker image prune -f
+            echo "[4/5] cleanup dangling images"
+            docker image prune -f || true
+
+            echo "[5/5] done"

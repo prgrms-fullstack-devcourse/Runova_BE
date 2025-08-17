@@ -38,19 +38,6 @@ jobs:
           docker save runova-backend:${IMAGE_TAG} -o runova-backend-${IMAGE_TAG}.tar
           ls -lh runova-backend-${IMAGE_TAG}.tar
 
-      # 필요한 환경파일(.env.production 등)도 함께 전송 (이미 EC2에 있다면 생략 가능)
-      - name: Upload files to EC2 (image tar + env)
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT }}
-          source: |
-            runova-backend-${{ github.sha }}.tar
-            .env.production
-          target: ~/deploy/runova
-
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:

@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  # --- 프로덕션용 API ---
+  api:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-runova-backend}:${TAG:-latest}
+    container_name: runova-backend
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Seoul
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - runova-network
+    command: >
+      sh -lc "
+        npm run migration:run:prod &&
+        node dist/main.js
+      "
+
+  # --- PostgreSQL ---
+  db:
+    image: postgres:16-alpine
+    container_name: runova-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Seoul
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - runova-network
+
+  # --- Redis ---
+  redis:
+    image: redis:7-alpine
+    container_name: runova-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - runova-network
+
+volumes:
+  pgdata:
+
+networks:
+  runova-network:
+    driver: bridge

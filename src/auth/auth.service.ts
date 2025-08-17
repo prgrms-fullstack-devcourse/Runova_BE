@@ -66,7 +66,6 @@ export class AuthService {
       ip,
       expiresAt: new Date(Date.now() + this.refreshTtlMs()),
     });
-    await this.sessionsRepo.save(session);
 
     const accessToken = await this.tokensService.signAccessToken(
       user.id,

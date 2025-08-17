@@ -2,27 +2,14 @@ version: "3.9"
 
 services:
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     container_name: runova-backend
-    env_file:
-      - .env.production
-    environment:
-      DATABASE_URL: postgresql://runova:runova@db:5432/runova
-      TZ: Asia/Seoul
     ports:
-      - "127.0.0.1:3000:3000" # 외부 노출 막고 Nginx만 프록시
+      - "3000:3000"
     depends_on:
-      db:
-        condition: service_healthy
-    # 데이터소스 경로를 환경변수로 넘기고 싶다면:
-    # command: >
-    #   sh -lc "
-    #     npx typeorm migration:run -d $TYPEORM_DATA_SOURCE_PATH &&
-    #     node dist/main.js
-    #   "
+      - redis
+    restart: always
   redis:
     image: redis:7-alpine
-    # ports:
-    #   - "6379:6379"
+    ports:
+      - "6379:6379"

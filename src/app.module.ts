@@ -8,6 +8,7 @@ import {
 } from "./config/typeorm";
 // import { RedisModule } from "./config/redis";
 import { HealthModule } from "./health/health.module";
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { HealthModule } from "./health/health.module";
     }),
     // RedisModule,
     HealthModule,
+    AuthModule,
   ],
   providers: [],
   controllers: [],

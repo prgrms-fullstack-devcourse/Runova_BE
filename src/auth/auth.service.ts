@@ -8,7 +8,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { OAuth2Client } from "google-auth-library";
 import { Repository } from "typeorm";
 import * as argon2 from "argon2";
-import { User } from "../users/user.entity";
+import { User } from "../modules/users/user.entity";
 import { SocialAccount } from "../modules/auth/social-account.entity";
 import { UserSession } from "../modules/auth/user-session.entity";
 import { TokensService } from "./tokens.service";

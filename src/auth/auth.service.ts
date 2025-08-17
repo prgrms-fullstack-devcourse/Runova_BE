@@ -13,11 +13,10 @@ import { SocialAccount } from "../modules/auth/social-account.entity";
 import { UserSession } from "../modules/auth/user-session.entity";
 import { TokensService } from "./tokens.service";
 import * as jwt from "jsonwebtoken";
+import { GoogleService } from "./google.service";
 
 @Injectable()
 export class AuthService {
-  private googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
   constructor(
     @InjectRepository(User)
     private readonly usersRepo: Repository<User>,
@@ -25,25 +24,13 @@ export class AuthService {
     private readonly socialRepo: Repository<SocialAccount>,
     @InjectRepository(UserSession)
     private readonly sessionsRepo: Repository<UserSession>,
-    private readonly tokensService: TokensService
+    private readonly tokensService: TokensService,
+    private readonly googleService: GoogleService
   ) {}
 
   async loginWithGoogle(idToken: string, deviceInfo?: string, ip?: string) {
-    const ticket = await this.googleClient
-      .verifyIdToken({
-        idToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      })
-      .catch(() => {
-        throw new UnauthorizedException("Invalid Google token");
-      });
-
-    const payload = ticket.getPayload();
-    if (!payload || !payload.sub) {
-      throw new UnauthorizedException("Invalid Google token");
-    }
-
-    const { sub, email, name, picture } = payload;
+    const { sub, email, name, picture } =
+      await this.googleService.verifyIdToken(idToken);
 
     let social = await this.socialRepo.findOne({
       where: { provider: "GOOGLE", providerUserId: sub },

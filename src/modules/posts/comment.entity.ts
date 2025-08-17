@@ -1,0 +1,29 @@
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
+import { Post } from "./post.entity";
+import { User } from "../users/user.entity";
+
+@Entity("comments")
+export class Comment {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Index() @Column() postId: number;
+  @ManyToOne(() => Post, (p) => p.comments, { onDelete: "CASCADE" }) post: Post;
+
+  @Index() @Column() authorId: number;
+  @ManyToOne(() => User, (u) => u.comments, { onDelete: "CASCADE" })
+  author: User;
+
+  @Column({ type: "text" }) content: string;
+
+  @CreateDateColumn() createdAt: Date;
+  @UpdateDateColumn() updatedAt: Date;
+}

@@ -9,6 +9,7 @@ import {
 // import { RedisModule } from "./config/redis";
 import { HealthModule } from "./health/health.module";
 import { AuthModule } from './auth/auth.module';
+import { CommunityModule } from './community/community.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AuthModule } from './auth/auth.module';
     // RedisModule,
     HealthModule,
     AuthModule,
+    CommunityModule,
   ],
   providers: [],
   controllers: [],

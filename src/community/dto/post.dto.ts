@@ -15,20 +15,10 @@ import { PostType } from "../../modules/posts/post.entity";
 import { Type } from "class-transformer";
 
 export class CreatePostDto {
-  @ApiProperty({ enum: PostType })
-  @IsEnum(PostType)
-  type: PostType;
+  @ApiProperty({ enum: PostType }) @IsEnum(PostType) type: PostType;
+  @ApiProperty() @IsString() @MinLength(1) @MaxLength(50000) content: string;
 
-  @ApiProperty({ description: "본문(markdown/text)" })
-  @IsString()
-  @MinLength(1)
-  @MaxLength(50000)
-  content: string;
-
-  @ApiPropertyOptional({
-    type: [String],
-    description: "이미지 URL 배열(최대 10)",
-  })
+  @ApiPropertyOptional({ type: [String] })
   @IsArray()
   @ArrayMaxSize(10)
   @IsUrl({}, { each: true })
@@ -37,6 +27,7 @@ export class CreatePostDto {
 
   @ApiPropertyOptional()
   @IsInt()
+  @Type(() => Number)
   @IsOptional()
   routeId?: number;
 }
@@ -46,7 +37,6 @@ export class UpdatePostDto {
   @IsEnum(PostType)
   @IsOptional()
   type?: PostType;
-
   @ApiPropertyOptional()
   @IsString()
   @MinLength(1)
@@ -63,11 +53,12 @@ export class UpdatePostDto {
 
   @ApiPropertyOptional()
   @IsInt()
+  @Type(() => Number)
   @IsOptional()
   routeId?: number;
 }
 
-export class ListPostsQuery extends class {} {
+export class ListPostsFilter {
   @ApiPropertyOptional({ enum: PostType })
   @IsEnum(PostType)
   @IsOptional()
@@ -84,9 +75,4 @@ export class ListPostsQuery extends class {} {
   @Type(() => Number)
   @IsOptional()
   routeId?: number;
-
-  @ApiPropertyOptional({ enum: ["recent", "popular"], default: "recent" })
-  @IsIn(["recent", "popular"])
-  @IsOptional()
-  sort?: "recent" | "popular" = "recent";
 }

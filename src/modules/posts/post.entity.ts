@@ -16,6 +16,7 @@ export enum PostType {
   FREE = "FREE",
   PROOF = "PROOF",
   SHARE = "SHARE",
+  MATE = "MATE",
 }
 
 @Entity("posts")
@@ -33,6 +34,9 @@ export class Post {
   @Index()
   @Column({ type: "enum", enum: PostType })
   type: PostType;
+
+  @Column({ type: "text" })
+  title: string;
 
   @Column({ type: "text" })
   content: string;

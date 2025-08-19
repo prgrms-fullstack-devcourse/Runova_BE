@@ -23,11 +23,11 @@ export class CommunityService {
     private readonly dataSource: DataSource
   ) {}
 
-  // -------- Posts --------
   async createPost(authorId: number, dto: CreatePostDto): Promise<Post> {
     const post = this.postRepo.create({
-      authorId,
+      authorId: authorId,
       type: dto.type,
+      title: dto.title,
       content: dto.content,
       imageUrls: dto.imageUrls ?? [],
       routeId: dto.routeId ?? null,

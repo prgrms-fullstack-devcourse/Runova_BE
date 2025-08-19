@@ -27,7 +27,6 @@ import { User } from "../utils/decorator/http.decorators";
 export class CommunityController {
   constructor(private readonly service: CommunityService) {}
 
-  // Posts
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "게시글 생성" })

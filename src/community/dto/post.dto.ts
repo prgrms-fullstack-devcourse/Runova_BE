@@ -16,6 +16,7 @@ import { Type } from "class-transformer";
 
 export class CreatePostDto {
   @ApiProperty({ enum: PostType }) @IsEnum(PostType) type: PostType;
+  @ApiProperty() @IsString() @MinLength(1) @MaxLength(100) title: string;
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(50000) content: string;
 
   @ApiPropertyOptional({ type: [String] })
@@ -29,7 +30,7 @@ export class CreatePostDto {
   @IsInt()
   @Type(() => Number)
   @IsOptional()
-  routeId?: number;
+  routeId: number;
 }
 
 export class UpdatePostDto {
@@ -37,6 +38,13 @@ export class UpdatePostDto {
   @IsEnum(PostType)
   @IsOptional()
   type?: PostType;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  title?: string;
+
   @ApiPropertyOptional()
   @IsString()
   @MinLength(1)

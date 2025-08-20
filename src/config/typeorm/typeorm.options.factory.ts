@@ -1,26 +1,33 @@
 import { ConfigService } from "@nestjs/config";
 import { TypeOrmModuleOptions } from "@nestjs/typeorm";
 import * as fs from "node:fs";
+import * as path from "path";
 
-export function typeormOptionsFactory(config: ConfigService): TypeOrmModuleOptions {
-    // postgresql rds는 ssl 인증서를 요구하므로, 프로덕션에서는 필요함
-    const ca = config.get<string>("DB_SSL_CA");
+export function typeormOptionsFactory(
+  config: ConfigService
+): TypeOrmModuleOptions {
+  // const ca = config.get<string>("DB_SSL_CA");
+  // // const ssl = ca
+  // //   ? {
+  // //       ca: fs.readFileSync(ca).toString(),
+  // //       rejectUnauthorized: config.get<boolean>("DB_SSL_REJECT_UNAUTHORIZED") ?? false
+  // //     }
+  // //   : config.get<boolean>("DB_SSL")
+  // //     ? { rejectUnauthorized: config.get<boolean>("DB_SSL_REJECT_UNAUTHORIZED") ?? false }
+  // //     : false;
+  const ssl = { rejectUnauthorized: false };
 
-    const ssl = ca ? {
-                ca: fs.readFileSync(ca).toString(),
-                rejectUnauthorized: true,
-            } : false;
-
-    return {
-        type: config.get<any>("DB_TYPE"),
-        host: config.get<string>("DB_HOST")!,
-        port: config.get<number>("DB_PORT")!,
-        username: config.get<string>("DB_USERNAME")!,
-        password: config.get<string>("DB_PASSWORD")!,
-        database: config.get<string>("DB_DATABASE")!,
-        entities: [__dirname + '/../../**/*.model{.ts,.js}'],
-        ssl,
-        logging: false
-    };
+  return {
+    type: "postgres" as any,
+    host: config.get<string>("DB_HOST")!,
+    port: Number(config.get<string>("DB_PORT") ?? 5432),
+    username: config.get<string>("DB_USERNAME")!,
+    password: config.get<string>("DB_PASSWORD")!,
+    database: config.get<string>("DB_DATABASE")!,
+    entities: [path.join(__dirname, "/../../**/*.entity{.ts,.js}")],
+    migrations: [path.join(__dirname, "/../../migrations/*{.ts,.js}")],
+    ssl,
+    logging: false,
+    synchronize: false,
+  };
 }
-

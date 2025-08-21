@@ -1,5 +1,5 @@
 import { CreateDateColumn } from "typeorm";
-import transformer from "./local.datetime.transformer";
+import transformer from "../../utils/datetime-transformer";
 import { LocalDateTime } from "@js-joda/core";
 
 export class ImmutableEntityBase {

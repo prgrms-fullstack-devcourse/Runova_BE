@@ -1,5 +1,5 @@
 import { CreateDateColumn, UpdateDateColumn } from "typeorm";
-import transformer from "./local.datetime.transformer";
+import transformer from "../../utils/datetime-transformer";
 import { LocalDateTime } from "@js-joda/core";
 
 

@@ -9,6 +9,7 @@ import {
 // import { RedisModule } from "./config/redis";
 import { HealthModule } from "./health/health.module";
 import { AuthModule } from './auth/auth.module';
+import { RunningModule } from './running/running.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AuthModule } from './auth/auth.module';
     // RedisModule,
     HealthModule,
     AuthModule,
+    RunningModule,
   ],
   providers: [],
   controllers: [],

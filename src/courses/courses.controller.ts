@@ -31,7 +31,7 @@ export class CoursesController {
     @ApiBadRequestResponse({ description: "요청 바디가 유효하지 않음" })
     @ApiForbiddenResponse()
     async createCourse(
-        @User("id") userId: number,
+        @User("userId") userId: number,
         @Body() { path }: CreateCourseBody,
     ): Promise<void> {
         await this.coursesService.createCourse(userId, path);
@@ -55,7 +55,7 @@ export class CoursesController {
     @ApiOkResponse({ type: GetCoursesResponse })
     @ApiForbiddenResponse()
     async getUserCourses(
-        @User("id") userId: number,
+        @User("userId") userId: number,
     ): Promise<GetCoursesResponse> {
         const results = await this.coursesService.getCourses({ userId });
         return { results };

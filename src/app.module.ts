@@ -10,6 +10,7 @@ import {
 import { HealthModule } from "./health/health.module";
 import { AuthModule } from './auth/auth.module';
 import { RunningModule } from './running/running.module';
+import { CoursesModule } from "./courses/courses.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { RunningModule } from './running/running.module';
     // RedisModule,
     HealthModule,
     AuthModule,
+    CoursesModule,
     RunningModule,
   ],
   providers: [],

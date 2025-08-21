@@ -10,8 +10,7 @@ import {
 import { Post } from "../posts/post.entity";
 import { Comment } from "../posts/comment.entity";
 import { PostLike } from "../posts/post-like.entity";
-import { Course } from "../courses/course.entity";
-import { CompletedCourse } from "../courses/completed-course.entity";
+import { Course } from "../courses";
 import { SocialAccount } from "../auth/social-account.entity";
 import { UserSession } from "../auth/user-session.entity";
 
@@ -30,9 +29,6 @@ export class User {
 
   @OneToMany(() => Course, (c) => c.user)
   courses: Course[];
-
-  @OneToMany(() => CompletedCourse, (cc) => cc.user)
-  completedCourses: CompletedCourse[];
 
   @Column({ nullable: true })
   avatarUrl?: string;

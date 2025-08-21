@@ -3,7 +3,7 @@ import transformer from "./local.datetime.transformer";
 import { LocalDateTime } from "@js-joda/core";
 
 
-export abstract class ModelBase {
+export abstract class EntityBase {
     @CreateDateColumn({ name: "created_at", type: "timestamp", transformer })
     createdAt: LocalDateTime;
 

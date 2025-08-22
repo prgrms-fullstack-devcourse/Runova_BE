@@ -1,7 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
-import { In, Repository } from "typeorm";
-import { CourseDTO, CourseNodeDTO, GetCoursesDTO } from "../dto";
+import { Repository } from "typeorm";
+import { CourseDTO, CourseNodeDTO } from "../dto";
 import { Coordinates } from "../../common/geo";
 import { Transactional } from "typeorm-transactional";
 import { EstimateTimeService } from "./estimate.time.service";
@@ -29,7 +29,11 @@ export class CoursesService {
         const { length, nodes } = await this.inspectPathService.inspect(path);
         const time = this.timeService.estimateTime(length);
 
-        const id = await this.insertCourse(userId, length, time);
+        const id = await this.insertCourse(
+            userId, length, time,
+            nodes[0].location
+        );
+
         await this.insertNodes(id, nodes);
     }
 
@@ -46,29 +50,23 @@ export class CoursesService {
         return __toDTO(course);
     }
 
-    async getCourses(dto: GetCoursesDTO): Promise<CourseDTO[]> {
-        const { ids, userId } = dto;
-
-        const courses = await this.coursesRepo.findBy({
-            id: ids?.length && In(ids),
-            userId,
-        });
-
-        return courses.map(__toDTO);
-    }
-
     @Transactional()
     async deleteCourse(id: number, userId: number): Promise<void> {
         await this.coursesRepo.delete({ id, userId, });
     }
 
-    private async insertCourse(userId: number, length: number, time: number): Promise<number> {
+    private async insertCourse(
+        userId: number,
+        length: number,
+        time: number,
+        departure: Coordinates,
+    ): Promise<number> {
 
         const result = await this.coursesRepo
             .createQueryBuilder()
             .insert()
             .into(Course)
-            .values({ userId, length, time })
+            .values({ userId, length, time, departure })
             .updateEntity(false)
             .returning("id")
             .execute();
@@ -99,7 +97,7 @@ function __toDTO(course: Course): CourseDTO {
         .format(__formatter);
 
     return {
-        ...pick(course, ["id", "length", "nCompleted"]),
+        ...pick(course, ["id", "departure", "length", "nCompleted"]),
         nodes,
         timeRequired
     };

@@ -1,6 +1,6 @@
 import {
   Column,
-  Entity,
+  Entity, Index,
   JoinColumn,
   ManyToOne, OneToMany,
   PrimaryGeneratedColumn,
@@ -8,12 +8,14 @@ import {
 import { ImmutableEntityBase } from "../../common/entity";
 import { User } from "../users";
 import { CourseNode } from "./course-node.entity";
+import { Coordinates, PointColumn } from "../../common/geo";
 
 @Entity({ name: "courses" })
 export class Course extends ImmutableEntityBase {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Index()
   @Column({ name: "user_id", type: "integer" })
   userId: number;
 
@@ -21,10 +23,13 @@ export class Course extends ImmutableEntityBase {
   @JoinColumn({ name: "user_id" })
   user: User;
 
-  @Column({ type: "float8"  })
+  @PointColumn()
+  departure: Coordinates;
+
+  @Column({ type: "float8" })
   length: number;
 
-  @Column({ name: "time", type: "long" })
+  @Column({ name: "time", type: "double precision" })
   time: number;
 
   @Column({ name: "n_completed", type: "int", default: 0, nullable: false })

@@ -63,7 +63,7 @@ export class InspectPathService {
                              ds.path[1] AS idx,
                              ST_StartPoint(ds.geom) AS p,
                              ST_Azimuth(ST_StartPoint(ds.geom), ST_EndPoint(ds.geom)) AS theta
-                         FROM ST_DumpSegments(ST_Transform(s.geom, 4326)) AS ds
+                         FROM generate_series(1, )
                 ) AS seg   
             ) AS node
             GROUP BY l.length

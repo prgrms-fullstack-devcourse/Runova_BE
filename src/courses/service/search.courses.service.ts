@@ -42,7 +42,10 @@ export class SearchCoursesService {
                 { radius: radius * 1000 }
             );
 
-        const raws = await __setFilters(qb, filters, 1).getRawMany();
+        const raws = await __setFilters(qb, filters, 1)
+            .orderBy("distance", "ASC")
+            .getRawMany();
+
         return plainsToInstancesOrReject(SearchAdjacentCourseResult, raws);
     }
 

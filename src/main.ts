@@ -9,7 +9,6 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
 async function bootstrap() {
   initializeTransactionalContext();
-
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.set("trust_proxy", true);

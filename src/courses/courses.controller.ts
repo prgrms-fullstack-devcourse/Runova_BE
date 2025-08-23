@@ -1,16 +1,22 @@
-import { Body, Controller, Get, Inject, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Param, Post, Query, UseGuards } from "@nestjs/common";
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
     ApiBody,
     ApiCreatedResponse, ApiForbiddenResponse, ApiOkResponse,
-    ApiOperation, ApiParam,
+    ApiOperation, ApiParam, ApiQuery,
     ApiTags
 } from "@nestjs/swagger";
-import { CoursesService } from "./service";
+import { CoursesService, SearchCoursesService } from "./service";
 import { CourseDTO } from "./dto";
 import { User } from "../utils/decorator";
-import { CreateCourseBody, GetCoursesResponse } from "./api";
+import {
+    CreateCourseBody,
+    SearchAdjacentCoursesQuery,
+    SearchAdjacentCoursesResponse,
+    SearchCoursesQuery,
+    SearchCoursesResponse
+} from "./api";
 import { AuthGuard } from "@nestjs/passport";
 
 @ApiTags("Courses")
@@ -21,6 +27,8 @@ export class CoursesController {
     constructor(
         @Inject(CoursesService)
         private readonly coursesService: CoursesService,
+        @Inject(SearchCoursesService)
+        private readonly searchCoursesService: SearchCoursesService,
     ) {}
 
     @Post("/")
@@ -49,15 +57,36 @@ export class CoursesController {
        return this.coursesService.getCourse(id);
     }
 
-    @Get("/")
-    @ApiOperation({ summary: "내 경로 조회" })
+    @Get("/search/users")
+    @ApiOperation({ summary: "내 경로 검색" })
     @ApiBearerAuth()
-    @ApiOkResponse({ type: GetCoursesResponse })
+    @ApiQuery({ type: SearchCoursesQuery, required: false })
+    @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    async getUserCourses(
+    async searchUserCourses(
         @User("userId") userId: number,
-    ): Promise<GetCoursesResponse> {
-        const results = await this.coursesService.getCourses({ userId });
+        @Query() query?: SearchCoursesQuery,
+    ): Promise<SearchCoursesResponse> {
+
+        const results = await this.searchCoursesService
+            .searchCourses(query ? { userId, ...query } : { userId });
+
+        return { results };
+    }
+
+    @Get("/search/adjacent")
+    @ApiOperation({ summary: "주변 경로 검색" })
+    @ApiBearerAuth()
+    @ApiQuery({ type: SearchAdjacentCoursesQuery, required: true })
+    @ApiOkResponse({ type: SearchAdjacentCoursesResponse })
+    @ApiForbiddenResponse()
+    async searchAdjacentCourses(
+       @Query() query: SearchAdjacentCoursesQuery,
+    ): Promise<SearchAdjacentCoursesResponse> {
+
+        const results = await this.searchCoursesService
+            .searchAdjacentCourses(query);
+
         return { results };
     }
 }

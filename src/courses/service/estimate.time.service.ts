@@ -11,10 +11,10 @@ export class EstimateTimeService {
     ) {
         this.pace = config.get<number>(
             "RUNNER_MEAN_PACE"
-        ) ?? 1.7;
+        ) ?? 8;
     }
 
     estimateTime(length: number): number {
-        return Math.round((length / this.pace) * 1000);
+        return length / this.pace;
     }
 }

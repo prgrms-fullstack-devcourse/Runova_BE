@@ -3,7 +3,7 @@ import { RunningRecordDTO } from "./running.record.dto";
 import { Coordinates } from "../../common/geo";
 
 @ApiExtraModels(Coordinates)
-export class RunningRecordPreview extends PickType(
+export class SearchRunningRecordResult extends PickType(
     RunningRecordDTO,
     ["id", "startAt", "endAt"]
 ) {

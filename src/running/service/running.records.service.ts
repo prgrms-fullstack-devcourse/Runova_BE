@@ -6,7 +6,7 @@ import { Transactional } from "typeorm-transactional";
 import { CreateRunningRecordDTO, RunningRecordDTO, SearchRunningRecordsDTO } from "../dto";
 import { DateTimeFormatter, Duration, nativeJs } from "@js-joda/core";
 import { pick } from "../../utils/object";
-import { RunningRecordPreview } from "../dto/running.record.preview";
+import { SearchRunningRecordResult } from "../dto/search.running.record.result";
 import { plainToInstance } from "class-transformer";
 
 @Injectable()
@@ -48,7 +48,7 @@ export class RunningRecordsService {
 
     async searchRunningRecords(
         dto: SearchRunningRecordsDTO
-    ): Promise<RunningRecordPreview[]> {
+    ): Promise<SearchRunningRecordResult[]> {
         const { userId, cursor, limit } = dto;
 
         const raws = await this.recordsRepo
@@ -77,7 +77,7 @@ export class RunningRecordsService {
             .getRawMany();
 
         return raws.map(raw =>
-            plainToInstance(RunningRecordPreview, raw)
+            plainToInstance(SearchRunningRecordResult, raw)
         );
     }
 

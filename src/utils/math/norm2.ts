@@ -1,7 +1,9 @@
 
 export function norm2(r: number[]): number {
     return Math.sqrt(
-        r.map(x => x * x)
-            .reduce((acc, curr) => acc + curr)
+        r.reduce(
+            (acc, x) => acc + x * x,
+            0
+        )
     );
 }

@@ -6,6 +6,7 @@ import { initializeTransactionalContext } from "typeorm-transactional";
 import { ValidationPipe } from "@nestjs/common";
 import { LoggingInterceptor } from "./common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import "./config/proj4";
 
 async function bootstrap() {
   initializeTransactionalContext();

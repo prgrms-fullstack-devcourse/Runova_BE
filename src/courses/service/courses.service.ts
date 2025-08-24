@@ -8,8 +8,7 @@ import { EstimateTimeService } from "./estimate.time.service";
 import { pick } from "../../utils/object";
 import { Course, CourseNode } from "../../modules/courses";
 import { InspectPathService } from "./inspect.path.service";
-import { Duration } from "@js-joda/core";
-import { formatDuration } from "../../utils/format-duration";
+import { DateTimeFormatter, nativeJs } from "@js-joda/core";
 
 @Injectable()
 export class CoursesService {
@@ -86,13 +85,16 @@ export class CoursesService {
 
 }
 
+const __formatter: DateTimeFormatter =  DateTimeFormatter.ofPattern("HH:mm:ss");
+
 function __toDTO(course: Course): CourseDTO {
 
     const nodes: CourseNodeDTO[] = course.nodes.map(n =>
         pick(n, ["location", "progress", "bearing"])
     );
 
-    const timeRequired = formatDuration(Duration.ofHours(course.time));
+    const timeRequired = nativeJs(new Date(course.time))
+        .format(__formatter);
 
     return {
         ...pick(course, ["id", "departure", "length", "nCompleted"]),

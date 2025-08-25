@@ -17,6 +17,8 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from "@nestjs/swagger";
+import { User } from "src/utils/decorator";
+import { AuthUser } from "./types/types";
 
 class GoogleLoginDto {
   idToken: string;
@@ -51,6 +53,7 @@ export class AuthController {
     };
   }
 
+  // todo : 블랙리스트 구현
   @Post("refresh")
   @ApiOperation({ summary: "AccessToken 재발급" })
   @ApiResponse({ status: 200, description: "재발급 성공" })
@@ -78,10 +81,10 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "내 정보 조회 (인증 필요)" })
   @ApiResponse({ status: 200, description: "조회 성공" })
-  async me(@Req() req: any) {
+  async me(@User() user: AuthUser) {
     return {
-      userId: req.user.userId,
-      nickname: req.user.nickname,
+      userId: user.userId,
+      nickname: user.nickname,
     };
   }
 

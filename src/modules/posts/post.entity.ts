@@ -16,6 +16,7 @@ export enum PostType {
   FREE = "FREE",
   PROOF = "PROOF",
   SHARE = "SHARE",
+  MATE = "MATE",
 }
 
 @Entity("posts")
@@ -35,14 +36,16 @@ export class Post {
   type: PostType;
 
   @Column({ type: "text" })
+  title: string;
+
+  @Column({ type: "text" })
   content: string;
 
-  // 문자열 배열(이미지 URL)
   @Column({ type: "text", array: true, default: "{}" })
   imageUrls: string[];
 
-  @Column({ type: "int", nullable: true })
-  routeId?: number;
+  @Column({ type: "int", nullable: true, default: null })
+  routeId: number;
 
   @Column({ default: 0 }) likeCount: number;
   @Column({ default: 0 }) commentCount: number;

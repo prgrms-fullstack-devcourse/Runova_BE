@@ -1,4 +1,4 @@
-name: Deploy to EC2 (simple-typeorm)
+name: Deploy to EC2
 
 on:
   push:
@@ -25,23 +25,41 @@ jobs:
           script: |
             set -euxo pipefail
 
+            BRANCH="${{ github.ref_name }}"   # ← 푸시된 브랜치로 그대로 배포
             REPO_DIR=/home/${{ secrets.EC2_USERNAME }}/server
+
             if [ ! -d "$REPO_DIR/.git" ]; then
               mkdir -p "$REPO_DIR"
               git clone https://github.com/${{ github.repository }}.git "$REPO_DIR"
             fi
 
             cd "$REPO_DIR"
-            git fetch origin
-            git checkout dev
-            git reset --hard origin/dev
+            git fetch --all --prune
+            git checkout "$BRANCH"
+            git reset --hard "origin/$BRANCH"
 
-            # .env.production 내용을 ENV_FILE에 통으로 저장해 두세요
+            # 환경파일 생성
             cat > .env.production <<'EOF'
             ${{ secrets.ENV_PRODUCTION }}
             EOF
 
-            docker compose down
-            docker compose up -d --build
+            # 도커 베이스 이미지 최신화
+            docker pull node:22-alpine || true
+            docker pull redis:7-alpine || true
+
+            # 다운 및 정리
+            docker compose down --remove-orphans
+
+            # 빌드 (Dockerfile 변경사항 강제 반영하고 싶으면 --no-cache 한 번 사용)
+            docker compose --env-file .env.production build --pull
+            # docker compose --env-file .env.production build --pull --no-cache  # 1~2회만
+
+            # 기동
+            docker compose --env-file .env.production up -d
+
+            # 상태 확인
             docker compose ps
             docker ps
+
+            # 최근 로그(백엔드 서비스 이름에 맞게 조정)
+            docker compose logs runova-backend --since=2m || true

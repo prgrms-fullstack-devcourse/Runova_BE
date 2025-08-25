@@ -2,45 +2,43 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
-  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Unique,
+  Index,
 } from "typeorm";
-import { Post } from "../posts/post.entity";
-import { Comment } from "../posts/comment.entity";
-import { PostLike } from "../posts/post-like.entity";
-import { Course } from "../courses";
-import { SocialAccount } from "../auth/social-account.entity";
-import { UserSession } from "../auth/user-session.entity";
 
 @Entity({ name: "users" })
+@Unique("UQ_users_email", ["email"])
+@Unique("UQ_users_nickname", ["nickname"])
+@Unique("UQ_users_providerUserId", ["providerUserId"])
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Index({ unique: true })
-  @Column({ type: "varchar", nullable: false })
+  @Column({ type: "varchar", length: 320, nullable: false })
   email: string;
 
-  @Index({ unique: true })
-  @Column({ type: "varchar", nullable: false })
+  @Column({ type: "varchar", length: 50, nullable: false })
   nickname: string;
 
-  @OneToMany(() => Course, (c) => c.user)
-  courses: Course[];
+  @Column({ type: "varchar", length: 64, nullable: false })
+  providerUserId: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", length: 512, nullable: true })
   avatarUrl?: string;
 
-  @OneToMany(() => Post, (p) => p.author) posts: Post[];
-  @OneToMany(() => Comment, (c) => c.author) comments: Comment[];
-  @OneToMany(() => PostLike, (l) => l.user) likes: PostLike[];
+  @Column({ type: "text", nullable: true })
+  refreshTokenHash?: string;
 
-  // 추가: OAuth / 세션 연관
-  @OneToMany(() => SocialAccount, (sa) => sa.user)
-  socialAccounts: SocialAccount[];
-  @OneToMany(() => UserSession, (s) => s.user) sessions: UserSession[];
+  @Index()
+  @Column({ type: "timestamptz", nullable: true })
+  refreshExpiresAt?: Date;
+
+  // 토큰 무효화 고려: 강제 로그아웃/재사용 탐지 시 증가
+  @Index()
+  @Column({ type: "int", default: 0 })
+  tokenVersion: number;
 
   @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;

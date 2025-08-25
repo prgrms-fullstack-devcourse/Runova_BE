@@ -7,6 +7,8 @@ import {
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import * as argon2 from "argon2";
+import * as jwt from "jsonwebtoken";
+
 import { User } from "../modules/users/user.entity";
 import {
   OAuthProvider,
@@ -14,14 +16,12 @@ import {
 } from "../modules/auth/social-account.entity";
 import { UserSession } from "../modules/auth/user-session.entity";
 import { TokensService } from "./tokens.service";
-import * as jwt from "jsonwebtoken";
 import { GoogleService } from "./google.service";
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User)
-    private readonly usersRepo: Repository<User>,
+    @InjectRepository(User) private readonly usersRepo: Repository<User>,
     @InjectRepository(SocialAccount)
     private readonly socialRepo: Repository<SocialAccount>,
     @InjectRepository(UserSession)
@@ -31,8 +31,11 @@ export class AuthService {
   ) {}
 
   async loginWithGoogle(idToken: string, deviceInfo?: string, ip?: string) {
-    const { sub, email, name, picture } =
-      await this.googleService.verifyIdToken(idToken);
+    const { sub, email, name, picture } = await this.googleService
+      .verifyIdToken(idToken)
+      .catch(() => {
+        throw new UnauthorizedException("Invalid Google ID token");
+      });
 
     let social = await this.socialRepo.findOne({
       where: { provider: OAuthProvider.GOOGLE, providerUserId: sub },
@@ -41,13 +44,15 @@ export class AuthService {
 
     if (!social) {
       const safeEmail = email ?? `${sub}@google.local`;
-      const nickname = await this.generateUniqueNickname(
-        name || email?.split("@")[0] || "runner"
-      );
+      const desiredNickname = (name || email?.split("@")[0] || "runner")
+        .replace(/\s+/g, "")
+        .slice(0, 20);
+
+      await this.assertNicknameAvailable(desiredNickname);
 
       const user = this.usersRepo.create({
         email: safeEmail,
-        nickname,
+        nickname: desiredNickname,
         avatarUrl: picture,
       });
       await this.usersRepo.save(user);
@@ -69,6 +74,7 @@ export class AuthService {
       ip,
       expiresAt: new Date(Date.now() + this.refreshTtlMs()),
     });
+    await this.sessionsRepo.save(session);
 
     const accessToken = await this.tokensService.signAccessToken(
       user.id,
@@ -96,12 +102,14 @@ export class AuthService {
 
   async rotateRefreshToken(refreshToken: string, ip?: string) {
     const payload = this.verifyRefresh(refreshToken);
+
     const session = await this.sessionsRepo.findOne({
       where: { id: payload.sid },
       relations: ["user"],
     });
-    if (!session || session.revokedAt)
+    if (!session || session.revokedAt) {
       throw new ForbiddenException("Invalid session");
+    }
 
     const valid = await argon2
       .verify(session.refreshTokenHash, refreshToken)
@@ -112,8 +120,9 @@ export class AuthService {
       throw new ForbiddenException("Token reuse detected");
     }
 
-    if (session.expiresAt < new Date())
+    if (session.expiresAt < new Date()) {
       throw new ForbiddenException("Session expired");
+    }
 
     const newRefreshToken = await this.tokensService.signRefreshToken(
       payload.sub,
@@ -130,10 +139,7 @@ export class AuthService {
     session.ip = ip ?? session.ip;
     await this.sessionsRepo.save(session);
 
-    return {
-      accessToken,
-      refreshToken: newRefreshToken,
-    };
+    return { accessToken, refreshToken: newRefreshToken };
   }
 
   async logout(refreshToken?: string) {
@@ -161,16 +167,10 @@ export class AuthService {
     }
   }
 
-  private async generateUniqueNickname(base: string): Promise<string> {
-    const cleaned = base.replace(/\s+/g, "").slice(0, 20);
-    let candidate = cleaned;
-    for (let i = 0; i < 50; i++) {
-      const exists = await this.usersRepo.exist({
-        where: { nickname: candidate },
-      });
-      if (!exists) return candidate;
-      candidate = `${cleaned}${Math.floor(Math.random() * 10000)}`;
+  private async assertNicknameAvailable(nickname: string): Promise<void> {
+    const exists = await this.usersRepo.exist({ where: { nickname } });
+    if (exists) {
+      throw new ConflictException("Nickname already taken");
     }
-    throw new ConflictException("Cannot allocate unique nickname");
   }
 }

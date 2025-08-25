@@ -11,6 +11,11 @@ services:
     depends_on:
       - redis
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
   redis:
     image: redis:7-alpine
     ports:

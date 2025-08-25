@@ -15,9 +15,19 @@ echo "📦 기존 컨테이너 정리 중..."
 docker stop runova-backend runova-postgres runova-redis 2>/dev/null || true
 docker rm runova-backend runova-postgres runova-redis 2>/dev/null || true
 
+# 레지스트리 로그인 (GHCR 등)
+if [ -n "$REGISTRY_USERNAME" ] && [ -n "$REGISTRY_PASSWORD" ]; then
+  echo "🔐 레지스트리 로그인 중..."
+  echo "$REGISTRY_PASSWORD" | docker login $REGISTRY -u "$REGISTRY_USERNAME" --password-stdin || true
+fi
+
 # 최신 이미지 pull
 echo "📥 Docker 이미지 다운로드 중..."
-docker pull $REGISTRY/$IMAGE_NAME:$TAG
+if command -v docker compose >/dev/null 2>&1; then
+  docker compose -f docker-compose.prod.yml pull
+else
+  docker-compose -f docker-compose.prod.yml pull
+fi
 
 # 환경 변수 파일 확인
 if [ ! -f .env.production ]; then
@@ -28,10 +38,8 @@ fi
 # Docker Compose로 서비스 시작
 echo "🚀 서비스 시작 중..."
 if command -v docker compose >/dev/null 2>&1; then
-  docker compose -f docker-compose.prod.yml pull api
-  docker compose -f docker-compose.prod.yml up -d
+  docker compose -f docker-compose.prod.yml up -d --wait
 else
-  docker-compose -f docker-compose.prod.yml pull api
   docker-compose -f docker-compose.prod.yml up -d
 fi
 

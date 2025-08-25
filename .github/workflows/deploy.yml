@@ -1,0 +1,47 @@
+name: Deploy to EC2 (simple-typeorm)
+
+on:
+  push:
+    branches: [dev]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check SSH port reachability
+        run: |
+          set -euxo pipefail
+          HOST="${{ secrets.EC2_HOST }}"
+          PORT="${{ secrets.EC2_PORT }}"
+          timeout 3 bash -c "</dev/tcp/${HOST}/${PORT}" && echo "Port open" || (echo "Port closed"; exit 1)
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          script: |
+            set -euxo pipefail
+
+            REPO_DIR=/home/${{ secrets.EC2_USERNAME }}/server
+            if [ ! -d "$REPO_DIR/.git" ]; then
+              mkdir -p "$REPO_DIR"
+              git clone https://github.com/${{ github.repository }}.git "$REPO_DIR"
+            fi
+
+            cd "$REPO_DIR"
+            git fetch origin
+            git checkout dev
+            git reset --hard origin/dev
+
+            # .env.production 내용을 ENV_FILE에 통으로 저장해 두세요
+            cat > .env.production <<'EOF'
+            ${{ secrets.ENV_PRODUCTION }}
+            EOF
+
+            docker compose down
+            docker compose up -d --build
+            docker compose ps
+            docker ps

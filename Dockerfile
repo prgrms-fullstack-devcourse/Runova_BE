@@ -15,7 +15,7 @@ RUN npm run build
 # ===== runtime =====
 FROM node:22-alpine
 WORKDIR /app
-ENV NODE_ENV=production TZ=Asia/Seoul
+ENV NODE_ENV=production 
 
 COPY package*.json ./
 COPY --from=deps  /app/node_modules ./node_modules
@@ -23,4 +23,4 @@ COPY --from=build /app/dist ./dist
 
 EXPOSE 3000
 
-CMD ["sh", "-lc", "node -v && npx typeorm migration:run -d dist/config/typeorm/data-source.js && node dist/main.js"]
+CMD ["sh", "-lc", "node -v && npx typeorm migration:run:prod && node dist/main.js"]

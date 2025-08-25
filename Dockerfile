@@ -22,4 +22,13 @@ COPY package*.json ./
 
 EXPOSE 3000
 
-CMD ["sh","-lc","node -v && node node_modules/typeorm/cli.js -d dist/src/config/typeorm/data-source.js migration:run && node dist/main.js"]
+CMD ["sh", "-lc", "\
+  node -v && \
+  if [ -f dist/src/config/typeorm/data-source.js ]; then \
+    echo '[entrypoint] Running migrations...'; \
+    node node_modules/typeorm/cli.js -d dist/src/config/typeorm/data-source.js migration:run; \
+  else \
+    echo '[WARN] data-source.js not found'; \
+  fi && \
+  node dist/src/main.js"]
+

@@ -92,7 +92,7 @@ export class AuthController {
     const isProd = process.env.NODE_ENV === "production";
     res.cookie("refresh_token", token, {
       httpOnly: true,
-      secure: isProd ? true : false,
+      secure: isProd,
       sameSite: isProd ? "none" : "lax",
       path: "/auth",
       maxAge: 14 * 24 * 60 * 60 * 1000,

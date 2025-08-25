@@ -7,10 +7,10 @@ import { ValidationPipe } from "@nestjs/common";
 import { LoggingInterceptor } from "./common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+import "./config/proj4";
 
 async function bootstrap() {
   initializeTransactionalContext();
-
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useGlobalFilters(new HttpExceptionFilter());
 

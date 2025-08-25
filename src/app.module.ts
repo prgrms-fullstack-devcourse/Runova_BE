@@ -10,6 +10,8 @@ import {
 import { HealthModule } from "./health/health.module";
 import { AuthModule } from './auth/auth.module';
 import { CommunityModule } from './community/community.module';
+import { RunningModule } from './running/running.module';
+import { CoursesModule } from "./courses/courses.module";
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { CommunityModule } from './community/community.module';
     HealthModule,
     AuthModule,
     CommunityModule,
+    CoursesModule,
+    RunningModule,
   ],
   providers: [],
   controllers: [],

@@ -1,9 +1,10 @@
 version: "3.9"
-
 services:
   api:
     build: .
     container_name: runova-backend
+    env_file:
+      - .env.production
     ports:
       - "3000:3000"
     depends_on:

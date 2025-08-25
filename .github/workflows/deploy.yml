@@ -8,6 +8,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Check SSH port reachability
+        run: |
+          set -euxo pipefail
+          HOST="${{ secrets.EC2_HOST}}"
+          PORT="${{ secrets.EC2_PORT }}"
+          timeout 3 bash -c "</dev/tcp/${HOST}/${PORT}" && echo "Port open" || (echo "Port closed"; exit 1)
+
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -29,7 +36,6 @@ jobs:
             git checkout dev
             git reset --hard origin/dev
 
-            # .env.production 내용을 ENV_FILE에 통으로 저장해 두세요
             cat > .env.production <<'EOF'
             ${{ secrets.ENV_PRODUCTION }}
             EOF

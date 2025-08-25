@@ -57,11 +57,18 @@ export class AuthService {
         });
         await this.usersRepo.save(user);
       } catch (e) {
-        const code = (e as any)?.code;
-        const isUnique = e instanceof QueryFailedError && code === "23505";
+        if (e instanceof QueryFailedError && (e as any).code === "23505") {
+          const drv: any = (e as any).driverError ?? {};
+          const constraint: string | undefined = drv.constraint;
+          const detail: string | undefined = drv.detail;
 
-        if (isUnique) {
-          throw new ConflictException("Nickname already taken");
+          const isNickname =
+            constraint?.includes("nickname") || detail?.includes("(nickname)");
+          const isEmail =
+            constraint?.includes("email") || detail?.includes("(email)");
+
+          if (isNickname) throw new ConflictException("Nickname already taken");
+          if (isEmail) throw new ConflictException("Email already in use");
         }
         throw e;
       }

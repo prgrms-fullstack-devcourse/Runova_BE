@@ -8,7 +8,10 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import * as argon2 from "argon2";
 import { User } from "../modules/users/user.entity";
-import { SocialAccount } from "../modules/auth/social-account.entity";
+import {
+  OAuthProvider,
+  SocialAccount,
+} from "../modules/auth/social-account.entity";
 import { UserSession } from "../modules/auth/user-session.entity";
 import { TokensService } from "./tokens.service";
 import * as jwt from "jsonwebtoken";
@@ -32,7 +35,7 @@ export class AuthService {
       await this.googleService.verifyIdToken(idToken);
 
     let social = await this.socialRepo.findOne({
-      where: { provider: "GOOGLE", providerUserId: sub },
+      where: { provider: OAuthProvider.GOOGLE, providerUserId: sub },
       relations: ["user"],
     });
 
@@ -50,7 +53,7 @@ export class AuthService {
       await this.usersRepo.save(user);
 
       social = this.socialRepo.create({
-        provider: "GOOGLE",
+        provider: OAuthProvider.GOOGLE,
         providerUserId: sub,
         email: email ?? undefined,
         user,

@@ -53,6 +53,7 @@ export class AuthController {
     };
   }
 
+  // todo : 블랙리스트 구현
   @Post("refresh")
   @ApiOperation({ summary: "AccessToken 재발급" })
   @ApiResponse({ status: 200, description: "재발급 성공" })

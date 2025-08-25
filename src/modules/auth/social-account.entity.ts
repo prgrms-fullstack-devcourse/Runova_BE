@@ -21,6 +21,9 @@ export class SocialAccount {
   @Column({ type: "enum", enum: OAuthProvider, enumName: "oauth_provider" })
   provider: OAuthProvider;
 
+  @Column({ type: "varchar", length: 320, nullable: true })
+  email?: string;
+
   @Column({ type: "varchar", length: 64 })
   providerUserId: string;
 

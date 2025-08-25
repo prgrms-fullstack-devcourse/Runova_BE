@@ -25,7 +25,7 @@ jobs:
           script: |
             set -euxo pipefail
 
-            BRANCH="${{ github.ref_name }}"   # ← 푸시된 브랜치로 그대로 배포
+            BRANCH="${{ github.ref_name }}"   
             REPO_DIR=/home/${{ secrets.EC2_USERNAME }}/server
 
             if [ ! -d "$REPO_DIR/.git" ]; then
@@ -50,9 +50,8 @@ jobs:
             # 다운 및 정리
             docker compose down --remove-orphans
 
-            # 빌드 (Dockerfile 변경사항 강제 반영하고 싶으면 --no-cache 한 번 사용)
+            # 빌드 
             docker compose --env-file .env.production build --pull
-            # docker compose --env-file .env.production build --pull --no-cache  # 1~2회만
 
             # 기동
             docker compose --env-file .env.production up -d

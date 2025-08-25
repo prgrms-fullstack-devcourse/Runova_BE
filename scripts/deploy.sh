@@ -27,7 +27,13 @@ fi
 
 # Docker Compose로 서비스 시작
 echo "🚀 서비스 시작 중..."
-docker-compose -f docker-compose.prod.yml up -d
+if command -v docker compose >/dev/null 2>&1; then
+  docker compose -f docker-compose.prod.yml pull api
+  docker compose -f docker-compose.prod.yml up -d
+else
+  docker-compose -f docker-compose.prod.yml pull api
+  docker-compose -f docker-compose.prod.yml up -d
+fi
 
 # 헬스체크
 echo "🏥 헬스체크 중..."
@@ -38,7 +44,11 @@ if curl -f http://localhost:3000/health > /dev/null 2>&1; then
     echo "✅ 배포 성공! API 서비스가 정상적으로 실행 중입니다."
 else
     echo "❌ 배포 실패! API 서비스가 응답하지 않습니다."
-    docker-compose -f docker-compose.prod.yml logs api
+    if command -v docker compose >/dev/null 2>&1; then
+      docker compose -f docker-compose.prod.yml logs api
+    else
+      docker-compose -f docker-compose.prod.yml logs api
+    fi
     exit 1
 fi
 

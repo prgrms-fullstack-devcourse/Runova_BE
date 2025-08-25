@@ -1,7 +1,8 @@
 version: "3.9"
 services:
   api:
-    build: .
+    image: ${REGISTRY}/${IMAGE_NAME}:${TAG}
+    pull_policy: always
     container_name: runova-backend
     env_file:
       - .env.production

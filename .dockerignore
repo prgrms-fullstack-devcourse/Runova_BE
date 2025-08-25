@@ -121,3 +121,6 @@ web_modules/
 .yarn/install-state.gz
 .pnp.*
 
+*.log
+.env*
+

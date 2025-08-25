@@ -25,7 +25,7 @@ class GoogleLoginDto {
   deviceInfo?: string;
 }
 class RefreshDto {
-  refreshToken?: string;
+  refreshToken?: string | null;
 }
 
 @ApiTags("Auth")
@@ -41,11 +41,7 @@ export class AuthController {
     @Ip() ip: string,
     @Res({ passthrough: true }) res: Response
   ) {
-    const result = await this.authService.loginWithGoogle(
-      dto.idToken,
-      dto.deviceInfo,
-      ip
-    );
+    const result = await this.authService.loginWithGoogle(dto.idToken);
     this.setRefreshCookie(res, result.refreshToken);
     return {
       accessToken: result.accessToken,
@@ -64,15 +60,17 @@ export class AuthController {
     @Ip() ip: string
   ) {
     const refreshToken = dto.refreshToken || req.cookies["refresh_token"];
-    const result = await this.authService.rotateRefreshToken(refreshToken, ip);
+    const result = await this.authService.rotateRefreshToken(refreshToken);
     this.setRefreshCookie(res, result.refreshToken);
     return { accessToken: result.accessToken };
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post("logout")
   @ApiOperation({ summary: "로그아웃 및 세션 종료" })
-  async logout(@Body() dto: RefreshDto) {
-    await this.authService.logout(dto.refreshToken);
+  @ApiBearerAuth()
+  async logout(@User() user: AuthUser) {
+    await this.authService.logout(user.userId);
     return { ok: true };
   }
 

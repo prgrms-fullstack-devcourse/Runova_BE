@@ -28,7 +28,7 @@ export class Post {
   @Column()
   authorId: number;
 
-  @ManyToOne(() => User, (u) => u.posts, { onDelete: "CASCADE" })
+  @ManyToOne(() => User, { onDelete: "CASCADE" })
   author: User;
 
   @Index()

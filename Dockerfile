@@ -2,7 +2,7 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN npm ci
 
 # ===== build =====
 FROM node:22-alpine AS build
@@ -11,12 +11,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 RUN npm run build
-
-# ===== prod-deps only =====
-FROM node:22-alpine AS proddeps
-WORKDIR /app
-COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
 
 # ===== runtime =====
 FROM node:22-alpine

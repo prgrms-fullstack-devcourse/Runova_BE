@@ -21,5 +21,6 @@
     "noFallthroughCasesInSwitch": false,
     "moduleResolution": "node",
     "lib": ["ES2023", "ESNext"]
-  }
+  },
+  "include": ["src/**/*"]
 }

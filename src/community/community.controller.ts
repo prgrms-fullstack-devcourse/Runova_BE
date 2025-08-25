@@ -77,7 +77,6 @@ export class CommunityController {
     return this.service.togglePostLike(Number(id), userId);
   }
 
-  // Comments (ASC cursor)
   @ApiOperation({ summary: "댓글 목록(커서, ASC)" })
   @Get("posts/:postId/comments")
   async listComments(@Param("postId") postId: string, @Query() q: CursorQuery) {

@@ -54,7 +54,6 @@ export class CommunityService {
       qb.andWhere("p.authorId = :authorId", { authorId: f.authorId });
     if (f.routeId) qb.andWhere("p.routeId = :routeId", { routeId: f.routeId });
 
-    // recent: createdAt DESC, id DESC
     if (cursor) {
       qb.andWhere(
         "(p.createdAt < :cAt OR (p.createdAt = :cAt AND p.id < :cId))",
@@ -148,7 +147,6 @@ export class CommunityService {
     });
   }
 
-  // -------- Comments (ASC 커서) --------
   async listCommentsCursor(
     postId: number,
     q: CursorQuery
@@ -165,7 +163,6 @@ export class CommunityService {
       .createQueryBuilder("c")
       .where("c.postId = :postId", { postId });
 
-    // ASC: createdAt > cursor OR (== and id >)
     if (cursor) {
       qb.andWhere(
         "(c.createdAt > :cAt OR (c.createdAt = :cAt AND c.id > :cId))",

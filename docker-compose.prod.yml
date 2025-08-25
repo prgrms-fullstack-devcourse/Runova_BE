@@ -1,25 +1,18 @@
 version: "3.9"
+
 services:
   api:
-    image: ${REGISTRY}/${IMAGE_NAME}:${TAG}
-    pull_policy: always
+    build: .
     container_name: runova-backend
     env_file:
       - .env.production
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
     ports:
       - "3000:3000"
     depends_on:
       - redis
     restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
-      interval: 10s
-      timeout: 3s
-      retries: 6
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    restart: always

@@ -1,49 +1,3 @@
-name: Deploy
-
-on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-  TAG: latest
-
-jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
-
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT }}
-          script: |
-            cd ${{ secrets.REMOTE_DIR }}
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-            docker compose -f docker-compose.prod.yml pull || docker-compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d || docker-compose -f docker-compose.prod.yml up -d
 name: Deploy to EC2
 
 on:
@@ -68,10 +22,10 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
+          command_timeout: 45m
           script: |
             set -euxo pipefail
-
-            BRANCH="${{ github.ref_name }}"   
+            BRANCH="${{ github.ref_name }}"
             REPO_DIR=/home/${{ secrets.EC2_USERNAME }}/server
 
             if [ ! -d "$REPO_DIR/.git" ]; then
@@ -84,27 +38,17 @@ jobs:
             git checkout "$BRANCH"
             git reset --hard "origin/$BRANCH"
 
-            # 환경파일 생성
+            # 환경파일 생성/갱신
             cat > .env.production <<'EOF'
             ${{ secrets.ENV_PRODUCTION }}
             EOF
 
-            # 도커 베이스 이미지 최신화
+            # 배포
+            docker compose down --remove-orphans || true
             docker pull node:22-alpine || true
             docker pull redis:7-alpine || true
+            docker compose --env-file .env.production build --pull --no-cache
+            docker compose --env-file .env.production up -d --force-recreate
 
-            # 다운 및 정리
-            docker compose down --remove-orphans
-
-            # 빌드 
-            docker compose --env-file .env.production build --pull
-
-            # 기동
-            docker compose --env-file .env.production up -d
-
-            # 상태 확인
             docker compose ps
-            docker ps
-
-            # 최근 로그(백엔드 서비스 이름에 맞게 조정)
             docker compose logs runova-backend --since=2m || true

@@ -42,13 +42,8 @@ jobs:
           script: |
             cd ${{ secrets.REMOTE_DIR }}
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-            if command -v docker compose >/dev/null 2>&1; then
-              docker compose -f docker-compose.prod.yml pull
-              docker compose -f docker-compose.prod.yml up -d
-            else
-              docker-compose -f docker-compose.prod.yml pull
-              docker-compose -f docker-compose.prod.yml up -d
-            fi
+            docker compose -f docker-compose.prod.yml pull || docker-compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d || docker-compose -f docker-compose.prod.yml up -d
 name: Deploy to EC2
 
 on:

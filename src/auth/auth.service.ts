@@ -5,7 +5,7 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { QueryFailedError, Repository } from "typeorm";
 import * as argon2 from "argon2";
 import * as jwt from "jsonwebtoken";
 
@@ -48,14 +48,23 @@ export class AuthService {
         .replace(/\s+/g, "")
         .slice(0, 20);
 
-      await this.assertNicknameAvailable(desiredNickname);
+      let user: User;
+      try {
+        user = this.usersRepo.create({
+          email: safeEmail,
+          nickname: desiredNickname,
+          avatarUrl: picture,
+        });
+        await this.usersRepo.save(user);
+      } catch (e) {
+        const code = (e as any)?.code;
+        const isUnique = e instanceof QueryFailedError && code === "23505";
 
-      const user = this.usersRepo.create({
-        email: safeEmail,
-        nickname: desiredNickname,
-        avatarUrl: picture,
-      });
-      await this.usersRepo.save(user);
+        if (isUnique) {
+          throw new ConflictException("Nickname already taken");
+        }
+        throw e;
+      }
 
       social = this.socialRepo.create({
         provider: OAuthProvider.GOOGLE,

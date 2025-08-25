@@ -28,12 +28,12 @@ export class User {
   @Column({ type: "varchar", length: 512, nullable: true })
   avatarUrl?: string;
 
-  @Column({ type: "text", nullable: true })
-  refreshTokenHash?: string;
+  @Column({ type: "text", nullable: true, default: null })
+  refreshTokenHash: string | null;
 
   @Index()
-  @Column({ type: "timestamptz", nullable: true })
-  refreshExpiresAt?: Date;
+  @Column({ type: "timestamptz", nullable: true, default: null })
+  refreshExpiresAt: Date | null;
 
   // 토큰 무효화 고려: 강제 로그아웃/재사용 탐지 시 증가
   @Index()

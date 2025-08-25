@@ -19,7 +19,7 @@ export class Comment {
   @ManyToOne(() => Post, (p) => p.comments, { onDelete: "CASCADE" }) post: Post;
 
   @Index() @Column() authorId: number;
-  @ManyToOne(() => User, (u) => u.comments, { onDelete: "CASCADE" })
+  @ManyToOne(() => User, { onDelete: "CASCADE" })
   author: User;
 
   @Column({ type: "text" }) content: string;

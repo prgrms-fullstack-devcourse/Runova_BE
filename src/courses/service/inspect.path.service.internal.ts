@@ -1,11 +1,11 @@
 import { Coordinates, Location } from "../../common/geo";
 import { CourseNodeDTO, InspectPathResult } from "../dto";
-import { globeToProjected } from "../../config/proj4";
+import { convertGlobeToProjected } from "../../config/proj4";
 
 export function inspectPath(
     path: Location[],
 ): InspectPathResult {
-    const line = path.map(globeToProjected);
+    const line = path.map(convertGlobeToProjected);
     const segments = __makeSegments(line);
 
     let length = 0;

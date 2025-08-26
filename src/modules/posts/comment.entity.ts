@@ -15,10 +15,10 @@ export class Comment {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Index() @Column() postId: number;
+  @Index() @Column({ type: "int" }) postId: number;
   @ManyToOne(() => Post, (p) => p.comments, { onDelete: "CASCADE" }) post: Post;
 
-  @Index() @Column() authorId: number;
+  @Index() @Column({ type: "int" }) authorId: number;
   @ManyToOne(() => User, { onDelete: "CASCADE" })
   author: User;
 

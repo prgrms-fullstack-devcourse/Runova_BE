@@ -15,7 +15,7 @@ const __converter = proj(__WGS84, __CRS_NAME);
 
 export const CRS_CODE = Number(__CRS_NAME.split(':')[1]);
 
-export function globeToProjected(location: Location): Coordinates {
+export function convertGlobeToProjected(location: Location): Coordinates {
     const { lon: x, lat: y } = location;
     return new Coordinates(__converter.forward({ x, y }));
 }

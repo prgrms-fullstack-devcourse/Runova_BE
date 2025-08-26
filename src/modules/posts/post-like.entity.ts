@@ -16,10 +16,10 @@ export class PostLike {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Index() @Column() postId: number;
+  @Index() @Column({ type: "int" }) postId: number;
   @ManyToOne(() => Post, (p) => p.likes, { onDelete: "CASCADE" }) post: Post;
 
-  @Index() @Column() userId: number;
+  @Index() @Column({ type: "int" }) userId: number;
   @ManyToOne(() => User, { onDelete: "CASCADE" }) user: User;
 
   @CreateDateColumn() createdAt: Date;

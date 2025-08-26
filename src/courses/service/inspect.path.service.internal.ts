@@ -1,66 +1,79 @@
-import proj from "proj4";
-import { Coordinates } from "../../common/geo";
+import { Coordinates, Location } from "../../common/geo";
 import { CourseNodeDTO, InspectPathResult } from "../dto";
-import { applyOp, norm2 } from "../../utils/math";
-import { CRS_NAME } from "../../config/proj4";
+import { globeToProjected } from "../../config/proj4";
 
 export function inspectPath(
-    path: Coordinates[],
+    path: Location[],
 ): InspectPathResult {
-
-   const segments = __toSegments(
-       path.map(
-           p =>  proj(
-               "EPSG:4326",
-               CRS_NAME,
-               [p.lon, p.lat],
-           )
-       )
-   );
+    const line = path.map(globeToProjected);
+    const segments = __makeSegments(line);
 
     let length = 0;
+    let prevSeg: [number, number] = [0, 0];
     const nodes: CourseNodeDTO[] = [];
+
 
     segments.forEach((seg, i) => {
 
         nodes.push({
-            location: path[i],
+            coordinates: line[i],
             progress: length,
-            bearing: (Math.atan2(seg[0], seg[1]) * 180) / Math.PI
+            bearing: __bearing(prevSeg, seg)
         });
 
-        length += norm2(seg);
+        length += __length(seg);
+        prevSeg = seg;
     });
 
     nodes.push({
-        location: path.at(-1)!,
+        coordinates: line.at(-1)!,
         progress: length,
         bearing: 0
     });
 
-   return {
-       length: length / 1000,
-       nodes: nodes.map(node => {
-           node.progress /= length;
-           return node;
-       }),
-   };
+   return { length, nodes };
 }
 
-function __toSegments(line: [number, number][]): [number, number][] {
-    const segments: [number, number][] = [];
 
-    for (let  i = 1; i !== line.length; ++i) {
-        segments.push(
-            applyOp(
-                line[i], line[i - 1],
-                (a, b) => a - b
-            ) as [number, number]
-        );
+function __makeSegments(line: Coordinates[]): [number, number][] {
+    const results: [number, number][] = [];
+
+    for (let i = 0; i !== line.length - 1; ++i) {
+        const { x: x1, y: y1 } = line[i];
+        const { x: x2, y: y2 } = line[i + 1];
+        results.push([x2 - x1, y2 - y1]);
     }
 
-    return segments;
+    return results;
 }
+
+/**
+ *
+ * return length of segment in km
+ */
+function __length(seg: [number, number]): number {
+    return Math.sqrt(
+        seg.reduce(
+            (acc, curr) => acc + curr * curr,
+            0
+        )
+    ) / 1000;
+}
+
+/**
+ *
+ * return bearing angle between two segments
+ */
+function __bearing(
+    [x1, y1]: [number, number],
+    [x2, y2]: [number, number]
+): number {
+    return (Math.atan2(x2 - x1, y2 - y1) * 180) / Math.PI;
+}
+
+
+
+
 
 
 

@@ -26,10 +26,11 @@ jobs:
         run: |
           echo "$ENV_PRODUCTION" > .env.production
 
-          scp -i key.pem -P $PORT .env.production $USER@$HOST:/home/$USER/runova/.env.production
-          scp -i key.pem -P $PORT -r . $USER@$HOST:/home/$USER/runova
+          scp -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $PORT .env.production $USER@$HOST:/home/$USER/runova/.env.production
 
-          ssh -i key.pem -p $PORT $USER@$HOST << 'EOF'
+          scp -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $PORT -r . $USER@$HOST:/home/$USER/runova
+
+          ssh -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $PORT $USER@$HOST << 'EOF'
             cd ~/runova
             echo "[+] Building image"
             docker build -t runova-app .

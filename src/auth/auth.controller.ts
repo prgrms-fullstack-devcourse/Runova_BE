@@ -41,12 +41,17 @@ export class AuthController {
     @Ip() ip: string,
     @Res({ passthrough: true }) res: Response
   ) {
-    const result = await this.authService.loginWithGoogle(dto.idToken);
-    this.setRefreshCookie(res, result.refreshToken);
-    return {
-      accessToken: result.accessToken,
-      user: result.user,
-    };
+    try {
+      const result = await this.authService.loginWithGoogle(dto.idToken);
+      this.setRefreshCookie(res, result.refreshToken);
+      return {
+        accessToken: result.accessToken,
+        user: result.user,
+      };
+    } catch (error) {
+      console.error("Google login error:", error.message);
+      throw error;
+    }
   }
 
   // todo : 블랙리스트 구현

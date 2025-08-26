@@ -7,48 +7,36 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check SSH port reachability
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Add SSH key
         run: |
-          set -euxo pipefail
-          HOST="${{ secrets.EC2_HOST }}"
-          PORT="${{ secrets.EC2_PORT }}"
-          timeout 3 bash -c "</dev/tcp/${HOST}/${PORT}" && echo "Port open" || (echo "Port closed"; exit 1)
+          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
 
-      - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT }}
-          command_timeout: 45m
-          script: |
-            set -euxo pipefail
-            BRANCH="${{ github.ref_name }}"
-            REPO_DIR=/home/${{ secrets.EC2_USERNAME }}/server
+      - name: Deploy to EC2
+        env:
+          HOST: ${{ secrets.EC2_HOST }}
+          PORT: ${{ secrets.EC2_PORT }}
+          USER: ${{ secrets.EC2_USERNAME }}
+          ENV_PRODUCTION: ${{ secrets.ENV_PRODUCTION }}
+        run: |
+          echo "$ENV_PRODUCTION" > .env.production
 
-            if [ ! -d "$REPO_DIR/.git" ]; then
-              mkdir -p "$REPO_DIR"
-              git clone https://github.com/${{ github.repository }}.git "$REPO_DIR"
-            fi
+          scp -i key.pem -P $PORT .env.production $USER@$HOST:/home/$USER/runova/.env.production
+          scp -i key.pem -P $PORT -r . $USER@$HOST:/home/$USER/runova
 
-            cd "$REPO_DIR"
-            git fetch --all --prune
-            git checkout "$BRANCH"
-            git reset --hard "origin/$BRANCH"
+          ssh -i key.pem -p $PORT $USER@$HOST << 'EOF'
+            cd ~/runova
+            echo "[+] Building image"
+            docker build -t runova-app .
 
-            # 환경파일 생성/갱신
-            cat > .env.production <<'EOF'
-            ${{ secrets.ENV_PRODUCTION }}
-            EOF
+            echo "[+] Stopping existing container"
+            docker stop runova || true && docker rm runova || true
 
-            # 배포
-            docker compose down --remove-orphans || true
-            docker pull node:22-alpine || true
-            docker pull redis:7-alpine || true
-            docker compose --env-file .env.production build --pull --no-cache
-            docker compose --env-file .env.production up -d --force-recreate
-
-            docker compose ps
-            docker compose logs runova-backend --since=2m || true
+            echo "[+] Starting new container"
+            docker run -d --name runova --restart=always --env-file .env.production -p 3000:3000 runova-app
+          EOF

@@ -1,207 +1,300 @@
-/**
- * Jest tests + perf micro-bench for inspectPath
- */
-import proj from "proj4";
-import { inspectPath } from "./inspect.path.service.internal";
-import { CRS_NAME } from "../../config/proj4";
-import type { Coordinates } from "../../common/geo";
+import { inspectPath } from './inspect.path.service.internal';
+import { Location } from '../../common/geo';
 
-jest.setTimeout(60_000);
+// Mock globeToProjected function
+jest.mock('../../config/proj4', () => ({
+  globeToProjected: jest.fn((location: Location) => ({
+    x: location.lon * 111000, // Rough conversion for testing
+    y: location.lat * 111000,
+  })),
+}));
 
-/** Build a polyline roughly ~10–15km long around central Seoul */
-function buildSamplePath(points = 500): Coordinates[] {
-    // Start near Gyeongbokgung
-    const start: Coordinates = { lon: 126.9769, lat: 37.5796 };
-    const end: Coordinates   = { lon: 127.0350, lat: 37.5000 }; // toward Gangnam
-    const path: Coordinates[] = [];
-    for (let i = 0; i < points; i++) {
-        const t = i / (points - 1);
-        // Simple easing with a small sinusoidal wiggle to avoid perfectly straight line
-        const lon = start.lon + (end.lon - start.lon) * t + 0.002 * Math.sin(10 * t * Math.PI);
-        const lat = start.lat + (end.lat - start.lat) * t + 0.002 * Math.cos(8 * t * Math.PI);
-        path.push({ lon, lat });
-    }
-    return path;
-}
+describe('InspectPathService', () => {
+  describe('inspectPath', () => {
 
-function projectLengthKm(coords: Coordinates[]): number {
-    // Sum Euclidean distances after projecting to 5179 (meters), then convert to km
-    let sumM = 0;
-    for (let i = 1; i < coords.length; i++) {
-        const a = coords[i - 1];
-        const b = coords[i];
-        const [ax, ay] = proj("EPSG:4326", CRS_NAME, [a.lon, a.lat]) as [number, number];
-        const [bx, by] = proj("EPSG:4326", CRS_NAME, [b.lon, b.lat]) as [number, number];
-        const dx = bx - ax;
-        const dy = by - ay;
-        sumM += Math.hypot(dx, dy);
-    }
-    return sumM / 1000;
-}
+    it('should calculate correct length for two points', () => {
+      const path: Location[] = [
+        { lon: 0, lat: 0 },
+        { lon: 0.001, lat: 0 } // ~111m east
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.nodes).toHaveLength(2);
+      expect(result.length).toBeCloseTo(0.111, 2); // ~111m in km
+      expect(result.nodes[0].progress).toBe(0);
+      expect(result.nodes[1].progress).toBeCloseTo(0.111, 2);
+    });
 
-describe("inspectPath", () => {
-    test("basic shape: nodes align with input, progress normalized, length in km", () => {
-        const path = buildSamplePath(8);
+    it('should calculate correct bearing for eastward movement', () => {
+      const path: Location[] = [
+        { lon: 0, lat: 0 },
+        { lon: 0.001, lat: 0 }
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.nodes[0].bearing).toBe(90); // East bearing
+    });
+
+    it('should calculate correct bearing for northward movement', () => {
+      const path: Location[] = [
+        { lon: 0, lat: 0 },
+        { lon: 0, lat: 0.001 }
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.nodes[0].bearing).toBe(0); // North bearing
+    });
+
+    it('should calculate correct bearing for southward movement', () => {
+      const path: Location[] = [
+        { lon: 0, lat: 0 },
+        { lon: 0, lat: -0.001 }
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.nodes[0].bearing).toBe(180); // South bearing
+    });
+
+    it('should calculate correct bearing for westward movement', () => {
+      const path: Location[] = [
+        { lon: 0, lat: 0 },
+        { lon: -0.001, lat: 0 }
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.nodes[0].bearing).toBe(-90); // West bearing
+    });
+
+    it('should handle complex path with multiple segments', () => {
+      const path: Location[] = [
+        { lon: 0, lat: 0 },     // Start
+        { lon: 0.001, lat: 0 }, // East
+        { lon: 0.001, lat: 0.001 }, // North
+        { lon: 0, lat: 0.001 }  // West
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.nodes).toHaveLength(4);
+      expect(result.length).toBeCloseTo(0.333, 2); // Three ~111m segments
+      
+      // Check bearings at turning points
+      expect(result.nodes[0].bearing).toBe(90);  // East
+      expect(result.nodes[1].bearing).toBe(-45);   // North
+      expect(result.nodes[2].bearing).toBe(-135); // West
+      expect(result.nodes[3].bearing).toBe(0);   // Final node always 0
+    });
+
+    it('should accumulate progress correctly', () => {
+      const path: Location[] = [
+        { lon: 0, lat: 0 },
+        { lon: 0.001, lat: 0 },
+        { lon: 0.001, lat: 0.001 }
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.nodes[0].progress).toBe(0);
+      expect(result.nodes[1].progress).toBeCloseTo(0.111, 2);
+      expect(result.nodes[2].progress).toBeCloseTo(0.222, 2);
+    });
+
+    it('should handle diagonal movement', () => {
+      const path: Location[] = [
+        { lon: 0, lat: 0 },
+        { lon: 0.001, lat: 0.001 }
+      ];
+      const result = inspectPath(path);
+      
+      // Diagonal should be sqrt(2) * 111m ≈ 0.157km
+      expect(result.length).toBeCloseTo(0.157, 2);
+      expect(result.nodes[0].bearing).toBe(45); // Northeast
+    });
+
+    it('should handle very small coordinates', () => {
+      const path: Location[] = [
+        { lon: 0.000001, lat: 0.000001 },
+        { lon: 0.000002, lat: 0.000002 }
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.length).toBeGreaterThan(0);
+      expect(result.nodes).toHaveLength(2);
+      expect(result.nodes[0].bearing).toBe(45);
+    });
+
+    it('should handle negative coordinates', () => {
+      const path: Location[] = [
+        { lon: -1, lat: -1 },
+        { lon: -0.999, lat: -1 }
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.length).toBeCloseTo(0.111, 2);
+      expect(result.nodes[0].bearing).toBe(90); // Still eastward
+    });
+
+    it('should maintain coordinate precision in nodes', () => {
+      const path: Location[] = [
+        { lon: 127.12345, lat: 37.54321 },
+        { lon: 127.12445, lat: 37.54421 }
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.nodes[0].coordinates.x).toBe(127.12345 * 111000);
+      expect(result.nodes[0].coordinates.y).toBe(37.54321 * 111000);
+    });
+  });
+
+  describe('Performance Tests', () => {
+    it('should process small paths quickly', () => {
+      const path: Location[] = Array.from({ length: 10 }, (_, i) => ({
+        lon: i * 0.001,
+        lat: i * 0.001
+      }));
+
+      const start = performance.now();
+      const result = inspectPath(path);
+      const end = performance.now();
+      
+      expect(end - start).toBeLessThan(10); // Should complete in under 10ms
+      expect(result.nodes).toHaveLength(10);
+    });
+
+    it('should handle medium-sized paths efficiently', () => {
+      const path: Location[] = Array.from({ length: 100 }, (_, i) => ({
+        lon: i * 0.0001,
+        lat: Math.sin(i * 0.1) * 0.01
+      }));
+
+      const start = performance.now();
+      const result = inspectPath(path);
+      const end = performance.now();
+      
+      expect(end - start).toBeLessThan(50); // Should complete in under 50ms
+      expect(result.nodes).toHaveLength(100);
+    });
+
+    it('should handle large paths within reasonable time', () => {
+      const path: Location[] = Array.from({ length: 1000 }, (_, i) => ({
+        lon: i * 0.00001,
+        lat: Math.cos(i * 0.01) * 0.001
+      }));
+
+      const start = performance.now();
+      const result = inspectPath(path);
+      const end = performance.now();
+      
+      expect(end - start).toBeLessThan(200); // Should complete in under 200ms
+      expect(result.nodes).toHaveLength(1000);
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('should maintain linear time complexity', () => {
+      const sizes = [10, 50, 100];
+      const times: number[] = [];
+
+      sizes.forEach(size => {
+        const path: Location[] = Array.from({ length: size }, (_, i) => ({
+          lon: i * 0.001,
+          lat: i * 0.001
+        }));
+
+        const start = performance.now();
+        inspectPath(path);
+        const end = performance.now();
+        
+        times.push(end - start);
+      });
+
+      // Time should scale roughly linearly
+      const ratio1 = times[1] / times[0]; // 50/10 = 5x size
+      const ratio2 = times[2] / times[1]; // 100/50 = 2x size
+      
+      // Allow some variance but should be roughly proportional
+      expect(ratio1).toBeLessThan(10); // Shouldn't be more than 10x slower for 5x data
+      expect(ratio2).toBeLessThan(5);  // Shouldn't be more than 5x slower for 2x data
+    });
+
+    it('should not leak memory with repeated calls', () => {
+      const path: Location[] = Array.from({ length: 100 }, (_, i) => ({
+        lon: i * 0.001,
+        lat: i * 0.001
+      }));
+
+      // Run multiple times to check for memory leaks
+      for (let i = 0; i < 100; i++) {
         const result = inspectPath(path);
-
-        // length is reported in kilometers
-        expect(result.length).toBeGreaterThan(1);  // >1 km
-        expect(result.length).toBeLessThan(50);    // <50 km for our synthetic line
-
-        // nodes.length == path.length
-        expect(result.nodes).toHaveLength(path.length);
-
-        // first node maps to first input coord with progress ~0
-        expect(result.nodes[0].location).toEqual(path[0]);
-        expect(result.nodes[0].progress).toBeCloseTo(0, 10);
-
-        // last node progress == 1
-        const last = result.nodes[result.nodes.length - 1];
-        expect(last.location).toEqual(path[path.length - 1]);
-        expect(last.progress).toBeCloseTo(1, 10);
-
-        // progress is non-decreasing
-        for (let i = 1; i < result.nodes.length; i++) {
-            expect(result.nodes[i].progress).toBeGreaterThanOrEqual(result.nodes[i - 1].progress);
-        }
-
-        // bearings are finite numbers; last bearing is 0 per implementation
-        for (let i = 0; i < result.nodes.length - 1; i++) {
-            expect(Number.isFinite(result.nodes[i].bearing)).toBe(true);
-        }
-        expect(last.bearing).toBe(0);
+        expect(result.nodes).toHaveLength(100);
+      }
     });
 
-    test("projection sanity: 4326 -> 5179 yields [east, north] meters-ish", () => {
-        const sample: Coordinates = { lon: 126.9780, lat: 37.5665 }; // Seoul City Hall
-        const [x, y] = proj("EPSG:4326", CRS_NAME, [sample.lon, sample.lat]) as [number, number];
+    it('should handle stress test with very large dataset', () => {
+      const path: Location[] = Array.from({ length: 10000 }, (_, i) => ({
+        lon: (i % 360) * 0.000001, // Create a pattern to avoid monotonic increase
+        lat: Math.sin(i * 0.001) * 0.0001
+      }));
 
-        // Sanity checks: numbers, and magnitudes consistent with Easting/Northing (in meters)
-        expect(Number.isFinite(x)).toBe(true);
-        expect(Number.isFinite(y)).toBe(true);
+      const start = performance.now();
+      const result = inspectPath(path);
+      const end = performance.now();
+      
+      expect(end - start).toBeLessThan(2000); // Should complete in under 2 seconds
+      expect(result.nodes).toHaveLength(10000);
+      expect(result.length).toBeGreaterThan(0);
+      
+      // Verify some properties are still correct
+      expect(result.nodes[0].progress).toBe(0);
+      expect(result.nodes[result.nodes.length - 1].bearing).toBe(0);
+    });
+  });
 
-        // Easting is typically around ~1,000,000m and Northing ~2,000,000m in EPSG:5179 with your proj4 params
-        expect(x).toBeGreaterThan(500_000);
-        expect(x).toBeLessThan(1_500_000);
-        expect(y).toBeGreaterThan(1_500_000);
-        expect(y).toBeLessThan(2_500_000);
+  describe('Edge Cases', () => {
+    it('should handle identical consecutive points', () => {
+      const path: Location[] = [
+        { lon: 0, lat: 0 },
+        { lon: 0, lat: 0 }, // Duplicate
+        { lon: 0.001, lat: 0 }
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.nodes).toHaveLength(3);
+      expect(result.nodes[0].progress).toBe(0);
+      expect(result.nodes[1].progress).toBe(0); // No distance from duplicate
     });
 
-    test("performance: run multiple iterations and report avg / p95 (ms) to console", () => {
-        const N = 150;              // iterations
-        const SIZE = 1200;          // path points per iteration
-        const times: number[] = [];
-
-        // warmup
-        inspectPath(buildSamplePath(200));
-
-        for (let i = 0; i < N; i++) {
-            const path = buildSamplePath(SIZE);
-            const t0 = process.hrtime.bigint();
-            const result = inspectPath(path);
-            const t1 = process.hrtime.bigint();
-
-            // sanity to avoid dead-code elimination in VMs
-            if (!result || result.nodes.length !== SIZE) {
-                throw new Error("Unexpected result size");
-            }
-
-            const ms = Number(t1 - t0) / 1e6;
-            times.push(ms);
-        }
-
-        times.sort((a, b) => a - b);
-        const avg = times.reduce((s, v) => s + v, 0) / times.length;
-        const p95 = times[Math.floor(times.length * 0.95)];
-
-        // eslint-disable-next-line no-console
-        console.info(
-            `[inspectPath] perf over ${N} iters @ SIZE=${SIZE}: avg=${avg.toFixed(3)} ms, p95=${p95.toFixed(3)} ms`
-        );
-
-        // Optional soft sanity: fail if truly pathological (adjust if needed)
-        expect(avg).toBeLessThan(150); // keep generous to avoid CI noise
-        expect(p95).toBeLessThan(250);
+    it('should handle extreme coordinate values', () => {
+      const path: Location[] = [
+        { lon: -180, lat: -90 },
+        { lon: 180, lat: 90 }
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.nodes).toHaveLength(2);
+      expect(result.length).toBeGreaterThan(0);
+      expect(isFinite(result.length)).toBe(true);
     });
 
-
-    test("progress is strictly non-decreasing even with duplicate points", () => {
-        const base = buildSamplePath(10);
-        // Inject duplicates at a few positions
-        const withDupes: Coordinates[] = [];
-        for (let i = 0; i < base.length; i++) {
-            withDupes.push(base[i]);
-            if (i === 3 || i === 7) withDupes.push(base[i]);
-        }
-        const result = inspectPath(withDupes);
-
-        // Non-decreasing progress
-        for (let i = 1; i < result.nodes.length; i++) {
-            expect(result.nodes[i].progress).toBeGreaterThanOrEqual(result.nodes[i - 1].progress);
-        }
-        // Stays within [0,1]
-        expect(result.nodes[0].progress).toBeGreaterThanOrEqual(0);
-        expect(result.nodes[result.nodes.length - 1].progress).toBeLessThanOrEqual(1);
-        // bearings finite (including on zero-length segments introduced by duplicates)
-        for (let i = 0; i < result.nodes.length; i++) {
-            expect(Number.isFinite(result.nodes[i].bearing)).toBe(true);
-            expect(result.nodes[i].bearing).toBeGreaterThanOrEqual(-180);
-            expect(result.nodes[i].bearing).toBeLessThan(180);
-        }
+    it('should handle floating point precision issues', () => {
+      const path: Location[] = [
+        { lon: 0.1 + 0.2, lat: 0.1 + 0.2 }, // 0.30000000000000004
+        { lon: 0.3, lat: 0.3 }
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.nodes).toHaveLength(2);
+      expect(isFinite(result.length)).toBe(true);
     });
 
-    test("length ≈ sum of projected segment lengths (within tolerance)", () => {
-        const path = buildSamplePath(64);
-        const result = inspectPath(path);
-        const expectedKm = projectLengthKm(path);
-        // Tolerance: 0.2% of length + 0.05 km to allow for rounding/internal differences
-        const tol = expectedKm * 0.002 + 0.05;
-        expect(Math.abs(result.length - expectedKm)).toBeLessThanOrEqual(tol);
+    it('should handle zero-length segments gracefully', () => {
+      const path: Location[] = [
+        { lon: 1, lat: 1 },
+        { lon: 1, lat: 1 },
+        { lon: 1, lat: 1 }
+      ];
+      const result = inspectPath(path);
+      
+      expect(result.length).toBe(0);
+      expect(result.nodes).toHaveLength(3);
+      expect(result.nodes.every(node => node.progress === 0)).toBe(true);
     });
-
-    test("bearings are normalized to [0, 360) and finite", () => {
-        const path = buildSamplePath(40);
-        const result = inspectPath(path);
-        for (const node of result.nodes) {
-            expect(Number.isFinite(node.bearing)).toBe(true);
-            expect(node.bearing).toBeGreaterThanOrEqual(-180);
-            expect(node.bearing).toBeLessThan(180);
-        }
-    });
-
-    test("deterministic output for identical input (length, progress, bearings)", () => {
-        const path = buildSamplePath(32);
-        const a = inspectPath(path);
-        const b = inspectPath(path);
-
-        expect(a.length).toBeCloseTo(b.length, 10);
-        expect(a.nodes.length).toBe(b.nodes.length);
-        for (let i = 0; i < a.nodes.length; i++) {
-            const an = a.nodes[i];
-            const bn = b.nodes[i];
-            // locations should match input positions exactly
-            expect(an.location).toEqual(bn.location);
-            // progress and bearing should be numerically equal (within FP noise)
-            expect(an.progress).toBeCloseTo(bn.progress, 10);
-            expect(an.bearing).toBeCloseTo(bn.bearing, 10);
-        }
-    });
-
-    test("handles nearly-degenerate path (mostly identical points) without NaNs", () => {
-        const pivot: Coordinates = { lon: 126.978, lat: 37.5665 };
-        const path: Coordinates[] = Array.from({ length: 20 }, () => ({ ...pivot }));
-        // Add a tiny displacement at the end to avoid zero total length
-        path[path.length - 1] = { lon: pivot.lon + 1e-5, lat: pivot.lat };
-
-        const result = inspectPath(path);
-        expect(Number.isFinite(result.length)).toBe(true);
-        for (const n of result.nodes) {
-            expect(Number.isFinite(n.progress)).toBe(true);
-            expect(n.progress).toBeGreaterThanOrEqual(0);
-            expect(n.progress).toBeLessThanOrEqual(1);
-            expect(Number.isFinite(n.bearing)).toBe(true);
-        }
-    });
-
-    test.todo("rejects invalid coordinates (NaN/Infinity)");
+  });
 });

@@ -17,6 +17,10 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
           chmod 600 key.pem
 
+      - name: Ensure remote folder exists
+        run: |
+          ssh -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $PORT $USER@$HOST "mkdir -p ~/runova"
+
       - name: Deploy to EC2
         env:
           HOST: ${{ secrets.EC2_HOST }}
@@ -27,7 +31,6 @@ jobs:
           echo "$ENV_PRODUCTION" > .env.production
 
           scp -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $PORT .env.production $USER@$HOST:/home/$USER/runova/.env.production
-
           scp -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $PORT -r . $USER@$HOST:/home/$USER/runova
 
           ssh -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $PORT $USER@$HOST << 'EOF'

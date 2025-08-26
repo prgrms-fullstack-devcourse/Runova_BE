@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy to EC2 (pull-based)
 
 on:
   push:
@@ -9,19 +9,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
       - name: Add SSH key
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
           chmod 600 key.pem
 
-      - name: Ensure remote folder exists
-        run: |
-          ssh -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $PORT $USER@$HOST "mkdir -p ~/runova"
-
-      - name: Deploy to EC2
+      - name: Send env file
         env:
           HOST: ${{ secrets.EC2_HOST }}
           PORT: ${{ secrets.EC2_PORT }}
@@ -29,18 +22,28 @@ jobs:
           ENV_PRODUCTION: ${{ secrets.ENV_PRODUCTION }}
         run: |
           echo "$ENV_PRODUCTION" > .env.production
-
+          ssh -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $PORT $USER@$HOST "mkdir -p ~/runova"
           scp -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $PORT .env.production $USER@$HOST:/home/$USER/runova/.env.production
-          scp -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $PORT -r . $USER@$HOST:/home/$USER/runova
 
+      - name: Deploy via git pull
+        env:
+          HOST: ${{ secrets.EC2_HOST }}
+          PORT: ${{ secrets.EC2_PORT }}
+          USER: ${{ secrets.EC2_USERNAME }}
+        run: |
           ssh -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $PORT $USER@$HOST << 'EOF'
             cd ~/runova
-            echo "[+] Building image"
+
+            echo "[+] Pull latest code"
+            git reset --hard
+            git pull origin main
+
+            echo "[+] Build docker image"
             docker build -t runova-app .
 
-            echo "[+] Stopping existing container"
+            echo "[+] Stop old container"
             docker stop runova || true && docker rm runova || true
 
-            echo "[+] Starting new container"
+            echo "[+] Run new container"
             docker run -d --name runova --restart=always --env-file .env.production -p 3000:3000 runova-app
           EOF

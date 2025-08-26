@@ -1,5 +1,5 @@
 # ===== deps =====
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 # TypeORM CLI(ts-node 등)가 devDependencies에 있는 경우가 많으므로 심플 모드로 전부 설치

@@ -25,7 +25,7 @@ export class Post {
   id: number;
 
   @Index()
-  @Column()
+  @Column({ type: "int" })
   authorId: number;
 
   @ManyToOne(() => User, { onDelete: "CASCADE" })
@@ -47,13 +47,13 @@ export class Post {
   @Column({ type: "int", nullable: true, default: null })
   routeId: number;
 
-  @Column({ default: 0 }) likeCount: number;
-  @Column({ default: 0 }) commentCount: number;
+  @Column({ type: "int",default: 0 }) likeCount: number;
+  @Column({ type: "int", default: 0 }) commentCount: number;
 
   @CreateDateColumn() createdAt: Date;
   @UpdateDateColumn() updatedAt: Date;
 
-  @Column({ default: false }) isDeleted: boolean;
+  @Column({ type: "boolean", default: false }) isDeleted: boolean;
 
   @OneToMany(() => Comment, (c) => c.post) comments: Comment[];
   @OneToMany(() => PostLike, (l) => l.post) likes: PostLike[];

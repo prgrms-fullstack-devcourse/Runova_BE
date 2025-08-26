@@ -1,13 +1,13 @@
 import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
-import { Coordinates } from "../../common/geo";
+import { Location } from "../../common/geo";
 import { Type } from "class-transformer";
 import { ArrayMinSize, ValidateNested } from "class-validator";
 
-@ApiExtraModels(Coordinates)
+@ApiExtraModels(Location)
 export class CreateCourseBody {
     @ArrayMinSize(2)
     @ValidateNested({ each: true })
-    @Type(() => Coordinates)
-    @ApiProperty({ type: [Coordinates], required: true, maxItems: 2 })
-    path: Coordinates[];
+    @Type(() => Location)
+    @ApiProperty({ type: [Location], required: true, maxItems: 2 })
+    path: Location[];
 }

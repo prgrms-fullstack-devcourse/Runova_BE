@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { CoursesService, EstimateTimeService, InspectPathService, SearchCoursesService } from './service';
+import { CoursesService, EstimateHoursService, InspectPathService, SearchCoursesService } from './service';
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Course, CourseNode } from "../modules/courses";
 import { CoursesController } from "./courses.controller";
@@ -10,7 +10,7 @@ import { CoursesController } from "./courses.controller";
       CoursesService,
       SearchCoursesService,
       InspectPathService,
-      EstimateTimeService,
+      EstimateHoursService,
   ],
   controllers: [CoursesController],
 })

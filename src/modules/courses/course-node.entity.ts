@@ -1,6 +1,6 @@
 import { ImmutableEntityBase } from "../../common/entity";
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Coordinates, PointColumn } from "../../common/geo";
+import { Coordinates } from "../../common/geo";
 import { Course } from "./course.entity";
 
 @Entity("course_nodes")
@@ -16,8 +16,8 @@ export class CourseNode extends ImmutableEntityBase {
     @JoinColumn({ name: "course_id" })
     course: Course;
 
-    @PointColumn()
-    location: Coordinates;
+    @Column({ type: "jsonb" })
+    coordinates: Coordinates;
 
     @Column({ type: "float8" })
     progress: number;

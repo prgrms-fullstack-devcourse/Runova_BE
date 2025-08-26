@@ -4,7 +4,7 @@ import { User } from "../users";
 import { Course } from "../courses";
 import transformer from "../../utils/datetime-transformer";
 import { LocalDateTime } from "@js-joda/core";
-import { Coordinates, LineStringColumn } from "../../common/geo";
+import { lineStringToLocations, Location, locationsToLineString } from "../../common/geo";
 
 @Entity("running_records")
 export class RunningRecord extends ImmutableEntityBase {
@@ -27,8 +27,17 @@ export class RunningRecord extends ImmutableEntityBase {
     @JoinColumn({ name: "course_id" })
     course: Course | null;
 
-    @LineStringColumn()
-    path: Coordinates[];
+    @Column({
+        type: "geometry",
+        spatialFeatureType: "LineString",
+        precision: 6,
+        srid: 4326,
+        transformer: {
+            from: lineStringToLocations,
+            to: locationsToLineString,
+        }
+    })
+    path: Location[];
 
     @Column({ name: "start_at", type: "datetime", transformer })
     startAt: LocalDateTime;

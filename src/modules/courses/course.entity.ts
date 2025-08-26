@@ -10,11 +10,11 @@ import { User } from "../users";
 import { CourseNode } from "./course-node.entity";
 import {
   Coordinates,
-  coordinatesToPoint,
-  lineStringToLocations,
+  convertCoordinatesToPoint,
+  convertLineStringToLocations,
   Location,
-  locationsToLineString,
-  pointToCoordinates
+  convertLocationsToLineString,
+  convertPointToCoordinates
 } from "../../common/geo";
 import { CRS_CODE } from "../../config/proj4";
 
@@ -38,8 +38,8 @@ export class Course extends ImmutableEntityBase {
     precision: 6,
     srid: CRS_CODE,
     transformer: {
-      from: pointToCoordinates,
-      to: coordinatesToPoint,
+      from: convertPointToCoordinates,
+      to: convertCoordinatesToPoint,
     }
   })
   head: Coordinates;
@@ -50,8 +50,8 @@ export class Course extends ImmutableEntityBase {
     precision: 6,
     srid: 4326,
     transformer: {
-      from: lineStringToLocations,
-      to: locationsToLineString,
+      from: convertLineStringToLocations,
+      to: convertLocationsToLineString,
     }
   })
   path: Location[];

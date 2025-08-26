@@ -14,7 +14,7 @@ export class TokensService {
       { sub: userId, nickname, v: tokenVersion },
       {
         secret: process.env.JWT_ACCESS_SECRET,
-        expiresIn: process.env.JWT_ACCESS_TTL || "900s",
+        expiresIn: process.env.JWT_ACCESS_TTL || "900",
       }
     );
   }

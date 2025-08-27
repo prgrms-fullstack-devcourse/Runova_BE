@@ -19,14 +19,8 @@ import {
 } from "@nestjs/swagger";
 import { User } from "src/utils/decorator";
 import { AuthUser } from "./types/types";
-
-class GoogleLoginDto {
-  idToken: string;
-  deviceInfo?: string;
-}
-class RefreshDto {
-  refreshToken?: string | null;
-}
+import { LoginDto } from "./dto/login.dto";
+import { RefreshDto } from "./dto/refresh.dto";
 
 @ApiTags("Auth")
 @Controller("auth")
@@ -37,8 +31,7 @@ export class AuthController {
   @ApiOperation({ summary: "구글 로그인 및 회원가입" })
   @ApiResponse({ status: 200, description: "로그인 성공" })
   async googleLogin(
-    @Body() dto: GoogleLoginDto,
-    @Ip() ip: string,
+    @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response
   ) {
     try {

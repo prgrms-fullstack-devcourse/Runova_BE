@@ -4,7 +4,7 @@ import process from "node:process";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { initializeTransactionalContext } from "typeorm-transactional";
 import { ValidationPipe } from "@nestjs/common";
-import { LoggingInterceptor } from "./common";
+import { LoggingInterceptor } from "./common/interceptor";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import "./config/proj4";

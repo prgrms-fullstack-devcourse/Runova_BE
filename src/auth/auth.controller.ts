@@ -6,9 +6,9 @@ import {
   Req,
   Res,
   UseGuards,
-  HttpCode,
   Query,
   Ip,
+  ParseBoolPipe,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
@@ -16,7 +16,6 @@ import { Response, Request } from "express";
 import {
   ApiTags,
   ApiOperation,
-  ApiNoContentResponse,
   ApiQuery,
   ApiResponse,
   ApiBearerAuth,
@@ -34,12 +33,10 @@ export class AuthController {
   @Post("google")
   @ApiOperation({ summary: "구글 로그인 및 회원가입" })
   @ApiResponse({ status: 200, description: "로그인 성공" })
-  async googleLogin(
-    @Body() dto: LoginDto,
-    @Res({ passthrough: true }) res: Response
-  ) {
-    const { accessToken, refreshToken, user } =
-      await this.authService.loginWithGoogle(dto.idToken);
+  async googleLogin(@Body() dto: LoginDto) {
+    const { accessToken, user } = await this.authService.loginWithGoogle(
+      dto.idToken
+    );
     return { accessToken, user };
   }
 
@@ -47,12 +44,7 @@ export class AuthController {
   @Post("refresh")
   @ApiOperation({ summary: "AccessToken 재발급" })
   @ApiResponse({ status: 200, description: "재발급 성공" })
-  async refreshToken(
-    @Body() dto: RefreshDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-    @Ip() ip: string
-  ) {
+  async refreshToken(@Body() dto: RefreshDto, @Req() req: Request) {
     const refreshToken = dto.refreshToken || req.cookies["refresh_token"];
     const result = await this.authService.rotateRefreshToken(refreshToken);
     return { accessToken: result.accessToken };
@@ -64,17 +56,16 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiResponse({ status: 204, description: "로그아웃 성공" })
   @ApiQuery({
-    name: "all",
+    name: "deviceAll",
     required: false,
     description: "모든 기기에서 로그아웃",
     type: Boolean,
   })
   async logout(
     @User() user: AuthUser,
-    @Res({ passthrough: true }) res: Response,
-    @Query("all") all?: string
+    @Query("deviceAll", ParseBoolPipe) deviceAll: boolean
   ) {
-    await this.authService.logout(user.userId, all === "true");
+    await this.authService.logout(user.userId, deviceAll);
     return; // 204 No Content
   }
 

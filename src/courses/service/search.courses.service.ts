@@ -4,7 +4,6 @@ import { Course } from "../../modules/courses";
 import { Repository, SelectQueryBuilder } from "typeorm";
 import { SearchAdjacentCourseResult, SearchAdjacentCoursesDTO, SearchCourseResult, SearchCoursesDTO } from "../dto";
 import { addWhere, plainsToInstancesOrReject } from "../../utils";
-import { CRS_CODE } from "../../config/proj4";
 
 @Injectable()
 export class SearchCoursesService {
@@ -28,22 +27,18 @@ export class SearchCoursesService {
         const qb = this.createSelectQueryBuilder()
             .addCommonTableExpression(
                 `
-                SELECT 
-                    ST_Transform(
-                        ST_SetSRID(ST_MakePoint(:lon, :lat), 4326),
-                        :code
-                    ) AS geom
+                SELECT ST_SetSRID(ST_MakePoint(:lon, :lat), 4326) AS geom
                 `,
-                "coordinates"
+                "location"
             )
-            .setParameters({ ...location, code: CRS_CODE })
-            .addFrom("coordinates", "coord")
+            .setParameters(location)
+            .addFrom("location", "loc")
             .addSelect(
                 `
-                ST_Distance(course.head, coord.geom) / 1000`,
+                ST_DistanceSphere(course.departure, loc.geom) / 1000`,
                 "distance"
             ).where(
-                `ST_DWithin(course.head, coord.geom, :radius)`,
+                `ST_DWithin(course.departure, loc.geom, :radius)`,
                 { radius: radius * 1000 }
             );
 
@@ -62,8 +57,8 @@ export class SearchCoursesService {
             .addSelect(
                 `
                 jsonb_build_object(
-                    'lon', ST_X(ST_StartPoint(course.path)),
-                    'lat', ST_Y(ST_StartPoint(course.path))
+                    'lon', ST_X(course.departure),
+                    'lat', ST_Y(course.departure),
                 )
                 `,
                 "departure"

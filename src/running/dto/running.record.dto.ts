@@ -1,7 +1,7 @@
 import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
-import { Location } from "../../common/geo";
+import { Coordinates } from "../../common/geo";
 
-@ApiExtraModels(Location)
+@ApiExtraModels(Coordinates)
 export class RunningRecordDTO {
     @ApiProperty({ type: "integer" })
     id: number;
@@ -9,8 +9,8 @@ export class RunningRecordDTO {
     @ApiProperty({ type: "integer", nullable: true, description: "경로 아이디(존재하는 경우만)" })
     courseId: number | null;
 
-    @ApiProperty({ type: [Location], description: "달린 경로" })
-    path: Location[];
+    @ApiProperty({ type: [Coordinates], description: "달린 경로" })
+    path: Coordinates[];
 
     @ApiProperty({ type: "number", description: "달린 거리(km)" })
     distance: number;

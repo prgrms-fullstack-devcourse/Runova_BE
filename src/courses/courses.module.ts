@@ -1,5 +1,11 @@
 import { Module } from '@nestjs/common';
-import { CoursesService, EstimateTimeService, InspectPathService, SearchCoursesService } from './service';
+import {
+    CourseNodesService,
+    CoursesService,
+    EstimateTimeService,
+    InspectPathService,
+    SearchCoursesService
+} from './service';
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Course, CourseNode } from "../modules/courses";
 import { CoursesController } from "./courses.controller";
@@ -8,6 +14,7 @@ import { CoursesController } from "./courses.controller";
   imports: [TypeOrmModule.forFeature([Course, CourseNode])],
   providers: [
       CoursesService,
+      CourseNodesService,
       SearchCoursesService,
       InspectPathService,
       EstimateTimeService,

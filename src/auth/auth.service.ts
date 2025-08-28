@@ -152,7 +152,7 @@ export class AuthService {
   @Transactional()
   async logout(userId: number, revokeAll = false) {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
-    if (!user) return;
+    if (!user) throw new ForbiddenException("Invalid request");
 
     user.refreshTokenHash = null;
     user.refreshExpiresAt = null;

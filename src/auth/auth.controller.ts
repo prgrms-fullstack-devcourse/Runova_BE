@@ -6,6 +6,8 @@ import {
   Req,
   Res,
   UseGuards,
+  HttpCode,
+  Query,
   Ip,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
@@ -14,6 +16,8 @@ import { Response, Request } from "express";
 import {
   ApiTags,
   ApiOperation,
+  ApiNoContentResponse,
+  ApiQuery,
   ApiResponse,
   ApiBearerAuth,
 } from "@nestjs/swagger";
@@ -61,9 +65,21 @@ export class AuthController {
   @Post("logout")
   @ApiOperation({ summary: "로그아웃 및 세션 종료" })
   @ApiBearerAuth()
-  async logout(@User() user: AuthUser) {
-    await this.authService.logout(user.userId);
-    return { ok: true };
+  @ApiResponse({ status: 204, description: "로그아웃 성공" })
+  @ApiQuery({
+    name: "all",
+    required: false,
+    description: "모든 기기에서 로그아웃",
+    type: Boolean,
+  })
+  async logout(
+    @User() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+    @Query("all") all?: string
+  ) {
+    await this.authService.logout(user.userId, all === "true");
+
+    return; // 204 No Content
   }
 
   @UseGuards(JwtAuthGuard)

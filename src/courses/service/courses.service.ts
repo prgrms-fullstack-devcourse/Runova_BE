@@ -2,9 +2,9 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { CourseDTO, CourseNodeDTO } from "../dto";
-import { Location } from "../../common/geo";
+import { Coordinates } from "../../common/geo";
 import { Transactional } from "typeorm-transactional";
-import { EstimateHoursService } from "./estimate.hours.service";
+import { EstimateTimeService } from "./estimate.time.service";
 import { pick } from "../../utils/object";
 import { Course } from "../../modules/courses";
 import { InspectPathService } from "./inspect.path.service";
@@ -20,25 +20,23 @@ export class CoursesService {
         private readonly coursesRepo: Repository<Course>,
         @Inject(InspectPathService)
         private readonly inspectPathService: InspectPathService,
-        @Inject(EstimateHoursService)
-        private readonly hoursService: EstimateHoursService,
+        @Inject(EstimateTimeService)
+        private readonly timeService: EstimateTimeService,
         @Inject(CourseNodesService)
         private readonly nodesService: CourseNodesService,
     ) {}
 
     @Transactional()
-    async createCourse(userId: number, path: Location[]): Promise<void> {
+    async createCourse(userId: number, path: Coordinates[]): Promise<void> {
         const { length, nodes } = await this.inspectPathService.inspect(path);
-        const hours = this.hoursService.estimate(length);
+        const time = this.timeService.estimateTime(length);
+        const departure = nodes[0].location;
 
         const result = await this.coursesRepo
             .createQueryBuilder()
             .insert()
             .into(Course)
-            .values({
-                userId, length, hours, path,
-                head: nodes[0].coordinates
-            })
+            .values({ userId, length, time, departure })
             .updateEntity(false)
             .returning("id")
             .execute();
@@ -52,7 +50,6 @@ export class CoursesService {
         const course = await this.coursesRepo
             .findOne({
                 relations: { nodes: true },
-                select: ["id", "length", "hours", "nCompleted", "nodes"],
                 where: { id },
                 cache: true,
             });
@@ -70,15 +67,13 @@ export class CoursesService {
 function __toDTO(course: Course): CourseDTO {
 
     const nodes: CourseNodeDTO[] = course.nodes.map(n =>
-        pick(n, ["coordinates", "progress", "bearing"])
+        pick(n, ["location", "progress", "bearing"])
     );
 
-    const timeRequired = formatDuration(
-        Duration.ofHours(course.hours)
-    );
+    const timeRequired = formatDuration(Duration.ofHours(course.time));
 
     return {
-        ...pick(course, ["id", "head", "length", "nCompleted"]),
+        ...pick(course, ["id", "departure", "length", "nCompleted"]),
         nodes,
         timeRequired
     };

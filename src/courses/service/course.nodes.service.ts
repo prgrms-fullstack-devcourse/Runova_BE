@@ -2,8 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { CourseNode } from "../../modules/courses";
 import { Repository } from "typeorm";
-import { Transactional } from "typeorm-transactional";
 import { CourseNodeDTO } from "../dto";
+import { Transactional } from "typeorm-transactional";
 
 @Injectable()
 export class CourseNodesService {
@@ -14,14 +14,12 @@ export class CourseNodesService {
     ) {}
 
     @Transactional()
-    async createCourseNodes(
-        courseId: number,
-        nodes: CourseNodeDTO[],
-    ): Promise<void> {
+    async createCourseNodes(courseId: number, nodes: CourseNodeDTO[]): Promise<void> {
         await this.nodesRepo.insert(
             nodes.map(node =>
-                ({ courseId, ...node })
-            ),
+                ({ courseId, ...node, })
+            )
         );
     }
 }
+

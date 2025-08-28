@@ -11,17 +11,17 @@ export class TokensService {
     tokenVersion?: number
   ) {
     return this.jwt.signAsync(
-      { sub: userId, nickname, v: tokenVersion },
+      { sub: userId, nickname, tokenVersion },
       {
         secret: process.env.JWT_ACCESS_SECRET,
-        expiresIn: process.env.JWT_ACCESS_TTL || "900",
+        expiresIn: process.env.JWT_ACCESS_TTL || "1h",
       }
     );
   }
 
   async signRefreshToken(userId: number, tokenVersion?: number) {
     return this.jwt.signAsync(
-      { sub: userId, v: tokenVersion },
+      { sub: userId, tokenVersion },
       {
         secret: process.env.JWT_REFRESH_SECRET,
         expiresIn: process.env.JWT_REFRESH_TTL || "14d",

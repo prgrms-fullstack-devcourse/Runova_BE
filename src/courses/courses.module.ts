@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module } from "@nestjs/common";
 import {
-    CourseNodesService,
-    CoursesService,
-    EstimateTimeService,
-    InspectPathService,
-    SearchCoursesService
-} from './service';
+  CourseNodesService,
+  CoursesService,
+  EstimateTimeService,
+  InspectPathService,
+  SearchCoursesService,
+} from "./service";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Course, CourseNode } from "../modules/courses";
 import { CoursesController } from "./courses.controller";
@@ -13,11 +13,11 @@ import { CoursesController } from "./courses.controller";
 @Module({
   imports: [TypeOrmModule.forFeature([Course, CourseNode])],
   providers: [
-      CoursesService,
-      CourseNodesService,
-      SearchCoursesService,
-      InspectPathService,
-      EstimateTimeService,
+    CoursesService,
+    CourseNodesService,
+    SearchCoursesService,
+    InspectPathService,
+    EstimateTimeService,
   ],
   controllers: [CoursesController],
 })

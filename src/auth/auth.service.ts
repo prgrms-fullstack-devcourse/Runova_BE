@@ -14,6 +14,11 @@ import { User } from "../modules/users/user.entity";
 import { TokensService } from "./tokens.service";
 import { GoogleService } from "./google.service";
 
+export class TokenPair {
+  accessToken: string;
+  refreshToken: string;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -123,21 +128,24 @@ export class AuthService {
     }
 
     // 회전: 새 RT/AT 발급 + 해시 교체
-    const newRefresh = await this.tokensService.signRefreshToken(
-      user.id,
-      user.tokenVersion
-    );
-    const newAccess = await this.tokensService.signAccessToken(
-      user.id,
-      user.nickname,
-      user.tokenVersion
-    );
+    const tokenPair = {
+      accessToken: await this.tokensService.signAccessToken(
+        user.id,
+        user.nickname,
+        user.tokenVersion
+      ),
+      refreshToken: await this.tokensService.signRefreshToken(
+        user.id,
+        user.tokenVersion
+      ),
+    };
+    (user.nickname, user.tokenVersion);
 
-    user.refreshTokenHash = await argon2.hash(newRefresh);
+    user.refreshTokenHash = await argon2.hash(tokenPair.refreshToken);
     user.refreshExpiresAt = new Date(Date.now() + this.refreshTtlMs());
     await this.usersRepo.save(user);
 
-    return { accessToken: newAccess, refreshToken: newRefresh };
+    return tokenPair;
   }
 
   /** 단일 단말 로그아웃(리프레시 제거, 필요시 버전 증가해 액세스도 무효화) */

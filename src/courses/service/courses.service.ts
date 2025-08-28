@@ -6,9 +6,11 @@ import { Coordinates } from "../../common/geo";
 import { Transactional } from "typeorm-transactional";
 import { EstimateTimeService } from "./estimate.time.service";
 import { pick } from "../../utils/object";
-import { Course, CourseNode } from "../../modules/courses";
+import { Course } from "../../modules/courses";
 import { InspectPathService } from "./inspect.path.service";
-import { DateTimeFormatter, nativeJs } from "@js-joda/core";
+import { Duration } from "@js-joda/core";
+import { CourseNodesService } from "./course.nodes.service";
+import { formatDuration } from "../../utils/format-duration";
 
 @Injectable()
 export class CoursesService {
@@ -16,25 +18,31 @@ export class CoursesService {
     constructor(
         @InjectRepository(Course)
         private readonly coursesRepo: Repository<Course>,
-        @InjectRepository(CourseNode)
-        private readonly nodesRepo: Repository<CourseNode>,
         @Inject(InspectPathService)
         private readonly inspectPathService: InspectPathService,
         @Inject(EstimateTimeService)
         private readonly timeService: EstimateTimeService,
+        @Inject(CourseNodesService)
+        private readonly nodesService: CourseNodesService,
     ) {}
 
     @Transactional()
     async createCourse(userId: number, path: Coordinates[]): Promise<void> {
         const { length, nodes } = await this.inspectPathService.inspect(path);
         const time = this.timeService.estimateTime(length);
+        const departure = nodes[0].location;
 
-        const id = await this.insertCourse(
-            userId, length, time,
-            nodes[0].location
-        );
+        const result = await this.coursesRepo
+            .createQueryBuilder()
+            .insert()
+            .into(Course)
+            .values({ userId, length, time, departure })
+            .updateEntity(false)
+            .returning("id")
+            .execute();
 
-        await this.insertNodes(id, nodes);
+        const id: number = result.generatedMaps[0].id;
+        await this.nodesService.createCourseNodes(id, nodes);
     }
 
     async getCourse(id: number): Promise<CourseDTO> {
@@ -54,38 +62,7 @@ export class CoursesService {
     async deleteCourse(id: number, userId: number): Promise<void> {
         await this.coursesRepo.delete({ id, userId, });
     }
-
-    private async insertCourse(
-        userId: number,
-        length: number,
-        time: number,
-        departure: Coordinates,
-    ): Promise<number> {
-
-        const result = await this.coursesRepo
-            .createQueryBuilder()
-            .insert()
-            .into(Course)
-            .values({ userId, length, time, departure })
-            .updateEntity(false)
-            .returning("id")
-            .execute();
-
-        return result.generatedMaps[0].id;
-    }
-
-
-    private async insertNodes(id: number, nodes: CourseNodeDTO[]): Promise<void> {
-        await this.nodesRepo.insert(
-            nodes.map(node =>
-                ({ courseId: id, ...node, })
-            )
-        );
-    }
-
 }
-
-const __formatter: DateTimeFormatter =  DateTimeFormatter.ofPattern("HH:mm:ss");
 
 function __toDTO(course: Course): CourseDTO {
 
@@ -93,8 +70,7 @@ function __toDTO(course: Course): CourseDTO {
         pick(n, ["location", "progress", "bearing"])
     );
 
-    const timeRequired = nativeJs(new Date(course.time))
-        .format(__formatter);
+    const timeRequired = formatDuration(Duration.ofHours(course.time));
 
     return {
         ...pick(course, ["id", "departure", "length", "nCompleted"]),

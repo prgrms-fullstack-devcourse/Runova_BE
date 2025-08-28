@@ -11,9 +11,10 @@ import type { Request, Response } from 'express';
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
 
+
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
     const now = Date.now();
-        const {method, url, headers, query, body, cookies} = ctx
+        const {method, url, headers, query, body, cookies,} = ctx
       .switchToHttp()
             .getRequest<Request>();
 

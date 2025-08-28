@@ -1,6 +1,7 @@
 import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
 import { CourseNodeDTO } from "./course.node.dto";
-import { IsInt, IsNumber, IsString  } from "class-validator";
+import { IsInt, IsNumber, IsString, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
 
 @ApiExtraModels(CourseNodeDTO)
 export class CourseDTO {
@@ -20,6 +21,8 @@ export class CourseDTO {
     @ApiProperty({ type: "integer", description: "경로를 달린 사람 수" })
     nCompleted: number;
 
+    @ValidateNested({ each: true })
+    @Type(() => CourseNodeDTO)
     @ApiProperty({ type: [CourseNodeDTO] })
     nodes: CourseNodeDTO[];
 }

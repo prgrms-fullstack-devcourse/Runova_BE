@@ -40,8 +40,6 @@ export class AuthController {
   ) {
     const { accessToken, refreshToken, user } =
       await this.authService.loginWithGoogle(dto.idToken);
-
-    this.setRefreshCookie(res, refreshToken);
     return { accessToken, user };
   }
 
@@ -57,7 +55,6 @@ export class AuthController {
   ) {
     const refreshToken = dto.refreshToken || req.cookies["refresh_token"];
     const result = await this.authService.rotateRefreshToken(refreshToken);
-    this.setRefreshCookie(res, result.refreshToken);
     return { accessToken: result.accessToken };
   }
 
@@ -78,7 +75,6 @@ export class AuthController {
     @Query("all") all?: string
   ) {
     await this.authService.logout(user.userId, all === "true");
-
     return; // 204 No Content
   }
 
@@ -92,16 +88,5 @@ export class AuthController {
       userId: user.userId,
       nickname: user.nickname,
     };
-  }
-
-  private setRefreshCookie(res: Response, token: string) {
-    const isProd = process.env.NODE_ENV === "production";
-    res.cookie("refresh_token", token, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? "none" : "lax",
-      path: "/auth",
-      maxAge: 14 * 24 * 60 * 60 * 1000,
-    });
   }
 }

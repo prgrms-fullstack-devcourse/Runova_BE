@@ -45,11 +45,11 @@ export class AuthService {
       email,
       name,
       picture,
-    } = await this.google.verifyIdToken(idToken).catch(() => {
+    } = await this.google.verifyIdToken(idToken).catch((error) => {
+      console.error("Google token verify failed:", error);
       throw new UnauthorizedException("Invalid Google ID token");
     });
 
-    // upsert
     let user = await this.userRepo.findOne({ where: { email } });
 
     if (user) {

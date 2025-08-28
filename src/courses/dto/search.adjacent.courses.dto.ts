@@ -1,15 +1,15 @@
 import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
-import { Location } from "../../common/geo";
+import { Coordinates } from "../../common/geo";
 import { Type } from "class-transformer";
 import { IsNumber, IsPositive, ValidateNested } from "class-validator";
 import { SearchCoursesDTO } from "./search.courses.dto";
 
-@ApiExtraModels(Location)
+@ApiExtraModels(Coordinates)
 export class SearchAdjacentCoursesDTO extends SearchCoursesDTO{
     @ValidateNested()
-    @Type(() => Location)
-    @ApiProperty({ type: Location, required: true, description: "현재 위치" })
-    location: Location;
+    @Type(() => Coordinates)
+    @ApiProperty({ type: Coordinates, required: true, description: "현재 위치" })
+    location: Coordinates;
 
     @IsPositive()
     @IsNumber()

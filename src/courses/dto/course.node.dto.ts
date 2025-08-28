@@ -1,21 +1,21 @@
 import { IsNumber, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
-import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
 import { Coordinates } from "../../common/geo";
+import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
 
 @ApiExtraModels(Coordinates)
 export class CourseNodeDTO {
     @ValidateNested()
     @Type(() => Coordinates)
-    @ApiProperty({ type: Coordinates, description: "방향 전환 일어나는 곳 투영 좌표" })
-    coordinates: Coordinates;
+    @ApiProperty({ type: Coordinates, description: "방향 전환 일어나는 곳 위치" })
+    location: Coordinates;
 
     @IsNumber()
     @ApiProperty({
         type: "number",
         minimum: 0,
         maximum: 1,
-        description: "출발지점에서 coordinates 까지의 거리(km)"
+        description: "방향 전환 일어나는 곳의 상대적 위치 (0 ~ 1 사이의 실수)"
     })
     progress: number;
 

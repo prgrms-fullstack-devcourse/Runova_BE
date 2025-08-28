@@ -1,26 +1,23 @@
-import { Location } from "./location";
-import { LineString, Point } from "geojson";
 import { Coordinates } from "./coordinates";
+import { LineString, Point } from "geojson";
 
-export function convertLocationsToLineString(path: Location[]): LineString {
+export function toLineString(path: Coordinates[]): LineString {
     const coordinates = path.map(({ lon, lat }) => [lon, lat]);
     return { type: "LineString", coordinates };
 }
 
-export function convertLineStringToLocations(line: LineString): Location[] {
+export function fromLineString(line: LineString): Coordinates[] {
     return line.coordinates
         .map(([lon, lat]) =>
-            new Location({ lon, lat })
+            new Coordinates({ lon, lat })
         );
 }
 
-export function convertCoordinatesToPoint(coordinates: Coordinates): Point {
-    const { x, y } = coordinates;
-    return { type: "Point", coordinates: [x, y] };
+export function toPoint({ lon, lat }: Coordinates): Point {
+    return { type: "Point", coordinates: [lon, lat] };
 }
 
-export function convertPointToCoordinates(point: Point): Coordinates {
-    const [x, y] = point.coordinates;
-    return new Coordinates({ x, y });
+export function fromPoint(point: Point): Coordinates {
+    const [lon, lat] = point.coordinates;
+    return new Coordinates({ lon, lat });
 }
-

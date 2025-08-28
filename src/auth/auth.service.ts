@@ -45,10 +45,7 @@ export class AuthService {
       email,
       name,
       picture,
-    } = await this.google.verifyIdToken(idToken).catch((error) => {
-      console.error("Google token verify failed:", error);
-      throw new UnauthorizedException("Invalid Google ID token");
-    });
+    } = await this.google.verifyIdToken(idToken);
 
     let user = await this.userRepo.findOne({ where: { email } });
 
@@ -85,11 +82,9 @@ export class AuthService {
     await this.ensureActiveSession(user);
 
     // 재사용/위조 탐지
-    const isMatch = await argon2
-      .verify(user!.refreshTokenHash!, refreshToken)
-      .catch(() => false);
+    const isMatch = await argon2.verify(user!.refreshTokenHash!, refreshToken);
     if (!isMatch) {
-      await this.revokeAllSessions(user!); // tokenVersion++ + refresh 제거
+      await this.revokeAllSessions(user!);
       throw new ForbiddenException("Token reuse detected");
     }
 
@@ -160,7 +155,7 @@ export class AuthService {
     if (user.refreshExpiresAt < new Date()) {
       user.refreshTokenHash = null;
       user.refreshExpiresAt = null;
-      await this.userRepo.save(user); // ← await
+      await this.userRepo.save(user);
       throw new ForbiddenException("Session expired");
     }
   }

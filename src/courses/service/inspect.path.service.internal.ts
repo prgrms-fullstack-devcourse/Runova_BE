@@ -10,7 +10,6 @@ export function inspectPath(
    let length = 0;
    let prevSeg: [number, number] = [0, 0];
 
-
    segments.forEach((seg, i) => {
        const east = seg[0] - prevSeg[0];
        const north = seg[1] - prevSeg[1];
@@ -21,7 +20,8 @@ export function inspectPath(
             bearing: (Math.atan2(east, north) * 180) / Math.PI
         });
 
-        length += Math.sqrt(seg[0] * seg[0] + seg[1] * seg[1]);
+        // m에서 km로 단위 변환
+        length += Math.sqrt(seg[0] * seg[0] + seg[1] * seg[1]) / 1000;
         prevSeg = seg;
     });
 
@@ -31,13 +31,7 @@ export function inspectPath(
         bearing: 0
     });
 
-   return {
-       length: length / 1000,
-       nodes: nodes.map(node => {
-           node.progress /= length;
-           return node;
-       }),
-   };
+   return { length, nodes };
 }
 
 function __makeSegments(path: Coordinates[]): [number, number][] {

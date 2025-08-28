@@ -9,7 +9,7 @@ import { Repository, QueryFailedError } from "typeorm";
 import * as argon2 from "argon2";
 import * as jwt from "jsonwebtoken";
 import { Transactional } from "typeorm-transactional";
-
+import { DatabaseError } from "pg";
 import { User } from "../modules/users/user.entity";
 import { TokensService } from "./tokens.service";
 import { GoogleService } from "./google.service";
@@ -30,43 +30,40 @@ export class AuthService {
         throw new UnauthorizedException("Invalid Google ID token");
       });
 
-    const safeEmail = email ?? `${sub}@google.local`;
-    const desiredNickname = (name || email?.split("@")[0] || "runner")
-      .replace(/\s+/g, "")
-      .slice(0, 20);
+    let user = await this.usersRepo.findOne({ where: { email } });
 
-    let user = await this.usersRepo.findOne({ where: { providerUserId: sub } });
-
-    if (!user) {
-      user = await this.usersRepo.findOne({ where: { email: safeEmail } });
-
-      if (user) {
-        user.providerUserId = sub;
-        if (!user.avatarUrl && picture) user.avatarUrl = picture;
+    if (user) {
+      user.providerUserId = sub;
+      if (!user.avatarUrl && picture) user.avatarUrl = picture;
+      await this.usersRepo.save(user);
+    } else {
+      try {
+        user = this.usersRepo.create({
+          email,
+          nickname: name,
+          providerUserId: sub,
+          avatarUrl: picture,
+        });
         await this.usersRepo.save(user);
-      } else {
-        try {
-          user = this.usersRepo.create({
-            email: safeEmail,
-            nickname: desiredNickname,
-            providerUserId: sub,
-            avatarUrl: picture,
-          });
-          await this.usersRepo.save(user);
-        } catch (e) {
-          if (e instanceof QueryFailedError && (e as any).code === "23505") {
-            const cons = (e as any).driverError?.constraint as
-              | string
-              | undefined;
-            if (cons?.includes("nickname"))
+      } catch (e: unknown) {
+        if (e instanceof QueryFailedError) {
+          const pgError = e.driverError as DatabaseError;
+
+          if (pgError?.code === "23505") {
+            const cons = pgError.constraint;
+            if (cons?.includes("nickname")) {
               throw new ConflictException("Nickname already taken");
-            if (cons?.includes("email"))
+            }
+            if (cons?.includes("email")) {
               throw new ConflictException("Email already in use");
-            if (cons?.includes("providerUserId"))
+            }
+            if (cons?.includes("providerUserId")) {
               throw new ConflictException("Account already linked");
+            }
+            throw new ConflictException("Duplicate key");
           }
-          throw e;
         }
+        throw e;
       }
     }
 

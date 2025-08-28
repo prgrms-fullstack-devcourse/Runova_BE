@@ -1,5 +1,5 @@
 import { Inject, Injectable, OnModuleDestroy } from "@nestjs/common";
-import { Location } from "../../common/geo";
+import { Coordinates } from "../../common/geo";
 import { InspectPathResult } from "../dto";
 import { pool, Pool } from "workerpool";
 import { ConfigService } from "@nestjs/config";
@@ -25,7 +25,7 @@ export class InspectPathService implements OnModuleDestroy{
     }
 
 
-    async inspect(path: Location[]): Promise<InspectPathResult> {
+    async inspect(path: Coordinates[]): Promise<InspectPathResult> {
         return await this.pool.exec(inspectPath, [path]);
     }
 

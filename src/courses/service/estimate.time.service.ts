@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 @Injectable()
-export class EstimateHoursService {
+export class EstimateTimeService {
     private readonly pace: number;
 
     constructor(
@@ -14,7 +14,7 @@ export class EstimateHoursService {
         ) ?? 8;
     }
 
-    estimate(length: number): number {
+    estimateTime(length: number): number {
         return length / this.pace;
     }
 }

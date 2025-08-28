@@ -1,35 +1,28 @@
-import proj from "proj4";
 import { Coordinates } from "../../common/geo";
 import { CourseNodeDTO, InspectPathResult } from "../dto";
-import { applyOp, norm2 } from "../../utils/math";
-import { CRS_NAME } from "../../config/proj4";
+import converter from "../../config/proj4";
 
 export function inspectPath(
     path: Coordinates[],
 ): InspectPathResult {
+   const segments: [number, number][] = __makeSegments(path);
+   const nodes: CourseNodeDTO[] = [];
+   let length = 0;
+   let prevSeg: [number, number] = [0, 0];
 
-   const segments = __toSegments(
-       path.map(
-           p =>  proj(
-               "EPSG:4326",
-               CRS_NAME,
-               [p.lon, p.lat],
-           )
-       )
-   );
 
-    let length = 0;
-    const nodes: CourseNodeDTO[] = [];
-
-    segments.forEach((seg, i) => {
+   segments.forEach((seg, i) => {
+       const east = seg[0] - prevSeg[0];
+       const north = seg[1] - prevSeg[1];
 
         nodes.push({
             location: path[i],
             progress: length,
-            bearing: (Math.atan2(seg[0], seg[1]) * 180) / Math.PI
+            bearing: (Math.atan2(east, north) * 180) / Math.PI
         });
 
-        length += norm2(seg);
+        length += Math.sqrt(seg[0] * seg[0] + seg[1] * seg[1]);
+        prevSeg = seg;
     });
 
     nodes.push({
@@ -47,20 +40,25 @@ export function inspectPath(
    };
 }
 
-function __toSegments(line: [number, number][]): [number, number][] {
+function __makeSegments(path: Coordinates[]): [number, number][] {
+
+    const line = path.map(loc => {
+        const pos: [number, number] = [loc.lon, loc.lat];
+        return converter.forward(pos);
+    });
+
     const segments: [number, number][] = [];
 
-    for (let  i = 1; i !== line.length; ++i) {
-        segments.push(
-            applyOp(
-                line[i], line[i - 1],
-                (a, b) => a - b
-            ) as [number, number]
-        );
+    for (let  i = 0; i !== line.length - 1; ++i) {
+        const [x1, y1] = line[i];
+        const [x2, y2] = line[i + 1];
+        segments.push([x2 - x1, y2 - y1]);
     }
 
     return segments;
 }
+
+
 
 
 

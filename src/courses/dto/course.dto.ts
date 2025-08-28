@@ -1,12 +1,19 @@
 import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
 import { CourseNodeDTO } from "./course.node.dto";
-import { IsInt, IsNumber, IsString  } from "class-validator";
+import { Coordinates } from "../../common/geo";
+import { IsInt, IsNumber, IsString, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
 
-@ApiExtraModels(CourseNodeDTO)
+@ApiExtraModels(Coordinates, CourseNodeDTO)
 export class CourseDTO {
     @IsInt()
     @ApiProperty({ type: "integer" })
     id: number;
+
+    @ValidateNested()
+    @Type(() => Coordinates)
+    @ApiProperty({ type: Coordinates, description: "시작 지점" })
+    departure: Coordinates;
 
     @IsNumber()
     @ApiProperty({ type: "number", description: "총 거리(km)" })

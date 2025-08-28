@@ -18,6 +18,7 @@ import {
     SearchCoursesResponse
 } from "./api";
 import { AuthGuard } from "@nestjs/passport";
+import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
 
 @ApiTags("Courses")
 @Controller("/api/courses")
@@ -29,6 +30,8 @@ export class CoursesController {
         private readonly coursesService: CoursesService,
         @Inject(SearchCoursesService)
         private readonly searchCoursesService: SearchCoursesService,
+        @Inject(CACHE_MANAGER)
+        private readonly cache: Cache,
     ) {}
 
     @Post("/")
@@ -54,6 +57,7 @@ export class CoursesController {
     async getCourse(
         @Param("id") id: number,
     ): Promise<CourseDTO> {
+
        return this.coursesService.getCourse(id);
     }
 

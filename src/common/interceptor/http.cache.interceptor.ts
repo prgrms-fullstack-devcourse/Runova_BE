@@ -24,14 +24,12 @@ export class HttpCacheInterceptor extends CacheInterceptor {
         const options = this.reflector.get(Caching, ctx.getHandler());
         if (!(key && options)) return next.handle();
 
-        const raw = await (this.cacheManager as Cache).get<any>(key);
+        const raw = await (this.cacheManager as Cache).get(key);
         const req = ctx.switchToHttp().getRequest();
 
-        req.locals = {
-            data: raw !== undefined && options.schema
-                ? plainToInstance(options.schema, raw)
-                : raw
-        };
+        req.cached = raw !== undefined && options.schema
+            ? plainToInstance(options.schema, raw)
+            : raw;
 
         return next.handle().pipe(
             tap(data => {

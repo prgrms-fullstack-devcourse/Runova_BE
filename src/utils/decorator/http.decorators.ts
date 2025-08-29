@@ -10,5 +10,4 @@ function ParamDecorator(prop: string) {
 }
 
 export const User = ParamDecorator("user");
-export const Cookies = ParamDecorator("cookies");
-export const Locals = ParamDecorator("locals");
+export const Cached = ParamDecorator("cached");

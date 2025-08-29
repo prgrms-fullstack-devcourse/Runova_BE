@@ -104,7 +104,7 @@ describe('HttpCacheInterceptor', () => {
       await interceptor.intercept(mockExecutionContext, mockCallHandler);
 
       expect(cacheManager.get).toHaveBeenCalledWith('/test/path');
-      expect(mockRequest.locals.data).toBe(cachedData);
+      expect(mockRequest.cached).toBe(cachedData);
     });
 
     it('should transform cached data using schema when provided', async () => {
@@ -121,7 +121,7 @@ describe('HttpCacheInterceptor', () => {
       await interceptor.intercept(mockExecutionContext, mockCallHandler);
 
       expect(plainToInstance).toHaveBeenCalledWith(schema, cachedData);
-      expect(mockRequest.locals.data).toBe(transformedData);
+      expect(mockRequest.cached).toBe(transformedData);
     });
 
     it('should set undefined to req.locals.data when no cache hit and no schema', async () => {
@@ -133,7 +133,7 @@ describe('HttpCacheInterceptor', () => {
 
       await interceptor.intercept(mockExecutionContext, mockCallHandler);
 
-      expect(mockRequest.locals.data).toBeUndefined();
+      expect(mockRequest.cached).toBeUndefined();
     });
 
     it('should cache response data when cache miss occurs', async () => {

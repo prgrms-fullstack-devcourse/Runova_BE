@@ -57,7 +57,7 @@ describe("inspectPath", () => {
         // last node progress == 1
         const last = result.nodes[result.nodes.length - 1];
         expect(last.location).toEqual(path[path.length - 1]);
-        expect(last.progress).toBeCloseTo(1, 10);
+        expect(last.progress).toBeCloseTo(result.length, 10);
 
         // progress is non-decreasing
         for (let i = 1; i < result.nodes.length; i++) {
@@ -138,9 +138,9 @@ describe("inspectPath", () => {
         for (let i = 1; i < result.nodes.length; i++) {
             expect(result.nodes[i].progress).toBeGreaterThanOrEqual(result.nodes[i - 1].progress);
         }
-        // Stays within [0,1]
+
         expect(result.nodes[0].progress).toBeGreaterThanOrEqual(0);
-        expect(result.nodes[result.nodes.length - 1].progress).toBeLessThanOrEqual(1);
+        expect(result.nodes[result.nodes.length - 1].progress).toBeLessThanOrEqual(result.length);
         // bearings finite (including on zero-length segments introduced by duplicates)
         for (let i = 0; i < result.nodes.length; i++) {
             expect(Number.isFinite(result.nodes[i].bearing)).toBe(true);

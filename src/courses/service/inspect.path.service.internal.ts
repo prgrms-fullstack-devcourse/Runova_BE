@@ -21,7 +21,7 @@ export function inspectPath(
         });
 
         // m에서 km로 단위 변환
-        length += Math.sqrt(seg[0] * seg[0] + seg[1] * seg[1]) / 1000;
+        length += Math.hypot(...seg) / 1000;
         prevSeg = seg;
     });
 

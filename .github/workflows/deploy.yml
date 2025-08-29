@@ -65,8 +65,8 @@ jobs:
           USER: ${{ secrets.EC2_USERNAME }}
           IMAGE: ghcr.io/${{ github.repository_owner }}/runova
           TAG: ${{ github.sha }}
-          GHCR_USER:
-          GHCR_PAT:
+          GHCR_USER: ${{ secrets.EC2_GHCR_USER }}
+          GHCR_PAT: ${{ secrets.EC2_GHCR_PAT }}
         run: |
           ssh -i key.pem \
               -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \

@@ -52,39 +52,45 @@ jobs:
           scp -i key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
               -P $PORT .env.production $USER@$HOST:/home/$USER/runova/.env.production
 
-      - name: Pull & Restart (pull image from GHCR and run)
-        env:
-          HOST: ${{ secrets.EC2_HOST }}
-          PORT: ${{ secrets.EC2_PORT }}
-          USER: ${{ secrets.EC2_USERNAME }}
-          IMAGE: ghcr.io/${{ github.repository_owner }}/runova
-          TAG: ${{ github.sha }}
-          GHCR_USER: ${{ secrets.EC2_GHCR_USER }} # Public이면 비워둠
-          GHCR_PAT: ${{ secrets.EC2_GHCR_PAT }} # Public이면 비워둠
-        run: |
-          ssh -i key.pem \
-              -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-              -o ServerAliveInterval=30 -o ServerAliveCountMax=120 \
-              -p $PORT $USER@$HOST << 'EOF'
-            set -euo pipefail
-            cd ~/runova
+          - name: Pull & Restart (pull image from GHCR and run)
+            env:
+              HOST: ${{ secrets.EC2_HOST }}
+              PORT: ${{ secrets.EC2_PORT }}
+              USER: ${{ secrets.EC2_USERNAME }}
+              IMAGE: ghcr.io/${{ github.repository_owner }}/runova
+              TAG: ${{ github.sha }}
+              GHCR_USER: ${{ secrets.EC2_GHCR_USER }} # Public이면 비워둠
+              GHCR_PAT:  ${{ secrets.EC2_GHCR_PAT }}  # Public이면 비워둠
+            run: |
+              ssh -i key.pem \
+                  -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                  -o ServerAliveInterval=30 -o ServerAliveCountMax=120 \
+                  -p $PORT $USER@$HOST << EOF
+                set -euo pipefail
+                cd ~/runova
 
-            # Private 패키지인 경우에만 GHCR 로그인
-            if [ -n "${GHCR_PAT:-}" ] && [ -n "${GHCR_USER:-}" ]; then
-              echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            fi
+                # 로컬 env 값을 원격 셸 변수로 주입
+                IMAGE="${IMAGE}"
+                TAG="${TAG}"
+                GHCR_USER="${GHCR_USER:-}"
+                GHCR_PAT="${GHCR_PAT:-}"
 
-            echo "[+] Pull image"
-            docker pull ${IMAGE}:${TAG}
+                # Private 패키지인 경우에만 GHCR 로그인
+                if [ -n "\$GHCR_PAT" ] && [ -n "\$GHCR_USER" ]; then
+                  echo "\$GHCR_PAT" | docker login ghcr.io -u "\$GHCR_USER" --password-stdin
+                fi
 
-            echo "[+] Stop previous container"
-            docker stop runova || true && docker rm runova || true
+                echo "[+] Pull image"
+                docker pull "\$IMAGE:\$TAG"
 
-            echo "[+] Run new container"
-            docker run -d --name runova --restart=always \
-              --env-file .env.production \
-              -p 3000:3000 \
-              ${IMAGE}:${TAG}
+                echo "[+] Stop previous container"
+                docker stop runova || true && docker rm runova || true
 
-            echo "[+] Deployed ${IMAGE}:${TAG}"
+                echo "[+] Run new container"
+                docker run -d --name runova --restart=always \
+                  --env-file .env.production \
+                  -p 3000:3000 \
+                  "\$IMAGE:\$TAG"
+
+                echo "[+] Deployed \$IMAGE:\$TAG"
           EOF

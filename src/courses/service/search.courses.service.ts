@@ -73,7 +73,7 @@ export class SearchCoursesService {
                 `,
                 "timeRequired"
             )
-            .addSelect("course.nCompleted", "NCompleted");
+            .addSelect("course.nCompleted", "nCompleted")
     }
 
 }

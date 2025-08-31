@@ -1,15 +1,13 @@
 import {
   Column,
-  CreateDateColumn,
   Entity,
   Index,
   ManyToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from "typeorm";
 import { Post } from "./post.entity";
 import { User } from "../users/user.entity";
-import { EntityBase } from "src/common/entity/entity.base";
+import { EntityBase } from "../../common/entity/entity.base";
 
 @Entity("comments")
 export class Comment {

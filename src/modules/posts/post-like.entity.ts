@@ -1,6 +1,5 @@
 import {
   Column,
-  CreateDateColumn,
   Entity,
   Index,
   ManyToOne,
@@ -9,7 +8,7 @@ import {
 } from "typeorm";
 import { Post } from "./post.entity";
 import { User } from "../users/user.entity";
-import { EntityBase } from "src/common/entity";
+import { EntityBase } from "../../common/entity/entity.base";
 
 @Entity("post_likes")
 @Unique(["postId", "userId"])
@@ -23,5 +22,5 @@ export class PostLike {
   @Index() @Column({ type: "int" }) userId: number;
   @ManyToOne(() => User, { onDelete: "CASCADE" }) user: User;
 
-  @CreateDateColumn() createdAt: EntityBase;
+  createdAt: EntityBase;
 }

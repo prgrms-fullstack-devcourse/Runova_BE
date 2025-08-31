@@ -1,17 +1,15 @@
 import {
   Column,
-  CreateDateColumn,
   Entity,
   Index,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from "typeorm";
 import { User } from "../users/user.entity";
 import { Comment } from "./comment.entity";
 import { PostLike } from "./post-like.entity";
-import { EntityBase } from "src/common/entity/entity.base";
+import { EntityBase } from "../../common/entity/entity.base";
 
 export enum PostType {
   FREE = "FREE",

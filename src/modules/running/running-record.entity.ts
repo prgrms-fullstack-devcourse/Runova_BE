@@ -1,4 +1,4 @@
-import { ImmutableEntityBase } from "../../common/entity";
+import { EntityBase, ImmutableEntityBase } from "../../common/entity";
 import {
   Column,
   Entity,
@@ -37,11 +37,9 @@ export class RunningRecord extends ImmutableEntityBase {
   @LineStringColumn()
   path: Coordinates[];
 
-  @Column({ name: "start_at", type: "timestamptz", transformer })
-  startAt: LocalDateTime;
+  startAt: EntityBase;
 
-  @Column({ name: "end_at", type: "timestamptz", transformer })
-  endAt: LocalDateTime;
+  endAt: EntityBase;
 
   @Column({ type: "float8" })
   distance: number;

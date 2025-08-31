@@ -1,12 +1,5 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-  Unique,
-  Index,
-} from "typeorm";
+import { EntityBase } from "../../common/entity/entity.base";
+import { Column, Entity, PrimaryGeneratedColumn, Unique, Index } from "typeorm";
 
 @Entity({ name: "users" })
 @Unique("UQ_users_email", ["email"])
@@ -35,14 +28,11 @@ export class User {
   @Column({ type: "timestamptz", nullable: true, default: null })
   refreshExpiresAt: Date | null;
 
-  // 토큰 무효화 고려: 강제 로그아웃/재사용 탐지 시 증가
   @Index()
   @Column({ type: "int", default: 0 })
   tokenVersion: number;
 
-  @CreateDateColumn({ type: "timestamptz" })
-  createdAt: Date;
+  createdAt: EntityBase;
 
-  @UpdateDateColumn({ type: "timestamptz" })
-  updatedAt: Date;
+  updatedAt: EntityBase;
 }

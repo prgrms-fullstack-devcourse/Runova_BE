@@ -1,16 +1,15 @@
 import {
   Column,
-  CreateDateColumn,
   Entity,
   Index,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from "typeorm";
 import { User } from "../users/user.entity";
 import { Comment } from "./comment.entity";
 import { PostLike } from "./post-like.entity";
+import { EntityBase } from "../../common/entity/entity.base";
 
 export enum PostType {
   FREE = "FREE",
@@ -47,11 +46,11 @@ export class Post {
   @Column({ type: "int", nullable: true, default: null })
   routeId: number;
 
-  @Column({ type: "int",default: 0 }) likeCount: number;
+  @Column({ type: "int", default: 0 }) likeCount: number;
   @Column({ type: "int", default: 0 }) commentCount: number;
 
-  @CreateDateColumn() createdAt: Date;
-  @UpdateDateColumn() updatedAt: Date;
+  createdAt: EntityBase;
+  updatedAt: EntityBase;
 
   @Column({ type: "boolean", default: false }) isDeleted: boolean;
 

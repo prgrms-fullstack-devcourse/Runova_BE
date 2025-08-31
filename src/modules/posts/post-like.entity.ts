@@ -9,6 +9,7 @@ import {
 } from "typeorm";
 import { Post } from "./post.entity";
 import { User } from "../users/user.entity";
+import { EntityBase } from "src/common/entity";
 
 @Entity("post_likes")
 @Unique(["postId", "userId"])
@@ -22,5 +23,5 @@ export class PostLike {
   @Index() @Column({ type: "int" }) userId: number;
   @ManyToOne(() => User, { onDelete: "CASCADE" }) user: User;
 
-  @CreateDateColumn() createdAt: Date;
+  @CreateDateColumn() createdAt: EntityBase;
 }

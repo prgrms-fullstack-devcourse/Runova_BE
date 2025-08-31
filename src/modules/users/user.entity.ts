@@ -1,3 +1,4 @@
+import { EntityBase } from "src/common/entity/entity.base";
 import {
   Column,
   CreateDateColumn,
@@ -40,9 +41,7 @@ export class User {
   @Column({ type: "int", default: 0 })
   tokenVersion: number;
 
-  @CreateDateColumn({ type: "timestamptz" })
-  createdAt: Date;
+  createdAt: EntityBase;
 
-  @UpdateDateColumn({ type: "timestamptz" })
-  updatedAt: Date;
+  updatedAt: EntityBase;
 }

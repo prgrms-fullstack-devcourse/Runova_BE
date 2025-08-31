@@ -9,6 +9,7 @@ import {
 } from "typeorm";
 import { Post } from "./post.entity";
 import { User } from "../users/user.entity";
+import { EntityBase } from "src/common/entity/entity.base";
 
 @Entity("comments")
 export class Comment {
@@ -24,6 +25,6 @@ export class Comment {
 
   @Column({ type: "text" }) content: string;
 
-  @CreateDateColumn() createdAt: Date;
-  @UpdateDateColumn() updatedAt: Date;
+  createdAt: EntityBase;
+  updatedAt: EntityBase;
 }

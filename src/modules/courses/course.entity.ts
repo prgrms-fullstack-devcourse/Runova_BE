@@ -1,8 +1,10 @@
 import {
   Column,
-  Entity, Index,
+  Entity,
+  Index,
   JoinColumn,
-  ManyToOne, OneToMany,
+  ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { ImmutableEntityBase } from "../../common/entity";
@@ -35,6 +37,6 @@ export class Course extends ImmutableEntityBase {
   @Column({ name: "n_completed", type: "int", default: 0, nullable: false })
   nCompleted: number;
 
-  @OneToMany(() => CourseNode, n => n.course)
+  @OneToMany(() => CourseNode, (n) => n.course)
   nodes: CourseNode[];
 }

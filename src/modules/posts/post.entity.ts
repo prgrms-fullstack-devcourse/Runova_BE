@@ -19,7 +19,7 @@ export enum PostType {
 }
 
 @Entity("posts")
-export class Post {
+export class Post extends EntityBase {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -48,9 +48,6 @@ export class Post {
 
   @Column({ type: "int", default: 0 }) likeCount: number;
   @Column({ type: "int", default: 0 }) commentCount: number;
-
-  createdAt: EntityBase;
-  updatedAt: EntityBase;
 
   @Column({ type: "boolean", default: false }) isDeleted: boolean;
 

@@ -8,11 +8,11 @@ import {
 } from "typeorm";
 import { Post } from "./post.entity";
 import { User } from "../users/user.entity";
-import { EntityBase } from "../../common/entity/entity.base";
+import { ImmutableEntityBase } from "../../common/entity/immutable.entity.base";
 
 @Entity("post_likes")
 @Unique(["postId", "userId"])
-export class PostLike {
+export class PostLike extends ImmutableEntityBase {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -21,6 +21,4 @@ export class PostLike {
 
   @Index() @Column({ type: "int" }) userId: number;
   @ManyToOne(() => User, { onDelete: "CASCADE" }) user: User;
-
-  createdAt: EntityBase;
 }

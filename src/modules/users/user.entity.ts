@@ -5,7 +5,7 @@ import { Column, Entity, PrimaryGeneratedColumn, Unique, Index } from "typeorm";
 @Unique("UQ_users_email", ["email"])
 @Unique("UQ_users_nickname", ["nickname"])
 @Unique("UQ_users_providerUserId", ["providerUserId"])
-export class User {
+export class User extends EntityBase {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -31,8 +31,4 @@ export class User {
   @Index()
   @Column({ type: "int", default: 0 })
   tokenVersion: number;
-
-  createdAt: EntityBase;
-
-  updatedAt: EntityBase;
 }

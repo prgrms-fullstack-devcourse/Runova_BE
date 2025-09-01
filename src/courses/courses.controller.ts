@@ -3,14 +3,14 @@ import {
     ApiBadRequestResponse,
     ApiBearerAuth,
     ApiBody,
-    ApiCreatedResponse, ApiForbiddenResponse, ApiNoContentResponse, ApiOkResponse,
+    ApiCreatedResponse, ApiForbiddenResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse,
     ApiOperation, ApiParam, ApiQuery,
     ApiTags
 } from "@nestjs/swagger";
-import { CoursesService, SearchCoursesService } from "./service";
-import { Cached, User } from "../utils/decorator";
+import { CourseNodesService, CoursesService, SearchCoursesService } from "./service";
+import { Cached, Caching, User } from "../utils/decorator";
 import {
-    CreateCourseBody,
+    CreateCourseBody, GetCourseNodesResponse,
     SearchAdjacentCoursesQuery,
     SearchAdjacentCoursesResponse,
     SearchCoursesResponse
@@ -28,6 +28,8 @@ export class CoursesController {
         private readonly coursesService: CoursesService,
         @Inject(SearchCoursesService)
         private readonly searchCoursesService: SearchCoursesService,
+        @Inject(CourseNodesService)
+        private readonly nodesService: CourseNodesService,
     ) {}
 
     @Post("/")
@@ -50,6 +52,7 @@ export class CoursesController {
     @ApiQuery({ type: PagingOptions, required: false })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
+    @Caching({ schema: SearchCoursesResponse })
     async searchUserCourses(
         @User("userId") userId: number,
         @Query() query?: PagingOptions,
@@ -69,6 +72,7 @@ export class CoursesController {
     @ApiQuery({ type: PagingOptions, required: false })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
+    @Caching({ schema: SearchCoursesResponse })
     async searchBookmarkedCourses(
         @User("userId") userId: number,
         @Query() query?: PagingOptions,
@@ -88,6 +92,7 @@ export class CoursesController {
     @ApiQuery({ type: SearchAdjacentCoursesQuery, required: true })
     @ApiOkResponse({ type: SearchAdjacentCoursesResponse })
     @ApiForbiddenResponse()
+    @Caching({ schema: SearchAdjacentCoursesResponse })
     async searchAdjacentCourses(
        @User("userId") userId: number,
        @Query() query: SearchAdjacentCoursesQuery,
@@ -101,9 +106,26 @@ export class CoursesController {
         return { results };
     }
 
+    @Get("/:id/nodes")
+    @ApiOperation({ summary: "경로 노드(경로의 양 끝 점과 방향 전환이 발생하는 점들) 조회"})
+    @ApiParam({ name: "id", type: "integer", required: true, description: "노드들이 속한 경로의 아이디" })
+    @ApiBearerAuth()
+    @ApiOkResponse({ type: GetCourseNodesResponse })
+    @ApiForbiddenResponse()
+    @ApiNotFoundResponse({ description: "존재하지 않는 경로" })
+    @Caching({ schema: GetCourseNodesResponse })
+    async getCourseNodes(
+        @Param("id") id: number,
+        @Cached() cached?: GetCourseNodesResponse,
+    ): Promise<GetCourseNodesResponse> {
+        if (cached) return cached;
+        const results = await this.nodesService.getCourseNodes(id);
+        return { results };
+    }
+
     @Delete("/:id")
     @ApiOperation({ summary: "경로 삭제"})
-    @ApiParam({ name: "id", type: "integer", description: "삭제할 경로의 아이디" })
+    @ApiParam({ name: "id", type: "integer", required: true, description: "삭제할 경로의 아이디" })
     @ApiBearerAuth()
     @ApiNoContentResponse()
     @ApiForbiddenResponse()

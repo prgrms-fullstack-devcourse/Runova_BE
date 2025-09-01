@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
 import { ImmutableEntityBase } from "../../common/entity";
 import { User } from "../users";
 import { Course } from "./course.entity";
@@ -9,6 +9,7 @@ export class CourseBookmark extends ImmutableEntityBase {
     @PrimaryGeneratedColumn()
     id: number;
 
+    @Index()
     @Column({ name: "course_id", type: "int" })
     courseId: number;
 
@@ -16,6 +17,7 @@ export class CourseBookmark extends ImmutableEntityBase {
     @JoinColumn({ name: "course_id" })
     course: Course;
 
+    @Index()
     @Column({ name: "user_id", type: "int" })
     userId: number;
 

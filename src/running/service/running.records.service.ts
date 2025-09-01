@@ -4,18 +4,13 @@ import { RunningRecord } from "../../modules/running";
 import { Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
 import { CreateRunningRecordDTO, RunningRecordDTO, SearchRunningRecordsDTO } from "../dto";
-import { DateTimeFormatter, Duration } from "@js-joda/core";
-import { pick } from "../../utils/object";
+import { omit } from "../../utils/object";
 import { SearchRunningRecordResult } from "../dto/search.running.record.result";
 import { plainToInstance } from "class-transformer";
 import { setFilters } from "./service.internal";
-import { formatDuration } from "../../utils/format-duration";
 
 @Injectable()
 export class RunningRecordsService {
-
-    private readonly formatter: DateTimeFormatter
-        = DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss");
 
     constructor(
        @InjectRepository(RunningRecord)
@@ -24,13 +19,7 @@ export class RunningRecordsService {
 
     @Transactional()
     async createRunningRecord(dto: CreateRunningRecordDTO): Promise<void> {
-        const { startAt, endAt, ...rest } = dto;
-
-        await this.recordsRepo.insert({
-            ...rest,
-            startAt: () => startAt.toLocaleDateString(),
-            endAt: () => endAt.toLocaleDateString()
-        });
+        await this.recordsRepo.save(dto);
     }
 
     async getRunningRecord(id: number): Promise<RunningRecordDTO> {
@@ -41,15 +30,8 @@ export class RunningRecordsService {
         if (!record) throw new NotFoundException();
 
         return {
-            ...pick(record, ["id", "courseId", "path", "distance", "pace", "calories"]),
-            startAt: record.startAt.format(this.formatter),
-            endAt: record.endAt.format(this.formatter),
-            duration: formatDuration(
-                Duration.between(
-                    record.startAt,
-                    record.endAt,
-                )
-            )
+            duration: (record.endAt.getTime() - record.startAt.getTime()) / 1000,
+            ...omit(record, ["userId", "course", "createdAt"])
         };
     }
 
@@ -60,14 +42,15 @@ export class RunningRecordsService {
 
         const qb =  this.recordsRepo
             .createQueryBuilder("record")
-            .select("record.id", "id")
+            .select(`record.id`, "id")
+            .addSelect(`record.startAt`, "startAt")
+            .addSelect(`record.endAt`, "endAt")
+            .addSelect(`record.distance`, "distance")
+            .addSelect(`record.pace`, "pace")
+            .addSelect(`record.calories`, "calories")
             .addSelect(
-                `to_char(record.startAt, 'yyyy.MM.dd HH:mm:ss')`,
-                "startAt"
-            )
-            .addSelect(
-                `to_char(record.endAt, 'yyyy.MM.dd HH:mm:ss')`,
-                "endAt"
+                `EXTRACT(EPOCH FROM course.endAt) - EXTRACT(EPOCH FROM course.startAt)`,
+                "duration"
             )
             .addSelect(
                 `
@@ -90,7 +73,5 @@ export class RunningRecordsService {
             plainToInstance(SearchRunningRecordResult, raw)
         );
     }
-
-
 }
 

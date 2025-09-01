@@ -29,7 +29,7 @@ export class CreateRunningRecordDTO {
     @ApiProperty({
         type: "number",
         required: true,
-        description: "달린 거리(km)"
+        description: "달린 거리(m)"
     })
     distance: number;
 
@@ -42,7 +42,7 @@ export class CreateRunningRecordDTO {
     endAt: Date;
 
     @IsNumber()
-    @ApiProperty({ type: "number", required: true, description: "평균 속력(km/h)" })
+    @ApiProperty({ type: "number", required: true, description: "평균 속력(m/s)" })
     pace: number;
 
     @IsNumber()

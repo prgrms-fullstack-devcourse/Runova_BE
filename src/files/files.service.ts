@@ -3,7 +3,6 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { UploadType } from "../common/constants/upload-type.enum";
 import { randomUUID } from "crypto";
-import { fromEnv } from "@aws-sdk/credential-providers/dist-types/fromEnv";
 
 const S3_EXPIRES_IN = 300;
 
@@ -11,7 +10,10 @@ const S3_EXPIRES_IN = 300;
 export class FilesService {
   private readonly s3 = new S3Client({
     region: process.env.AWS_REGION!,
-    credentials: fromEnv(),
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    },
   });
 
   async getPresignedUrl(
@@ -40,6 +42,6 @@ export class FilesService {
       expiresIn: S3_EXPIRES_IN,
     });
 
-    return { url, key, bucket, expiresIn: S3_EXPIRES_IN };
+    return { url, key, bucket };
   }
 }

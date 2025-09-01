@@ -1,10 +1,8 @@
 import { IsInt, IsOptional } from "class-validator";
-import { ApiProperty } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
+import { ApiProperty } from "@nestjs/swagger";
 
-export class SearchCoursesDTO {
-    userId?: number;
-
+export class PagingOptions {
     @IsInt()
     @IsOptional()
     @Transform(({ value }) => value && Number(value))

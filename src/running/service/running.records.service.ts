@@ -4,10 +4,12 @@ import { RunningRecord } from "../../modules/running";
 import { Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
 import { CreateRunningRecordDTO, RunningRecordDTO, SearchRunningRecordsDTO } from "../dto";
-import { DateTimeFormatter, Duration, nativeJs } from "@js-joda/core";
+import { DateTimeFormatter, Duration } from "@js-joda/core";
 import { pick } from "../../utils/object";
 import { SearchRunningRecordResult } from "../dto/search.running.record.result";
 import { plainToInstance } from "class-transformer";
+import { setFilters } from "./service.internal";
+import { formatDuration } from "../../utils/format-duration";
 
 @Injectable()
 export class RunningRecordsService {
@@ -42,16 +44,21 @@ export class RunningRecordsService {
             ...pick(record, ["id", "courseId", "path", "distance", "pace", "calories"]),
             startAt: record.startAt.format(this.formatter),
             endAt: record.endAt.format(this.formatter),
-            duration: this.durationOf(record),
+            duration: formatDuration(
+                Duration.between(
+                    record.startAt,
+                    record.endAt,
+                )
+            )
         };
     }
 
     async searchRunningRecords(
         dto: SearchRunningRecordsDTO
     ): Promise<SearchRunningRecordResult[]> {
-        const { userId, cursor, limit } = dto;
+        const { userId, cursor, limit, ...filters } = dto;
 
-        const raws = await this.recordsRepo
+        const qb =  this.recordsRepo
             .createQueryBuilder("record")
             .select("record.id", "id")
             .addSelect(
@@ -71,24 +78,19 @@ export class RunningRecordsService {
                 `,
                 "departure"
             )
-            .where("record.userId  = :userId", { userId })
+            .where("record.userId  = :userId", { userId });
+
+        const raws = await setFilters(qb, filters)
             .andWhere("record.id > :cursor", { cursor: cursor ?? 0 })
             .limit(limit ?? 10)
             .getRawMany();
+
 
         return raws.map(raw =>
             plainToInstance(SearchRunningRecordResult, raw)
         );
     }
 
-    private durationOf(record: RunningRecord): string {
-        const ms = Duration.between(record.startAt, record.endAt).toMillis();
-
-        return nativeJs(new Date(ms))
-            .format(this.formatter)
-            .split(' ')[1];
-
-    }
 
 }
 

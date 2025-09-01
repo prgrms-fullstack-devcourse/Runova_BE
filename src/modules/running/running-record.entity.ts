@@ -9,9 +9,8 @@ import {
 } from "typeorm";
 import { User } from "../users";
 import { Course } from "../courses";
-import transformer from "../../utils/datetime-transformer";
-import { LocalDateTime } from "@js-joda/core";
 import { Coordinates, LineStringColumn } from "../../common/geo";
+import { LocalDateTime } from "@js-joda/core";
 
 @Entity("running_records")
 export class RunningRecord extends ImmutableEntityBase {
@@ -37,9 +36,11 @@ export class RunningRecord extends ImmutableEntityBase {
   @LineStringColumn()
   path: Coordinates[];
 
-  startAt: EntityBase;
+  @Column({ name: "start_at", type: "timestamptz" })
+  startAt: LocalDateTime;
 
-  endAt: EntityBase;
+  @Column({ name: "end_at", type: "timestamptz" })
+  endAt: LocalDateTime;
 
   @Column({ type: "float8" })
   distance: number;

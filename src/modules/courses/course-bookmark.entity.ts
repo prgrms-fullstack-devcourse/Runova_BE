@@ -4,17 +4,10 @@ import { User } from "../users";
 import { Course } from "./course.entity";
 
 @Entity("course_bookmarks")
-@Unique(["userId", "courseId"])
+@Unique(["courseId", "userId"])
 export class CourseBookmark extends ImmutableEntityBase {
     @PrimaryGeneratedColumn()
     id: number;
-
-    @Column({ name: "user_id", type: "int" })
-    userId: number;
-
-    @ManyToOne(() => User, { onDelete: "CASCADE" })
-    @JoinColumn({ name: "user_id" })
-    user: User;
 
     @Column({ name: "course_id", type: "int" })
     courseId: number;
@@ -22,4 +15,11 @@ export class CourseBookmark extends ImmutableEntityBase {
     @ManyToOne(() => Course, { onDelete: "CASCADE" })
     @JoinColumn({ name: "course_id" })
     course: Course;
+
+    @Column({ name: "user_id", type: "int" })
+    userId: number;
+
+    @ManyToOne(() => User, { onDelete: "CASCADE" })
+    @JoinColumn({ name: "user_id" })
+    user: User;
 }

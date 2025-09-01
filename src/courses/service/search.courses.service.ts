@@ -1,9 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Course } from "../../modules/courses";
+import { Course, CourseBookmark } from "../../modules/courses";
 import { Repository, SelectQueryBuilder } from "typeorm";
-import { SearchAdjacentCourseResult, SearchAdjacentCoursesDTO, SearchCourseResult, SearchCoursesDTO } from "../dto";
-import { addWhere, plainsToInstancesOrReject } from "../../utils";
+import { AdjacentCourseDTO, CourseDTO, SearchAdjacentCoursesDTO } from "../dto";
+import { plainsToInstancesOrReject } from "../../utils";
+import { PagingOptions } from "../../common/paging";
 
 @Injectable()
 export class SearchCoursesService {
@@ -11,99 +12,130 @@ export class SearchCoursesService {
     constructor(
         @InjectRepository(Course)
         private readonly coursesRepo: Repository<Course>,
+        @InjectRepository(CourseBookmark)
+        private readonly bookmarksRepo: Repository<CourseBookmark>,
     ) {}
 
-    async searchCourses(dto: SearchCoursesDTO): Promise<SearchCourseResult[]> {
-        const qb = this.createSelectQueryBuilder();
-        const raws = await __setFilters(qb, dto).getRawMany();
-        return plainsToInstancesOrReject(SearchCourseResult, raws);
+    async searchUserCourses(
+        userId: number,
+        options?: PagingOptions,
+    ): Promise<CourseDTO[]> {
+
+        const qb = __setSelect(
+            this.coursesRepo
+                .createQueryBuilder("course")
+        );
+
+        __setSelectBookmarked(qb)
+            .where("course.useId = :userId", { userId });
+
+        __setPagingOptions(qb, options ?? {});
+
+        const raws = await qb.getRawMany();
+        return plainsToInstancesOrReject(CourseDTO, raws);
+    }
+
+    async searchBookmarkedCourses(
+        userId: number,
+        options?: PagingOptions,
+    ): Promise<CourseDTO[]> {
+
+        const qb = this.bookmarksRepo
+            .createQueryBuilder("bookmark")
+            .innerJoin(Course, "course", "course.id = bookmark.courseId");
+
+        __setSelect(qb).addSelect("bookmarked", "true");
+        qb.where("bookmark.userId = :userId", { userId });
+
+        __setPagingOptions(qb, options ?? {});
+
+        const raws = await qb.getRawMany();
+        return plainsToInstancesOrReject(CourseDTO, raws);
     }
 
     async searchAdjacentCourses(
         dto: SearchAdjacentCoursesDTO
-    ): Promise<SearchAdjacentCourseResult[]> {
-        const { location, radius, ...filters } = dto;
+    ): Promise<AdjacentCourseDTO[]> {
+        const { userId, location, radius, ...pagingOptions } = dto;
 
-        const qb = this.createSelectQueryBuilder()
+        const qb = this.coursesRepo
+            .createQueryBuilder("course")
             .addCommonTableExpression(
                 `
                 SELECT ST_SetSRID(ST_MakePoint(:lon, :lat), 4326) AS geom
                 `,
                 "location"
             )
-            .setParameters(location)
-            .addFrom("location", "loc")
+            .addFrom("location", "loc");
+
+        __setSelectBookmarked(__setSelect(qb))
             .addSelect(
                 `
                 ST_DistanceSphere(course.departure, loc.geom) / 1000`,
                 "distance"
-            ).where(
-                `ST_DWithin(course.departure, loc.geom, :radius)`,
-                { radius: radius * 1000 }
-            );
+            )
+            .where(`ST_DWithin(course.departure, loc.geom, :radius)`)
+            .setParameters({ userId, ...location, radius: radius * 1000 });
 
-        const raws = await __setFilters(qb, filters, 1)
-            .orderBy("distance", "ASC")
-            .getRawMany();
+       __setPagingOptions(qb, pagingOptions);
+       qb.orderBy("distance", "ASC");
 
-        return plainsToInstancesOrReject(SearchAdjacentCourseResult, raws);
+
+        const raws = await qb.getRawMany();
+        return plainsToInstancesOrReject(AdjacentCourseDTO, raws);
     }
+}
 
-
-    private createSelectQueryBuilder(): SelectQueryBuilder<Course> {
-        return this.coursesRepo
-            .createQueryBuilder("course")
-            .select("course.id", "id")
-            .addSelect(
-                `
+function __setSelect<E extends object>(
+    qb: SelectQueryBuilder<E>,
+): SelectQueryBuilder<E> {
+    return qb
+        .select("course.id", "id")
+        .addSelect(
+            `
                 jsonb_build_object(
                     'lon', ST_X(course.departure),
                     'lat', ST_Y(course.departure),
                 )
                 `,
-                "departure"
-            )
-            .addSelect("course.length", "length")
-            .addSelect(
-                `
+            "departure"
+        )
+        .addSelect("course.length", "length")
+        .addSelect(
+            `
                 to_char(
                     Interval '1 hours' * course.time,
                     'HH24:MI:SS'
                 )
                 `,
-                "timeRequired"
-            )
-            .addSelect("course.nCompleted", "nCompleted")
-    }
-
+            "timeRequired"
+        )
+        .addSelect("course.nCompleted", "nCompleted");
 }
 
-function __setFilters<E extends  object>(
-    qb: SelectQueryBuilder<E>,
-    filters: SearchCoursesDTO,
-    nWhere: number = 0,
+function __setSelectBookmarked<E extends object>(
+    qb: SelectQueryBuilder<E>
 ): SelectQueryBuilder<E> {
-    const { userId, cursor, limit } = filters;
+    return qb.addSelect(
+        `
+            EXISTS(${
+            qb.subQuery()
+                .select("1")
+                .from(CourseBookmark, "bookmark")
+                .where("bookmark.courseId = course.id")
+                .andWhere("bookmark.userId = :userId")
+        })
+            `,
+        "bookmarked"
+    );
+}
 
-    if (userId) {
-        nWhere = addWhere(
-            nWhere,
-            qb,
-            `course.userId = :userId`,
-            { userId }
-        );
-    }
-
-    if (cursor) {
-        addWhere(
-            nWhere,
-            qb,
-            `course.id > :cursor`,
-            { cursor },
-        );
-    }
-
-    qb.limit(limit);
+function __setPagingOptions<E extends object>(
+    qb: SelectQueryBuilder<E>,
+    options: PagingOptions,
+): SelectQueryBuilder<E> {
+    options.cursor && qb.andWhere("course.id > :cursor", { cursor: options.cursor });
+    qb.limit(options.limit ?? 10);
     return qb;
 }
 

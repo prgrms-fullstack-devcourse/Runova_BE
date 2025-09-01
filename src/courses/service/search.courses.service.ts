@@ -27,7 +27,7 @@ export class SearchCoursesService {
         );
 
         __setSelectBookmarked(qb)
-            .where("course.useId = :userId", { userId });
+            .where("course.userId = :userId", { userId });
 
         __setPagingOptions(qb, options ?? {});
 

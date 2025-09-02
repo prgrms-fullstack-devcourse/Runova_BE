@@ -8,7 +8,7 @@ import {
   RunningRecordDTO,
   SearchRunningRecordsDTO,
 } from "../dto";
-import { DateTimeFormatter, Duration } from "@js-joda/core";
+import { DateTimeFormatter, Duration, nativeJs } from "@js-joda/core";
 import { pick } from "../../utils/object";
 import { SearchRunningRecordResult } from "../dto/search.running.record.result";
 import { plainToInstance } from "class-transformer";

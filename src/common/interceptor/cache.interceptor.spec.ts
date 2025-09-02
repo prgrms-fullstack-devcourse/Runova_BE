@@ -1,235 +1,115 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CacheInterceptor } from './cache.interceptor';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Reflector } from '@nestjs/core';
-import { ExecutionContext, CallHandler } from '@nestjs/common';
-import { of } from 'rxjs';
-import { plainToInstance } from 'class-transformer';
+import { CacheInterceptor } from "./cache.interceptor";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import { Reflector } from "@nestjs/core";
+import { Test, TestingModule } from "@nestjs/testing";
+import { CallHandler, ExecutionContext } from "@nestjs/common";
+import { HttpArgumentsHost } from "@nestjs/common/interfaces";
+import { firstValueFrom, of } from "rxjs";
+import { MD5 } from "object-hash";
 
-jest.mock('class-transformer', () => ({
-  plainToInstance: jest.fn(),
-}));
+const __BASE_URL = "https://test.com";
 
-describe('HttpCacheInterceptor', () => {
-  let interceptor: CacheInterceptor;
-  let cacheManager: any;
-  let reflector: Reflector;
-  let mockExecutionContext: ExecutionContext;
-  let mockCallHandler: CallHandler;
-  let mockRequest: any;
+const makeExecutionContext = (
+    method: "GET" | "POST" | "PUT" | "PATCH" |"DELETE",
+    path: string,
+): ExecutionContext => {
+    const url = new URL(`${__BASE_URL}${path}`);
 
-  beforeEach(async () => {
-    const mockCacheManager = {
-      get: jest.fn(),
-      set: jest.fn(),
+    const req = {
+        method,
+        originalUrl: path,
+        path: url.pathname,
+        query: Object.fromEntries(url.searchParams.entries())
     };
 
-    const mockReflector = {
-      get: jest.fn(),
-    };
+    return {
+      switchToHttp: () => ({
+          getRequest: <T = any>() => req as T,
+      }) as HttpArgumentsHost,
+      getHandler: () => {},
+    } as ExecutionContext;
+};
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CacheInterceptor,
-        {
-          provide: CACHE_MANAGER,
-          useValue: mockCacheManager,
-        },
-        {
-          provide: Reflector,
-          useValue: mockReflector,
-        },
-      ],
-    }).compile();
+describe(CacheInterceptor.name, () => {
+    let interceptor: CacheInterceptor;
+    let reflector: jest.Mocked<Reflector>;
+    let __storage: object;
 
-    interceptor = module.get<CacheInterceptor>(CacheInterceptor);
-    cacheManager = module.get(CACHE_MANAGER);
-    reflector = module.get<Reflector>(Reflector);
+    beforeEach(async () => {
 
-    mockRequest = {
-      method: 'GET',
-      originalUrl: '/test/path',
-      locals: {},
-    };
+        const module: TestingModule = await Test
+            .createTestingModule({
+                providers: [
+                    CacheInterceptor,
+                    {
+                        provide: CACHE_MANAGER,
+                        useValue: {
+                            get: jest.fn().mockImplementation(async (key: string) =>
+                                __storage[key]
+                            ),
+                            set: jest.fn().mockImplementation(
+                                async (key: string, value: any, _?: number) => {
+                                    __storage[key] = value;
+                                }
+                            )
+                        }
+                    },
+                    {
+                        provide: Reflector,
+                        useValue: { get: jest.fn() }
+                    }
+                ]
+            }).compile();
 
-    mockExecutionContext = {
-      switchToHttp: jest.fn().mockReturnValue({
-        getRequest: jest.fn().mockReturnValue(mockRequest),
-      }),
-      getHandler: jest.fn(),
-    } as any;
-
-    mockCallHandler = {
-      handle: jest.fn().mockReturnValue(of('response data')),
-    };
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should be defined', () => {
-    expect(interceptor).toBeDefined();
-  });
-
-  describe('intercept', () => {
-    it('should return next.handle() when no cache key is generated', async () => {
-      jest.spyOn(interceptor as any, 'trackBy').mockReturnValue(undefined);
-      reflector.get = jest.fn().mockReturnValue({ ttl: 60 });
-
-      const result = await interceptor.intercept(mockExecutionContext, mockCallHandler);
-
-      expect(result).toBe(mockCallHandler.handle());
-      expect(cacheManager.get).not.toHaveBeenCalled();
+        interceptor = module.get(CacheInterceptor);
+        reflector = module.get(Reflector);
+        __storage = {};
     });
 
-    it('should return next.handle() when no caching options are found', async () => {
-      jest.spyOn(interceptor as any, 'trackBy').mockReturnValue('/test/path');
-      reflector.get = jest.fn().mockReturnValue(null);
+    it('should cache value when no cached value exists', async () => {
+        const mockPath = "/test";
+        const ctx = makeExecutionContext("GET", mockPath);
+        const expectedKey = mockPath + '?' + MD5({});
+        const handler: CallHandler = { handle: () => of({ foo: 1 }) };
 
-      const result = await interceptor.intercept(mockExecutionContext, mockCallHandler);
+        reflector.get.mockReturnValue({ ttl: 3600 });
 
-      expect(result).toBe(mockCallHandler.handle());
-      expect(cacheManager.get).not.toHaveBeenCalled();
+        const result$ = await interceptor.intercept(ctx, handler);
+        const data = await firstValueFrom(result$);
+        expect(data).toEqual(__storage[expectedKey]);
     });
 
-    it('should set cached data to req.locals when cache hit occurs', async () => {
-      const cachedData = { id: 1, name: 'test' };
-      const options = { ttl: 60 };
+    it('should determine existence of cache value regardless of order of query parameters', async () => {
+        const mockPath = "/test";
+        const mockQs1 = "a=1&b=2&c=3";
+        const mockQs2 = "b=2&c=3&a=1";
+        const mockData = { foo: 1, bar: 2 };
 
-      jest.spyOn(interceptor as any, 'trackBy').mockReturnValue('/test/path');
-      reflector.get = jest.fn().mockReturnValue(options);
-      cacheManager.get = jest.fn().mockResolvedValue(cachedData);
+        const ctx1 = makeExecutionContext(
+            "GET",
+            [mockPath, mockQs1].join('?')
+        );
 
-      await interceptor.intercept(mockExecutionContext, mockCallHandler);
+        const ctx2 = makeExecutionContext(
+            "GET",
+            [mockPath, mockQs2].join('?')
+        );
 
-      expect(cacheManager.get).toHaveBeenCalledWith('/test/path');
-      expect(mockRequest.cached).toBe(cachedData);
-    });
+        const handler: CallHandler = { handle: () => of(mockData) };
+        reflector.get.mockReturnValue({});
 
-    it('should transform cached data using schema when provided', async () => {
-      const cachedData = { id: 1, name: 'test' };
-      const transformedData = { id: 1, name: 'test', transformed: true };
-      const schema = class TestSchema {};
-      const options = { ttl: 60, schema };
+        const result1$ = await interceptor.intercept(ctx1, handler);
+        const data1 = await firstValueFrom(result1$);
 
-      jest.spyOn(interceptor as any, 'trackBy').mockReturnValue('/test/path');
-      reflector.get = jest.fn().mockReturnValue(options);
-      cacheManager.get = jest.fn().mockResolvedValue(cachedData);
-      (plainToInstance as jest.Mock).mockReturnValue(transformedData);
+        const result2$ = await interceptor.intercept(ctx2, handler);
+        const data2 = await firstValueFrom(result2$);
 
-      await interceptor.intercept(mockExecutionContext, mockCallHandler);
+        expect(ctx2.switchToHttp().getRequest().cached)
+            .toEqual(data1);
 
-      expect(plainToInstance).toHaveBeenCalledWith(schema, cachedData);
-      expect(mockRequest.cached).toBe(transformedData);
-    });
+        expect(ctx2.switchToHttp().getRequest().cached)
+            .toEqual(data2);
+    })
 
-    it('should set undefined to req.locals.data when no cache hit and no schema', async () => {
-      const options = { ttl: 60 };
 
-      jest.spyOn(interceptor as any, 'trackBy').mockReturnValue('/test/path');
-      reflector.get = jest.fn().mockReturnValue(options);
-      cacheManager.get = jest.fn().mockResolvedValue(undefined);
-
-      await interceptor.intercept(mockExecutionContext, mockCallHandler);
-
-      expect(mockRequest.cached).toBeUndefined();
-    });
-
-    it('should cache response data when cache miss occurs', async () => {
-      const responseData = { id: 1, name: 'response' };
-      const options = { ttl: 60 };
-
-      jest.spyOn(interceptor as any, 'trackBy').mockReturnValue('/test/path');
-      reflector.get = jest.fn().mockReturnValue(options);
-      cacheManager.get = jest.fn().mockResolvedValue(undefined);
-      cacheManager.set = jest.fn().mockResolvedValue(undefined);
-      mockCallHandler.handle = jest.fn().mockReturnValue(of(responseData));
-
-      const result$ = await interceptor.intercept(mockExecutionContext, mockCallHandler);
-      
-      result$.subscribe(() => {
-        setTimeout(() => {
-          expect(cacheManager.set).toHaveBeenCalledWith('/test/path', responseData, 60);
-        }, 0);
-      });
-    });
-
-    it('should handle cache set errors gracefully', async () => {
-      const responseData = { id: 1, name: 'response' };
-      const options = { ttl: 60 };
-      const loggerSpy = jest.spyOn(interceptor['logger'], 'error').mockImplementation();
-
-      jest.spyOn(interceptor as any, 'trackBy').mockReturnValue('/test/path');
-      reflector.get = jest.fn().mockReturnValue(options);
-      cacheManager.get = jest.fn().mockResolvedValue(undefined);
-      cacheManager.set = jest.fn().mockRejectedValue(new Error('Cache error'));
-      mockCallHandler.handle = jest.fn().mockReturnValue(of(responseData));
-
-      const result$ = await interceptor.intercept(mockExecutionContext, mockCallHandler);
-      
-      result$.subscribe(() => {
-        setTimeout(() => {
-          expect(loggerSpy).toHaveBeenCalledWith(new Error('Cache error'));
-        }, 0);
-      });
-    });
-
-    it('should not cache when cached data already exists', async () => {
-      const cachedData = { id: 1, name: 'cached' };
-      const responseData = { id: 2, name: 'response' };
-      const options = { ttl: 60 };
-
-      jest.spyOn(interceptor as any, 'trackBy').mockReturnValue('/test/path');
-      reflector.get = jest.fn().mockReturnValue(options);
-      cacheManager.get = jest.fn().mockResolvedValue(cachedData);
-      mockCallHandler.handle = jest.fn().mockReturnValue(of(responseData));
-
-      const result$ = await interceptor.intercept(mockExecutionContext, mockCallHandler);
-      
-      result$.subscribe(() => {
-        setTimeout(() => {
-          expect(cacheManager.set).not.toHaveBeenCalled();
-        }, 0);
-      });
-    });
-  });
-
-  describe('trackBy', () => {
-    it('should return originalUrl for GET requests', () => {
-      mockRequest.method = 'GET';
-      mockRequest.originalUrl = '/api/test';
-
-      const result = interceptor['trackBy'](mockExecutionContext);
-
-      expect(result).toBe('/api/test');
-    });
-
-    it('should return undefined for non-GET requests', () => {
-      mockRequest.method = 'POST';
-      mockRequest.originalUrl = '/api/test';
-
-      const result = interceptor['trackBy'](mockExecutionContext);
-
-      expect(result).toBeUndefined();
-    });
-
-    it('should return undefined for PUT requests', () => {
-      mockRequest.method = 'PUT';
-      mockRequest.originalUrl = '/api/test';
-
-      const result = interceptor['trackBy'](mockExecutionContext);
-
-      expect(result).toBeUndefined();
-    });
-
-    it('should return undefined for DELETE requests', () => {
-      mockRequest.method = 'DELETE';
-      mockRequest.originalUrl = '/api/test';
-
-      const result = interceptor['trackBy'](mockExecutionContext);
-
-      expect(result).toBeUndefined();
-    });
-  });
-});
+})

@@ -9,7 +9,7 @@ import {
 } from './service';
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Course, CourseBookmark, CourseNode } from "../modules/courses";
-import { CoursesController } from "./courses.controller";
+import { CoursesController } from "./controller";
 
 @Module({
   imports: [TypeOrmModule.forFeature([Course, CourseNode, CourseBookmark])],

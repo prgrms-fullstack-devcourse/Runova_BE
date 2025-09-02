@@ -1,13 +1,11 @@
 import { CreateDateColumn, UpdateDateColumn } from "typeorm";
-import transformer from "../../utils/datetime-transformer";
-import { LocalDateTime } from "@js-joda/core";
 
 
 export abstract class EntityBase {
-    @CreateDateColumn({ name: "created_at", type: "timestamp", transformer })
-    createdAt: LocalDateTime;
+    @CreateDateColumn({ name: "created_at", type: "timestamptz" })
+    createdAt: Date;
 
-    @UpdateDateColumn({ name: "updated_at", type: "timestamp", transformer })
-    updatedAt: LocalDateTime;
+    @UpdateDateColumn({ name: "updated_at", type: "timestamptz", })
+    updatedAt: Date;
 }
 

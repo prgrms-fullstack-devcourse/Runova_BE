@@ -1,16 +1,18 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { RunningRecord } from "../modules/running";
-import { RunningRecordsService } from "./service";
+import { RunningDashboardsService, RunningRecordsService } from "./service";
 import { RunningRecordsController } from "./controller";
 
 @Module({
     imports: [TypeOrmModule.forFeature([RunningRecord])],
     providers: [
-        RunningRecordsService
+        RunningRecordsService,
+        RunningDashboardsService,
     ],
     controllers: [
-        RunningRecordsController
+        RunningRecordsController,
+        RunningDashboardsService,
     ]
 })
 export class RunningModule {}

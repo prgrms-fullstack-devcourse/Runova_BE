@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpCacheInterceptor } from './http.cache.interceptor';
+import { CacheInterceptor } from './cache.interceptor';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Reflector } from '@nestjs/core';
 import { ExecutionContext, CallHandler } from '@nestjs/common';
@@ -11,7 +11,7 @@ jest.mock('class-transformer', () => ({
 }));
 
 describe('HttpCacheInterceptor', () => {
-  let interceptor: HttpCacheInterceptor;
+  let interceptor: CacheInterceptor;
   let cacheManager: any;
   let reflector: Reflector;
   let mockExecutionContext: ExecutionContext;
@@ -30,7 +30,7 @@ describe('HttpCacheInterceptor', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        HttpCacheInterceptor,
+        CacheInterceptor,
         {
           provide: CACHE_MANAGER,
           useValue: mockCacheManager,
@@ -42,7 +42,7 @@ describe('HttpCacheInterceptor', () => {
       ],
     }).compile();
 
-    interceptor = module.get<HttpCacheInterceptor>(HttpCacheInterceptor);
+    interceptor = module.get<CacheInterceptor>(CacheInterceptor);
     cacheManager = module.get(CACHE_MANAGER);
     reflector = module.get<Reflector>(Reflector);
 

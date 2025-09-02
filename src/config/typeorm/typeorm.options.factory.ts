@@ -15,7 +15,10 @@ export function typeormOptionsFactory(
   // //   : config.get<boolean>("DB_SSL")
   // //     ? { rejectUnauthorized: config.get<boolean>("DB_SSL_REJECT_UNAUTHORIZED") ?? false }
   // //     : false;
-  const ssl = { rejectUnauthorized: false };
+
+  const ssl = config.get("NODE_ENV") === "production"
+      ?{ rejectUnauthorized: false }
+      : undefined;
 
   return {
     type: "postgres" as any,

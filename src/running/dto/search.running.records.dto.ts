@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsInt, IsOptional } from "class-validator";
 
-export class SearchRunningRecordsDTO {
+export class SearchRunningRecordsDTO  {
     userId: number;
 
     @IsInt()

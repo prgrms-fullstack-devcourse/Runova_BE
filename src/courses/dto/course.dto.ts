@@ -1,10 +1,9 @@
 import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
-import { CourseNodeDTO } from "./course.node.dto";
 import { Coordinates } from "../../common/geo";
-import { IsInt, IsNumber, IsString, ValidateNested } from "class-validator";
+import { IsBoolean, IsInt, IsNumber, IsString, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 
-@ApiExtraModels(Coordinates, CourseNodeDTO)
+@ApiExtraModels(Coordinates)
 export class CourseDTO {
     @IsInt()
     @ApiProperty({ type: "integer" })
@@ -27,6 +26,7 @@ export class CourseDTO {
     @ApiProperty({ type: "integer", description: "경로를 달린 사람 수" })
     nCompleted: number;
 
-    @ApiProperty({ type: [CourseNodeDTO] })
-    nodes: CourseNodeDTO[];
+    @IsBoolean()
+    @ApiProperty({ type: "boolean", description: "북마크 여부" })
+    bookmarked: boolean;
 }

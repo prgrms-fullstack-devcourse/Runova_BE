@@ -1,17 +1,16 @@
 import {
   Column,
-  CreateDateColumn,
   Entity,
   Index,
   ManyToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from "typeorm";
 import { Post } from "./post.entity";
 import { User } from "../users/user.entity";
+import { EntityBase } from "../../common/entity/entity.base";
 
 @Entity("comments")
-export class Comment {
+export class Comment extends EntityBase {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -23,7 +22,4 @@ export class Comment {
   author: User;
 
   @Column({ type: "text" }) content: string;
-
-  @CreateDateColumn() createdAt: Date;
-  @UpdateDateColumn() updatedAt: Date;
 }

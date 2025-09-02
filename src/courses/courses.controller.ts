@@ -1,24 +1,22 @@
-import { Body, Controller, Get, Inject, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Inject, Param, Post, Query, UseGuards } from "@nestjs/common";
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
     ApiBody,
-    ApiCreatedResponse, ApiForbiddenResponse, ApiOkResponse,
+    ApiCreatedResponse, ApiForbiddenResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse,
     ApiOperation, ApiParam, ApiQuery,
     ApiTags
 } from "@nestjs/swagger";
-import { CoursesService, SearchCoursesService } from "./service";
-import { CourseDTO } from "./dto";
-import { User } from "../utils/decorator";
+import { CourseNodesService, CoursesService, SearchCoursesService } from "./service";
+import { Cached, Caching, User } from "../utils/decorator";
 import {
-    CreateCourseBody,
+    CreateCourseBody, GetCourseNodesResponse,
     SearchAdjacentCoursesQuery,
     SearchAdjacentCoursesResponse,
-    SearchCoursesQuery,
     SearchCoursesResponse
 } from "./api";
 import { AuthGuard } from "@nestjs/passport";
-import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
+import { PagingOptions } from "../common/paging";
 
 @ApiTags("Courses")
 @Controller("/api/courses")
@@ -30,8 +28,8 @@ export class CoursesController {
         private readonly coursesService: CoursesService,
         @Inject(SearchCoursesService)
         private readonly searchCoursesService: SearchCoursesService,
-        @Inject(CACHE_MANAGER)
-        private readonly cache: Cache,
+        @Inject(CourseNodesService)
+        private readonly nodesService: CourseNodesService,
     ) {}
 
     @Post("/")
@@ -48,32 +46,42 @@ export class CoursesController {
         await this.coursesService.createCourse(userId, path);
     }
 
-    @Get("/:id")
-    @ApiOperation({ summary: "내 경로 조회" })
-    @ApiBearerAuth()
-    @ApiParam({ name: "id", type: "integer", required: true, description: "조회할 경로 아이디" })
-    @ApiOkResponse({ type: CourseDTO })
-    @ApiForbiddenResponse()
-    async getCourse(
-        @Param("id") id: number,
-    ): Promise<CourseDTO> {
-
-       return this.coursesService.getCourse(id);
-    }
-
     @Get("/search/users")
-    @ApiOperation({ summary: "내 경로 검색" })
+    @ApiOperation({ summary: "내가 만든 경로 검색" })
     @ApiBearerAuth()
-    @ApiQuery({ type: SearchCoursesQuery, required: false })
+    @ApiQuery({ type: PagingOptions, required: false })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
+    @Caching({ schema: SearchCoursesResponse })
     async searchUserCourses(
         @User("userId") userId: number,
-        @Query() query?: SearchCoursesQuery,
+        @Query() query?: PagingOptions,
+        @Cached() cached?: SearchCoursesResponse,
     ): Promise<SearchCoursesResponse> {
+        if (cached) return cached;
 
         const results = await this.searchCoursesService
-            .searchCourses(query ? { userId, ...query } : { userId });
+            .searchUserCourses(userId, query);
+
+        return { results };
+    }
+
+    @Get("/search/bookmarks")
+    @ApiOperation({ summary: "북마크한 경로 검색" })
+    @ApiBearerAuth()
+    @ApiQuery({ type: PagingOptions, required: false })
+    @ApiOkResponse({ type: SearchCoursesResponse })
+    @ApiForbiddenResponse()
+    @Caching({ schema: SearchCoursesResponse })
+    async searchBookmarkedCourses(
+        @User("userId") userId: number,
+        @Query() query?: PagingOptions,
+        @Cached() cached?: SearchCoursesResponse,
+    ): Promise<SearchCoursesResponse> {
+        if (cached) return cached;
+
+        const results = await this.searchCoursesService
+            .searchBookmarkedCourses(userId, query);
 
         return { results };
     }
@@ -84,13 +92,47 @@ export class CoursesController {
     @ApiQuery({ type: SearchAdjacentCoursesQuery, required: true })
     @ApiOkResponse({ type: SearchAdjacentCoursesResponse })
     @ApiForbiddenResponse()
+    @Caching({ schema: SearchAdjacentCoursesResponse })
     async searchAdjacentCourses(
+       @User("userId") userId: number,
        @Query() query: SearchAdjacentCoursesQuery,
+       @Cached() cached?: SearchAdjacentCoursesResponse,
     ): Promise<SearchAdjacentCoursesResponse> {
+        if (cached) return cached;
 
         const results = await this.searchCoursesService
-            .searchAdjacentCourses(query);
+            .searchAdjacentCourses({ userId, ...query });
 
         return { results };
+    }
+
+    @Get("/:id/nodes")
+    @ApiOperation({ summary: "경로 노드(경로의 양 끝 점과 방향 전환이 발생하는 점들) 조회"})
+    @ApiParam({ name: "id", type: "integer", required: true, description: "노드들이 속한 경로의 아이디" })
+    @ApiBearerAuth()
+    @ApiOkResponse({ type: GetCourseNodesResponse })
+    @ApiForbiddenResponse()
+    @ApiNotFoundResponse({ description: "존재하지 않는 경로" })
+    @Caching({ schema: GetCourseNodesResponse })
+    async getCourseNodes(
+        @Param("id") id: number,
+        @Cached() cached?: GetCourseNodesResponse,
+    ): Promise<GetCourseNodesResponse> {
+        if (cached) return cached;
+        const results = await this.nodesService.getCourseNodes(id);
+        return { results };
+    }
+
+    @Delete("/:id")
+    @ApiOperation({ summary: "경로 삭제"})
+    @ApiParam({ name: "id", type: "integer", required: true, description: "삭제할 경로의 아이디" })
+    @ApiBearerAuth()
+    @ApiNoContentResponse()
+    @ApiForbiddenResponse()
+    async deleteCourse(
+        @Param("id") id: number,
+        @User("userId") userId: number,
+    ): Promise<void> {
+        await this.coursesService.deleteCourse(id, userId);
     }
 }

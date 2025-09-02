@@ -5,6 +5,7 @@ import { Observable, tap } from "rxjs";
 import { Caching } from "../../utils/decorator";
 import { plainToInstance } from "class-transformer";
 import { Reflector } from "@nestjs/core";
+import { MD5 } from "object-hash";
 
 @Injectable()
 export class CacheInterceptor implements NestInterceptor {
@@ -18,7 +19,7 @@ export class CacheInterceptor implements NestInterceptor {
     ) {}
 
     async intercept(ctx: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
-        const key = this.trackBy(ctx);
+        const key = __extractKey(ctx);
         const options = this.reflector.get(Caching, ctx.getHandler());
         if (!(key && options)) return next.handle();
 
@@ -38,12 +39,11 @@ export class CacheInterceptor implements NestInterceptor {
             })
         );
     }
+}
 
-    protected trackBy(ctx: ExecutionContext): string | undefined {
-        const req: Request = ctx.switchToHttp().getRequest();
-        return req.method === "GET" ?  req.originalUrl : undefined;
-    }
-
-
-
+function __extractKey(ctx: ExecutionContext): string | null {
+    const req: Request = ctx.switchToHttp().getRequest();
+    if (req.method !== "GET") return null;
+    const qs = req.query ? MD5(req.query) : '';
+    return req.path + '&' + qs;
 }

@@ -8,11 +8,16 @@ export async function redisOptionsFactory(
   // elastic cache는 tls 연결을 강제하므로 프로덕션에서 필요함
   const ca = config.get<string>("REDIS_TLS_CA");
   const tls = ca ? { ca: readFileSync(ca) } : undefined;
+  const host = config.get<string>("REDIS_HOST");
+  const port = config.get<number>("REDIS_PORT");
+  const db = config.get<number>("REDIS_DB") ?? 0;
+
+  console.log("[RedisOptionsFactory] Redis config:", { host, port, db });
 
   return {
-    host: config.get<string>("REDIS_HOST")!,
-    port: config.get<number>("REDIS_PORT")!,
-    db: config.get<number>("REDIS_DB") ?? 0,
+    host,
+    port,
+    db,
     tls,
   };
 }

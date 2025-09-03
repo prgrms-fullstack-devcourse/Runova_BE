@@ -15,7 +15,6 @@ import { CoursesModule } from "./courses/courses.module";
 import { CacheModule } from "@nestjs/cache-manager";
 import { cacheOptionsFactory } from "./config/cache";
 import { FilesModule } from "./files/files.module";
-import Redis from "iovalkey";
 
 @Module({
   imports: [

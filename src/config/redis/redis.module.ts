@@ -16,7 +16,10 @@ export const REDIS_CLIENT = Symbol("REDIS_CLIENT");
     },
     {
       provide: REDIS_CLIENT,
-      useFactory: (options: RedisOptions) => new Redis(options),
+      useFactory: (options: RedisOptions) => {
+        console.log("[REDIS_CLIENT Factory] options:", options);
+        return new Redis(options);
+      },
       inject: [REDIS_OPTIONS],
     },
   ],

@@ -2,7 +2,6 @@ import { Module } from "@nestjs/common";
 import { join } from "node:path";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { ScheduleModule } from "@nestjs/schedule";
 import {
   typeormDataSourceFactory,
   typeormOptionsFactory,
@@ -29,7 +28,6 @@ import Redis from "iovalkey";
       dataSourceFactory: typeormDataSourceFactory,
       inject: [ConfigService],
     }),
-    ScheduleModule.forRoot(),
     RedisModule,
     CacheModule.registerAsync({
       isGlobal: true,

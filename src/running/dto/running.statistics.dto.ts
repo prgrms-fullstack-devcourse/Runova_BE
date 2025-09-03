@@ -1,7 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNumber } from "class-validator";
+import { IsInt, IsNumber } from "class-validator";
 
 export class RunningStatisticsDTO {
+    @IsInt()
+    @ApiProperty({ type: "integer", description: "통계 대상이 된 레코드 수" })
+    nRecords: number;
+
     @IsNumber()
     @ApiProperty({ type: "number", description: "달린 총 거리(m)" })
     totalDistance: number;

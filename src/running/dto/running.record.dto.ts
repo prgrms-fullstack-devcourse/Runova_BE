@@ -20,7 +20,7 @@ export class RunningRecordDTO {
     path: Coordinates[];
 
     @IsNumber()
-    @ApiProperty({ type: "number", description: "달린 거리(km)" })
+    @ApiProperty({ type: "number", description: "달린 거리(m)" })
     distance: number;
 
     @IsDate()

@@ -7,13 +7,13 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { ImmutableEntityBase } from "../../common/entity";
+import { EntityBase } from "../../common/entity";
 import { User } from "../users";
-import { CourseNode } from "./course-node.entity";
+import { CourseNode } from "./course.node.entity";
 import { Coordinates, PointColumn } from "../../common/geo";
 
 @Entity({ name: "courses" })
-export class Course extends ImmutableEntityBase {
+export class Course extends EntityBase {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -27,6 +27,9 @@ export class Course extends ImmutableEntityBase {
 
   @Column({ type: "varchar" })
   title: string;
+
+  @Column({ name: "image_url", type: "varchar" })
+  imageURL: string;
 
   @PointColumn()
   departure: Coordinates;

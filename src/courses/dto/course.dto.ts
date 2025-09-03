@@ -1,6 +1,6 @@
 import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
 import { Coordinates } from "../../common/geo";
-import { IsBoolean, IsInt, IsNumber, ValidateNested } from "class-validator";
+import { IsBoolean, IsDate, IsInt, IsNumber, IsString, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 
 @ApiExtraModels(Coordinates)
@@ -8,6 +8,14 @@ export class CourseDTO {
     @IsInt()
     @ApiProperty({ type: "integer" })
     id: number;
+
+    @IsString()
+    @ApiProperty({ type: "string" })
+    title: string;
+
+    @IsString()
+    @ApiProperty({ type: "string", description: "이미지 경로" })
+    imageURL: string;
 
     @ValidateNested()
     @Type(() => Coordinates)
@@ -22,11 +30,19 @@ export class CourseDTO {
     @ApiProperty({ type: "number", description: "예상 소요 시간(sec)" })
     time: number;
 
-    @IsInt()
-    @ApiProperty({ type: "integer", description: "경로를 완주한 사람 수" })
-    nCompleted: number;
+    @IsDate()
+    @ApiProperty({ type: Date, description: "생성일" })
+    createdAt: Date;
+
+    @IsString()
+    @ApiProperty({ type: "string", description: "작성자 닉네임" })
+    author: string;
 
     @IsBoolean()
     @ApiProperty({ type: "boolean", description: "북마크 여부" })
     bookmarked: boolean;
+
+    @IsBoolean()
+    @ApiProperty({ type: "boolean", description: "완주 여부" })
+    completed: boolean;
 }

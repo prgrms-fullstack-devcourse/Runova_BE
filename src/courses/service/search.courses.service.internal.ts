@@ -1,14 +1,17 @@
 import { SelectQueryBuilder } from "typeorm";
-import { CourseBookmark } from "../../modules/courses";
+import { CompletedCourse, CourseBookmark } from "../../modules/courses";
 import { PagingOptions } from "../../common/paging";
+import { User } from "../../modules/users";
+import { Clazz } from "../../utils";
 
-// --ToDo nCompleted 로직 구현
 export function setSelect<E extends object>(
     qb: SelectQueryBuilder<E>,
     pace: number,
 ): SelectQueryBuilder<E> {
         return qb
             .select("course.id", "id")
+            .addSelect("course.title", "title")
+            .addSelect("course.imageURL", "imageURL")
             .addSelect(
             `
                     jsonb_build_object(
@@ -21,7 +24,9 @@ export function setSelect<E extends object>(
             .addSelect("course.length", "length")
             .addSelect(`course.length / :pace`, "time")
             .setParameter("pace", pace)
-            .addSelect("0", "nCompleted");
+            .addSelect("course.createdAt", "createdAt")
+            .innerJoin(User, "user")
+            .addSelect("user.nickname", "author");
 }
 
 export function setSelectBookmarked<E extends object>(
@@ -39,6 +44,24 @@ export function setSelectBookmarked<E extends object>(
         })
             `,
         "bookmarked"
+    );
+}
+
+export function setSelectCompleted<E extends object>(
+    qb: SelectQueryBuilder<E>,
+    userId: number,
+): SelectQueryBuilder<E> {
+    return qb.addSelect(
+        `
+            EXISTS(${
+            qb.subQuery()
+                .select("1")
+                .from(CompletedCourse, "cc")
+                .where("cc.courseId = course.id")
+                .andWhere("cc.userId = :userId", { userId })
+        })
+            `,
+        "completed"
     );
 }
 

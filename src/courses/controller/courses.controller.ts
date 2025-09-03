@@ -41,9 +41,9 @@ export class CoursesController {
     @ApiForbiddenResponse()
     async createCourse(
         @User("userId") userId: number,
-        @Body() { path }: CreateCourseBody,
+        @Body() body: CreateCourseBody,
     ): Promise<void> {
-        await this.coursesService.createCourse(userId, path);
+        await this.coursesService.createCourse({ userId, ...body });
     }
 
     @Get("/search/users")
@@ -66,7 +66,7 @@ export class CoursesController {
         return { results };
     }
 
-    @Get("/search/bookmarks")
+    @Get("/search/bookmarked")
     @ApiOperation({ summary: "북마크한 경로 검색" })
     @ApiBearerAuth()
     @ApiQuery({ type: PagingOptions, required: false })
@@ -74,6 +74,26 @@ export class CoursesController {
     @ApiForbiddenResponse()
     @Caching({ schema: SearchCoursesResponse })
     async searchBookmarkedCourses(
+        @User("userId") userId: number,
+        @Query() query?: PagingOptions,
+        @Cached() cached?: SearchCoursesResponse,
+    ): Promise<SearchCoursesResponse> {
+        if (cached) return cached;
+
+        const results = await this.searchCoursesService
+            .searchBookmarkedCourses(userId, query);
+
+        return { results };
+    }
+
+    @Get("/search/completed")
+    @ApiOperation({ summary: "완주한 경로 검색" })
+    @ApiBearerAuth()
+    @ApiQuery({ type: PagingOptions, required: false })
+    @ApiOkResponse({ type: SearchCoursesResponse })
+    @ApiForbiddenResponse()
+    @Caching({ schema: SearchCoursesResponse })
+    async searchCompletedCourses(
         @User("userId") userId: number,
         @Query() query?: PagingOptions,
         @Cached() cached?: SearchCoursesResponse,

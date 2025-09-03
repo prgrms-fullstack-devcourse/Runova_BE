@@ -11,6 +11,8 @@ services:
     depends_on:
       - redis
     restart: always
+    volumes:
+      - /etc/runova/certs/global-bundle.pem:/app/certs/global-bundle.pem:ro
   redis:
     image: redis:7-alpine
     ports:

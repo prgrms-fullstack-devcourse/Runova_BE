@@ -8,18 +8,6 @@ const env =
   process.env.NODE_ENV === "production" ? "production" : "development";
 dotenv.config({ path: path.resolve(process.cwd(), `.env.${env}`) });
 
-let ssl: any = false;
-if (process.env.DB_SSL_CA) {
-  ssl = {
-    ca: fs.readFileSync(process.env.DB_SSL_CA, "utf8"),
-    rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === "true",
-  };
-} else if ((process.env.DB_SSL || "").toLowerCase() === "true") {
-  ssl = {
-    rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === "true",
-  };
-}
-
 export default new DataSource({
   type: "postgres",
   host: process.env.DB_HOST,
@@ -29,7 +17,12 @@ export default new DataSource({
   database: process.env.DB_DATABASE,
   entities: [path.join(__dirname, "/../../**/*.entity{.js,.ts}")],
   migrations: [path.join(__dirname, "/../../migrations/*{.js,.ts}")],
-  ssl,
+  ssl: {
+    rejectUnauthorized: true,
+    ca: fs
+      .readFileSync(path.join(process.cwd(), "etc/ssl/certs/global-bundle.pem"))
+      .toString(),
+  },
   synchronize: false,
   logging: false,
 });

@@ -190,4 +190,4 @@ dist
 
 /generated/prisma
 
-/runova-test-client
+/etc/ssl/certs/*.pem

@@ -25,6 +25,9 @@ export class Course extends ImmutableEntityBase {
   @JoinColumn({ name: "user_id" })
   user: User;
 
+  @Column({ type: "varchar" })
+  title: string;
+
   @PointColumn()
   departure: Coordinates;
 

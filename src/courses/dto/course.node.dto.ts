@@ -13,7 +13,7 @@ export class CourseNodeDTO {
     @IsNumber()
     @ApiProperty({
         type: "number",
-        description: "출발 지점에서 방향 전환 지점까지의 길이 (km)"
+        description: "출발 지점에서 방향 전환 지점까지의 길이(m)"
     })
     progress: number;
 

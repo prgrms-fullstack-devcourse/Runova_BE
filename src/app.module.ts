@@ -6,7 +6,7 @@ import {
   typeormDataSourceFactory,
   typeormOptionsFactory,
 } from "./config/typeorm";
-import { RedisModule } from "./config/redis";
+import { REDIS_CLIENT, RedisModule } from "./config/redis";
 import { HealthModule } from "./health/health.module";
 import { AuthModule } from "./auth/auth.module";
 import { CommunityModule } from "./community/community.module";
@@ -15,7 +15,7 @@ import { CoursesModule } from "./courses/courses.module";
 import { CacheModule } from "@nestjs/cache-manager";
 import { cacheOptionsFactory } from "./config/cache";
 import { FilesModule } from "./files/files.module";
-import Redis from "ioredis";
+import Redis from "iovalkey";
 
 @Module({
   imports: [
@@ -32,7 +32,7 @@ import Redis from "ioredis";
     CacheModule.registerAsync({
       isGlobal: true,
       useFactory: cacheOptionsFactory,
-      inject: [Redis],
+      inject: [REDIS_CLIENT],
     }),
     HealthModule,
     AuthModule,

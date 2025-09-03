@@ -1,5 +1,5 @@
 import { ConfigService } from "@nestjs/config";
-import { RedisOptions } from "ioredis";
+import { RedisOptions } from "iovalkey";
 import { readFileSync } from "node:fs";
 
 export async function redisOptionsFactory(

@@ -4,6 +4,7 @@ import { redisOptionsFactory } from "./redis.options.factory";
 import { ConfigService } from "@nestjs/config";
 
 export const REDIS_OPTIONS = Symbol("REDIS_OPTIONS");
+export const REDIS_CLIENT = Symbol("REDIS_CLIENT");
 
 @Global()
 @Module({
@@ -17,8 +18,8 @@ export const REDIS_OPTIONS = Symbol("REDIS_OPTIONS");
       provide: Redis,
       useFactory: (options: RedisOptions) => new Redis(options),
       inject: [REDIS_OPTIONS],
-    }
+    },
   ],
-  exports: [REDIS_OPTIONS, Redis],
+  exports: [REDIS_OPTIONS, REDIS_CLIENT],
 })
 export class RedisModule {}

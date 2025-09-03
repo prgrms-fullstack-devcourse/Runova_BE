@@ -61,11 +61,7 @@ export class RunningRecordsService {
                 `,
             "departure"
            )
-          .where("record.userId  = :userId", { userId })
-          .andWhere("record.id > :cursor", { cursor: cursor ?? 0 })
-          .limit(limit ?? 10)
-          .getRawMany();
-
+          .where("record.userId  = :userId", { userId });
 
         const raws = await setFilters(qb, filters)
             .andWhere("record.id > :cursor", { cursor: cursor ?? 0 })

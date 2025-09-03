@@ -76,6 +76,8 @@ jobs:
             set -euo pipefail
             cd ~/runova
 
+            test -f /etc/runova/certs/global-bundle.pem
+            
             if [ -n "${GHCR_PAT}" ] && [ -n "${GHCR_USER}" ]; then
               echo "${GHCR_PAT}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
             fi
@@ -83,14 +85,14 @@ jobs:
             echo "[+] Pull image"
             docker pull "${IMAGE}:${TAG}"
 
-            echo "[+] Stop previous container"
-            docker stop runova || true
-            docker rm runova || true
-            docker stop runova-redis || true
-            docker rm runova-redis || true
-
             echo "[+] Ensure docker network"
             docker network create runova-net || true
+
+            echo "[+] Stop previous containers"
+            docker stop runova || true
+            docker rm   runova || true
+            docker stop runova-redis || true
+            docker rm   runova-redis || true
 
             echo "[+] Run redis"
             docker run -d --name runova-redis --restart=always \
@@ -98,15 +100,18 @@ jobs:
               -v /var/lib/runova/redis:/data \
               redis:7-alpine redis-server --appendonly yes
 
-            echo "[+] Run new container"
+            echo "[+] Run API (with SSL CA volume)"
             docker run -d --name runova --restart=always \
               --env-file .env.production \
               --network runova-net \
               -e REDIS_HOST=runova-redis \
               -e REDIS_PORT=6379 \
-              -v /etc/runova/certs/global-bundle.pem:/app/  certs/global-bundle.pem:ro \
+              -v /etc/runova/certs/global-bundle.pem:/app/certs/global-bundle.pem:ro \
               -p 3000:3000 \
               "${IMAGE}:${TAG}"
+
+            echo "[+] Verify volumes"
+            docker exec runova sh -lc 'ls -l /app/certs && head -n2 /app/certs/global-bundle.pem'
 
             echo "[+] Deployed ${IMAGE}:${TAG}"
           EOSSH

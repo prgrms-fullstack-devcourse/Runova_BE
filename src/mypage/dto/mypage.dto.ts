@@ -4,7 +4,7 @@ export class MyPageOverviewDto {
     nickname: string;
     email: string;
     avatarUrl: string;
-    description: string;
+    description: string | null;
     createdAt: string;
   };
   myCourses: Array<{

@@ -1,10 +1,23 @@
 import { SelectQueryBuilder } from "typeorm";
 import { RunningRecordFilters } from "../dto";
 
-// --ToDO 필터 적용 로직 구현
 export function setFilters<E extends object>(
     qb: SelectQueryBuilder<E>,
     filters: RunningRecordFilters,
 ): SelectQueryBuilder<E> {
-    return qb;
+    const { startDate, endDate, limit } = filters;
+
+    startDate && qb.andWhere(
+        `record.createdAt >= :startDate`,
+        { startDate }
+    );
+
+    endDate && qb.andWhere(
+        `record.createdAt <= :endDate`,
+        { endDate }
+    );
+
+    return qb
+        .orderBy("createdAt", "DESC")
+        .take(limit);
 }

@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { RunningRecord } from "../../modules/running";
-import { Repository } from "typeorm";
-import { RunningStatisticsDTO, RunningRecordFilters } from "../dto";
+import { Repository, SelectQueryBuilder } from "typeorm";
+import { RunningStatisticsDTO, RunningRecordFilters, RunningDashboardDTO, RunningStatisticsSchema } from "../dto";
 import { setFilters } from "./service.internal";
 import { plainToInstanceOrReject } from "../../utils";
 
@@ -14,27 +14,49 @@ export class RunningStatisticsService {
        private readonly recordsRepo: Repository<RunningRecord>
     ) {}
 
-    async getRunningStatistics(
+    async getRunningStatistics<
+        K extends keyof RunningDashboardDTO
+    >(
         userId: number,
+        props: K[],
         filters?: RunningRecordFilters
-    ): Promise<RunningStatisticsDTO> {
+    ): Promise<RunningStatisticsDTO<K>> {
 
-        const qb = this.recordsRepo
-            .createQueryBuilder("record")
-            .select(`SUM(record.distance)`, "distance")
-            .addSelect(
-                `SUM(EXTRACT(EPOCH FROM record.endAt) - EXTRACT(EPOCH FROM record.startAt))`,
-                "duration"
-            )
-            .addSelect(`AVG(record.pace)`, "pace")
-            .addSelect(`SUM(record.calories)`, "calories")
+        const qb = this.createSelectQueryBuilder(new Set<K>(props))
             .where("record.userId = :userId", { userId });
 
         filters && setFilters(qb, filters);
         qb.groupBy("userId");
 
         const raw = await qb.getRawOne();
-        return plainToInstanceOrReject(RunningStatisticsDTO, raw);
+        return plainToInstanceOrReject(RunningStatisticsSchema(props), raw);
+    }
+
+    private createSelectQueryBuilder<
+        K extends keyof RunningDashboardDTO
+    >(props: Set<K>): SelectQueryBuilder<RunningRecord> {
+
+        const qb = this.recordsRepo
+            .createQueryBuilder("record")
+            .select(`COUNT(record)`, "nRecords");
+
+        if (props.has("totalDistance" as K))
+            qb.addSelect(`SUM(record.distance)`, "totalDistance");
+
+        if (props.has("totalDuration" as K)) {
+            qb.addSelect(
+                `SUM(EXTRACT(EPOCH FROM record.endAt) - EXTRACT(EPOCH FROM record.startAt))`,
+                "totalDuration"
+            );
+        }
+
+        if (props.has("totalCalories" as K))
+            qb.addSelect(`SUM(record.calories)`, "totalCalories");
+
+        if (props.has("meanPace" as K))
+            qb.addSelect(`AVG(record.pace)`, "meanPace");
+
+        return qb;
     }
 
 }

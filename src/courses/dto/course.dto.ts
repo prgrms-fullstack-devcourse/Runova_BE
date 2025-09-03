@@ -23,7 +23,7 @@ export class CourseDTO {
     time: number;
 
     @IsInt()
-    @ApiProperty({ type: "integer", description: "경로를 달린 사람 수" })
+    @ApiProperty({ type: "integer", description: "경로를 완주한 사람 수" })
     nCompleted: number;
 
     @IsBoolean()

@@ -20,6 +20,7 @@ function buildSamplePath(points = 500): Coordinates[] {
         const lat = start.lat + (end.lat - start.lat) * t + 0.002 * Math.cos(8 * t * Math.PI);
         path.push({ lon, lat });
     }
+
     return path;
 }
 

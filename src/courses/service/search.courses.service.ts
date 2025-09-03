@@ -1,11 +1,12 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Course, CourseBookmark } from "../../modules/courses";
-import { Repository, SelectQueryBuilder } from "typeorm";
+import { Repository } from "typeorm";
 import { AdjacentCourseDTO, CourseDTO, SearchAdjacentCoursesDTO } from "../dto";
 import { plainsToInstancesOrReject } from "../../utils";
 import { PagingOptions } from "../../common/paging";
-import { RunningRecord } from "../../modules/running";
+import { setPagingOptions, setSelect, setSelectBookmarked } from "./search.courses.service.internal";
+import { GetMeanPaceService } from "./get.mean.pace.service";
 
 @Injectable()
 export class SearchCoursesService {
@@ -15,6 +16,8 @@ export class SearchCoursesService {
         private readonly coursesRepo: Repository<Course>,
         @InjectRepository(CourseBookmark)
         private readonly bookmarksRepo: Repository<CourseBookmark>,
+        @Inject(GetMeanPaceService)
+        private readonly getMeanPaceService: GetMeanPaceService,
     ) {}
 
     async searchUserCourses(
@@ -22,15 +25,14 @@ export class SearchCoursesService {
         options?: PagingOptions,
     ): Promise<CourseDTO[]> {
 
-        const qb = __setSelect(
-            this.coursesRepo
-                .createQueryBuilder("course")
+        const qb = setSelect(
+            this.coursesRepo.createQueryBuilder("course"),
+            await this.getMeanPaceService.getMeanPace(userId)
         );
 
-        __setSelectBookmarked(qb)
-            .where("course.userId = :userId", { userId });
-
-        __setPagingOptions(qb, options ?? {});
+        setSelectBookmarked(qb, userId);
+        qb.where("course.userId = :userId", { userId });
+        setPagingOptions(qb, options ?? {});
 
         const raws = await qb.getRawMany();
         return plainsToInstancesOrReject(CourseDTO, raws);
@@ -45,10 +47,10 @@ export class SearchCoursesService {
             .createQueryBuilder("bookmark")
             .innerJoin(Course, "course", "course.id = bookmark.courseId");
 
-        __setSelect(qb).addSelect("bookmarked", "true");
+        setSelect(qb, await this.getMeanPaceService.getMeanPace(userId));
+        qb.addSelect("bookmarked", "true");
         qb.where("bookmark.userId = :userId", { userId });
-
-        __setPagingOptions(qb, options ?? {});
+        setPagingOptions(qb, options ?? {});
 
         const raws = await qb.getRawMany();
         return plainsToInstancesOrReject(CourseDTO, raws);
@@ -67,86 +69,27 @@ export class SearchCoursesService {
                 `,
                 "location"
             )
+            .setParameters({ ...location })
             .addFrom("location", "loc");
 
-        __setSelectBookmarked(__setSelect(qb))
-            .addSelect(
+        setSelect(qb, await this.getMeanPaceService.getMeanPace(userId));
+        setSelectBookmarked(qb, userId);
+
+        qb.addSelect(
                 `
-                ST_DistanceSphere(course.departure, loc.geom) / 1000`,
+                ST_DistanceSphere(course.departure, loc.geom)`,
                 "distance"
-            )
-            .where(`ST_DWithin(course.departure, loc.geom, :radius)`)
-            .setParameters({ userId, ...location, radius: radius * 1000 });
+        );
 
-       __setPagingOptions(qb, pagingOptions);
-       qb.orderBy("distance", "ASC");
-
+        qb.where(`ST_DWithin(course.departure, loc.geom, :radius)`, { radius })
+        setPagingOptions(qb, pagingOptions);
+        qb.orderBy("distance", "ASC");
 
         const raws = await qb.getRawMany();
         return plainsToInstancesOrReject(AdjacentCourseDTO, raws);
     }
-}
-
-function __setSelectMeanPace<E extends object>(
-    qb: SelectQueryBuilder<E>,
-    userId: number,
-): SelectQueryBuilder<E> {
 
 
 
-
-}
-
-function __setSelect<E extends object>(
-    qb: SelectQueryBuilder<E>,
-): SelectQueryBuilder<E> {
-    return qb
-        .select("course.id", "id")
-        .addSelect(
-            `
-                jsonb_build_object(
-                    'lon', ST_X(course.departure),
-                    'lat', ST_Y(course.departure),
-                )
-                `,
-            "departure"
-        )
-        .addSelect("course.length", "length")
-        .addSelect(
-            `
-                to_char(
-                    Interval '1 hours' * course.time,
-                    'HH24:MI:SS'
-                )
-                `,
-            "timeRequired"
-        )
-        .addSelect("course.nCompleted", "nCompleted");
-}
-
-function __setSelectBookmarked<E extends object>(
-    qb: SelectQueryBuilder<E>
-): SelectQueryBuilder<E> {
-    return qb.addSelect(
-        `
-            EXISTS(${
-            qb.subQuery()
-                .select("1")
-                .from(CourseBookmark, "bookmark")
-                .where("bookmark.courseId = course.id")
-                .andWhere("bookmark.userId = :userId")
-        })
-            `,
-        "bookmarked"
-    );
-}
-
-function __setPagingOptions<E extends object>(
-    qb: SelectQueryBuilder<E>,
-    options: PagingOptions,
-): SelectQueryBuilder<E> {
-    options.cursor && qb.andWhere("course.id > :cursor", { cursor: options.cursor });
-    qb.limit(options.limit ?? 10);
-    return qb;
 }
 

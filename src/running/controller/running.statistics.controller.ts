@@ -20,14 +20,18 @@ export class RunningStatisticsController {
     @ApiOperation({ summary: "유저 러닝 관련 통계 조회" })
     @ApiBearerAuth()
     @ApiQuery({ type: GetRunningDashboardQuery, required: false })
-    @ApiOkResponse({ type: RunningStatisticsDTO })
+    @ApiOkResponse({  })
     @ApiForbiddenResponse()
     async getRunningDashboard(
         @User("userId") userId: number,
         @Query() query?: GetRunningDashboardQuery,
-    ): Promise<RunningStatisticsDTO> {
+    ) {
         return this.statisticsService
-            .getRunningStatistics(userId, query);
+            .getRunningStatistics(
+                userId,
+                ["totalDistance", "totalDistance", "totalCalories", "meanPace"],
+                query
+            );
     }
 
 }

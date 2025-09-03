@@ -1,17 +1,9 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsInt, IsOptional } from "class-validator";
+import { PagingOptions } from "../../common/paging";
+import { IntersectionType } from "@nestjs/swagger";
+import { RunningRecordFilters } from "./running.record.filters";
 
-export class SearchRunningRecordsDTO  {
+export class SearchRunningRecordsDTO
+    extends IntersectionType(PagingOptions, RunningRecordFilters)
+{
     userId: number;
-
-    @IsInt()
-    @IsOptional()
-    @ApiProperty({ type: "integer", required: false, default: 0 })
-    cursor?: number;
-
-    @IsInt()
-    @IsOptional()
-    @ApiProperty({ type: "integer", required: false, default: 10 })
-    limit?: number;
-
 }

@@ -25,7 +25,7 @@ export class CoursesService {
     @Transactional()
     async createCourse(userId: number, path: Coordinates[]): Promise<void> {
         const { length, nodes } = await this.inspectPathService.inspect(path);
-        const time = this.timeService.estimateTime(length);
+        const time = await this.timeService.estimateTime(userId, length);
         const departure = nodes[0].location;
 
         const result = await this.coursesRepo

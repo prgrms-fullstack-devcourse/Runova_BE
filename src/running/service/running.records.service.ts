@@ -3,91 +3,79 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { RunningRecord } from "../../modules/running";
 import { Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
-import {
-  CreateRunningRecordDTO,
-  RunningRecordDTO,
-  SearchRunningRecordsDTO,
-} from "../dto";
-import { DateTimeFormatter, Duration, nativeJs } from "@js-joda/core";
-import { pick } from "../../utils/object";
+import { CreateRunningRecordDTO, RunningRecordDTO, SearchRunningRecordsDTO } from "../dto";
+import { omit } from "../../utils/object";
 import { SearchRunningRecordResult } from "../dto/search.running.record.result";
 import { plainToInstance } from "class-transformer";
+import { setFilters } from "./service.internal";
 
 @Injectable()
 export class RunningRecordsService {
-  private readonly formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
-    "yyyy.MM.dd HH:mm:ss"
-  );
 
-  constructor(
-    @InjectRepository(RunningRecord)
-    private readonly recordsRepo: Repository<RunningRecord>
-  ) {}
+    constructor(
+       @InjectRepository(RunningRecord)
+       private readonly recordsRepo: Repository<RunningRecord>,
+    ) {}
 
-  @Transactional()
-  async createRunningRecord(dto: CreateRunningRecordDTO): Promise<void> {
-    const { startAt, endAt, ...rest } = dto;
+    @Transactional()
+    async createRunningRecord(dto: CreateRunningRecordDTO): Promise<void> {
+        await this.recordsRepo.save(dto);
+    }
 
-    await this.recordsRepo.insert({
-      ...rest,
-      startAt: () => startAt.toLocaleDateString(),
-      endAt: () => endAt.toLocaleDateString(),
-    });
-  }
+    async getRunningRecord(id: number): Promise<RunningRecordDTO> {
 
-  async getRunningRecord(id: number): Promise<RunningRecordDTO> {
-    const record = await this.recordsRepo.findOne({
-      where: { id },
-      cache: true,
-    });
+        const record = await this.recordsRepo
+            .findOne({ where: { id }, cache: true });
 
-    if (!record) throw new NotFoundException();
+        if (!record) throw new NotFoundException();
 
-    return {
-      ...pick(record, [
-        "id",
-        "courseId",
-        "path",
-        "distance",
-        "pace",
-        "calories",
-      ]),
-      startAt: record.startAt.format(this.formatter),
-      endAt: record.endAt.format(this.formatter),
-      duration: this.durationOf(record),
-    };
-  }
+        return {
+            duration: (record.endAt.getTime() - record.startAt.getTime()) / 1000,
+            ...omit(record, ["userId", "course", "createdAt"])
+        };
+    }
 
-  async searchRunningRecords(
-    dto: SearchRunningRecordsDTO
-  ): Promise<SearchRunningRecordResult[]> {
-    const { userId, cursor, limit } = dto;
+    async searchRunningRecords(
+        dto: SearchRunningRecordsDTO
+    ): Promise<SearchRunningRecordResult[]> {
+        const { userId, cursor, limit, ...filters } = dto;
 
-    const raws = await this.recordsRepo
-      .createQueryBuilder("record")
-      .select("record.id", "id")
-      .addSelect(`to_char(record.startAt, 'yyyy.MM.dd HH:mm:ss')`, "startAt")
-      .addSelect(`to_char(record.endAt, 'yyyy.MM.dd HH:mm:ss')`, "endAt")
-      .addSelect(
-        `
+        const qb =  this.recordsRepo
+            .createQueryBuilder("record")
+            .select(`record.id`, "id")
+            .addSelect(`record.startAt`, "startAt")
+            .addSelect(`record.endAt`, "endAt")
+            .addSelect(`record.distance`, "distance")
+            .addSelect(`record.pace`, "pace")
+            .addSelect(`record.calories`, "calories")
+            .addSelect(
+                `EXTRACT(EPOCH FROM record.endAt) - EXTRACT(EPOCH FROM record.startAt)`,
+                "duration"
+            )
+            .addSelect(
+                `
                 jsonb_build_object(
                     'lon', ST_X(ST_StartPoint(record.path)),
                     'lat', ST_Y(ST_StartPoint(record.path))
                 )
                 `,
-        "departure"
-      )
-      .where("record.userId  = :userId", { userId })
-      .andWhere("record.id > :cursor", { cursor: cursor ?? 0 })
-      .limit(limit ?? 10)
-      .getRawMany();
+            "departure"
+           )
+          .where("record.userId  = :userId", { userId })
+          .andWhere("record.id > :cursor", { cursor: cursor ?? 0 })
+          .limit(limit ?? 10)
+          .getRawMany();
 
-    return raws.map((raw) => plainToInstance(SearchRunningRecordResult, raw));
-  }
 
-  private durationOf(record: RunningRecord): string {
-    const ms = Duration.between(record.startAt, record.endAt).toMillis();
+        const raws = await setFilters(qb, filters)
+            .andWhere("record.id > :cursor", { cursor: cursor ?? 0 })
+            .limit(limit ?? 10)
+            .getRawMany();
 
-    return nativeJs(new Date(ms)).format(this.formatter).split(" ")[1];
-  }
+
+        return raws.map(raw =>
+            plainToInstance(SearchRunningRecordResult, raw)
+        );
+    }
 }
+

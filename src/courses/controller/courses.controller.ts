@@ -7,16 +7,16 @@ import {
     ApiOperation, ApiParam, ApiQuery,
     ApiTags
 } from "@nestjs/swagger";
-import { CourseNodesService, CoursesService, SearchCoursesService } from "./service";
-import { Cached, Caching, User } from "../utils/decorator";
+import { CourseNodesService, CoursesService, SearchCoursesService } from "../service";
+import { Cached, Caching, User } from "../../utils/decorator";
 import {
     CreateCourseBody, GetCourseNodesResponse,
     SearchAdjacentCoursesQuery,
     SearchAdjacentCoursesResponse,
     SearchCoursesResponse
-} from "./api";
+} from "../api";
 import { AuthGuard } from "@nestjs/passport";
-import { PagingOptions } from "../common/paging";
+import { PagingOptions } from "../../common/paging";
 
 @ApiTags("Courses")
 @Controller("/api/courses")

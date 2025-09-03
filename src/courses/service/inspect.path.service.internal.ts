@@ -20,8 +20,7 @@ export function inspectPath(
             bearing: (Math.atan2(east, north) * 180) / Math.PI
         });
 
-        // m에서 km로 단위 변환
-        length += Math.hypot(...seg) / 1000;
+        length += Math.hypot(...seg);
         prevSeg = seg;
     });
 

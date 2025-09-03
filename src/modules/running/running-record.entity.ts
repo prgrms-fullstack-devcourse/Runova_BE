@@ -10,7 +10,6 @@ import {
 import { User } from "../users";
 import { Course } from "../courses";
 import { Coordinates, LineStringColumn } from "../../common/geo";
-import { LocalDateTime } from "@js-joda/core";
 
 @Entity("running_records")
 export class RunningRecord extends ImmutableEntityBase {
@@ -37,10 +36,10 @@ export class RunningRecord extends ImmutableEntityBase {
   path: Coordinates[];
 
   @Column({ name: "start_at", type: "timestamptz" })
-  startAt: LocalDateTime;
+  startAt: Date;
 
   @Column({ name: "end_at", type: "timestamptz" })
-  endAt: LocalDateTime;
+  endAt: Date;
 
   @Column({ type: "float8" })
   distance: number;

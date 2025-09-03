@@ -5,6 +5,7 @@ import { Repository, SelectQueryBuilder } from "typeorm";
 import { AdjacentCourseDTO, CourseDTO, SearchAdjacentCoursesDTO } from "../dto";
 import { plainsToInstancesOrReject } from "../../utils";
 import { PagingOptions } from "../../common/paging";
+import { RunningRecord } from "../../modules/running";
 
 @Injectable()
 export class SearchCoursesService {
@@ -84,6 +85,16 @@ export class SearchCoursesService {
         const raws = await qb.getRawMany();
         return plainsToInstancesOrReject(AdjacentCourseDTO, raws);
     }
+}
+
+function __setSelectMeanPace<E extends object>(
+    qb: SelectQueryBuilder<E>,
+    userId: number,
+): SelectQueryBuilder<E> {
+
+
+
+
 }
 
 function __setSelect<E extends object>(

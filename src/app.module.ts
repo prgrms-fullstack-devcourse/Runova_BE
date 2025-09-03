@@ -8,14 +8,14 @@ import {
 } from "./config/typeorm";
 import { RedisModule } from "./config/redis";
 import { HealthModule } from "./health/health.module";
-import { AuthModule } from './auth/auth.module';
-import { CommunityModule } from './community/community.module';
-import { RunningModule } from './running/running.module';
+import { AuthModule } from "./auth/auth.module";
+import { CommunityModule } from "./community/community.module";
+import { RunningModule } from "./running/running.module";
 import { CoursesModule } from "./courses/courses.module";
 import { CacheModule } from "@nestjs/cache-manager";
 import { cacheOptionsFactory } from "./config/cache";
-import { FilesModule } from './files/files.module';
-import Redis from "iovalkey";
+import { FilesModule } from "./files/files.module";
+import Redis from "ioredis";
 
 @Module({
   imports: [

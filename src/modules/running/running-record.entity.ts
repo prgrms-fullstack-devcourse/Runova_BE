@@ -1,4 +1,4 @@
-import { ImmutableEntityBase } from "../../common/entity";
+import { EntityBase, ImmutableEntityBase } from "../../common/entity";
 import {
   Column,
   Entity,

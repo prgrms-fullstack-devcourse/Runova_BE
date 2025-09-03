@@ -1,6 +1,5 @@
 import { CreateDateColumn, UpdateDateColumn } from "typeorm";
 
-
 export abstract class EntityBase {
     @CreateDateColumn({ name: "created_at", type: "timestamptz" })
     createdAt: Date;
@@ -8,4 +7,3 @@ export abstract class EntityBase {
     @UpdateDateColumn({ name: "updated_at", type: "timestamptz", })
     updatedAt: Date;
 }
-

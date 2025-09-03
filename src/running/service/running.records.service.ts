@@ -59,9 +59,13 @@ export class RunningRecordsService {
                     'lat', ST_Y(ST_StartPoint(record.path))
                 )
                 `,
-                "departure"
-            )
-            .where("record.userId  = :userId", { userId });
+            "departure"
+           )
+          .where("record.userId  = :userId", { userId })
+          .andWhere("record.id > :cursor", { cursor: cursor ?? 0 })
+          .limit(limit ?? 10)
+          .getRawMany();
+
 
         const raws = await setFilters(qb, filters)
             .andWhere("record.id > :cursor", { cursor: cursor ?? 0 })

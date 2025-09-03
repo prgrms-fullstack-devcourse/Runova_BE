@@ -17,6 +17,8 @@ export class GoogleService {
       });
       const payload = ticket.getPayload();
 
+      console.log("Google 토큰 검증 성공:", payload);
+
       if (!payload || !payload.sub) {
         throw new UnauthorizedException("Google 토큰 검증 실패");
       }

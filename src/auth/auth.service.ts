@@ -187,7 +187,7 @@ export class AuthService {
     }
   }
 
-  private handleUniqueViolation(error: unknown): void | never {
+  private handleUniqueViolation(error): void | never {
     if (error instanceof QueryFailedError) {
       const pgError = error.driverError as DatabaseError | undefined;
       if (pgError?.code === PG_UNIQUE_VIOLATION) {
@@ -203,6 +203,24 @@ export class AuthService {
         }
         throw new ConflictException("Duplicate key");
       }
+      if (pgError?.code === "22001") {
+        throw new ForbiddenException(
+          `Value too long for column: ${pgError?.column ?? "unknown"}`
+        );
+      }
+      // 23502: not_null_violation
+      if (pgError?.code === "23502") {
+        throw new ForbiddenException(
+          `Missing required field: ${pgError?.column ?? "unknown"}`
+        );
+      }
+      // 22P02: invalid_text_representation
+      if (pgError?.code === "22P02") {
+        throw new ForbiddenException(
+          `Invalid value for column: ${pgError?.column ?? "unknown"}`
+        );
+      }
+      throw new ForbiddenException("Database constraint error");
     }
   }
 }

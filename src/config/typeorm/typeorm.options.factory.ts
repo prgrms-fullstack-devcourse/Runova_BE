@@ -2,7 +2,6 @@ import { ConfigService } from "@nestjs/config";
 import { TypeOrmModuleOptions } from "@nestjs/typeorm";
 import * as fs from "node:fs";
 import * as path from "path";
-import { redisOptionsFactory } from "../redis";
 
 export function typeormOptionsFactory(
   config: ConfigService,
@@ -33,6 +32,5 @@ export function typeormOptionsFactory(
     ssl,
     logging: false,
     synchronize: false,
-    cache: { type: "ioredis", options: redisOptionsFactory(config) }
   };
 }

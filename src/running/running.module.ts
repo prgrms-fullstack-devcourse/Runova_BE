@@ -12,7 +12,7 @@ import { RunningRecordsController } from "./controller";
     ],
     controllers: [
         RunningRecordsController,
-        RunningStatisticsService,
-    ]
+    ],
+    exports: [RunningStatisticsService],
 })
 export class RunningModule {}

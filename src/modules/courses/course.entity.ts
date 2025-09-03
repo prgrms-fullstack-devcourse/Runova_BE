@@ -31,12 +31,6 @@ export class Course extends ImmutableEntityBase {
   @Column({ type: "float8" })
   length: number;
 
-  @Column({ name: "time", type: "double precision" })
-  time: number;
-
-  @Column({ name: "n_completed", type: "int", default: 0, nullable: false })
-  nCompleted: number;
-
   @OneToMany(() => CourseNode, (n) => n.course)
   nodes: CourseNode[];
 }

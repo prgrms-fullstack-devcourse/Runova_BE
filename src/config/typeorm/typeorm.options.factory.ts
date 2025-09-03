@@ -33,6 +33,6 @@ export function typeormOptionsFactory(
     ssl,
     logging: false,
     synchronize: false,
-    cache: { type: "ioredis", options: redisOptionsFactory(config) },
+    // cache: { type: "ioredis", options: redisOptionsFactory(config) },
   };
 }

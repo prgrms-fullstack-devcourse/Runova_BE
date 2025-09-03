@@ -23,7 +23,7 @@ export class RunningDashboardsService {
             .createQueryBuilder("record")
             .select(`SUM(record.distance)`, "distance")
             .addSelect(
-                `SUM(EXTRACT(EPOCH FROM course.endAt) - EXTRACT(EPOCH FROM course.startAt))`,
+                `SUM(EXTRACT(EPOCH FROM record.endAt) - EXTRACT(EPOCH FROM record.startAt))`,
                 "duration"
             )
             .addSelect(`AVG(record.pace)`, "pace")

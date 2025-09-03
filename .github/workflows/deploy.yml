@@ -77,7 +77,7 @@ jobs:
             cd ~/runova
 
             test -f /etc/runova/certs/global-bundle.pem
-            
+
             if [ -n "${GHCR_PAT}" ] && [ -n "${GHCR_USER}" ]; then
               echo "${GHCR_PAT}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
             fi
@@ -97,6 +97,7 @@ jobs:
             echo "[+] Run redis"
             docker run -d --name runova-redis --restart=always \
               --network runova-net \
+              -e REDIS_URL=redis://runova-redis:6379/0
               -v /var/lib/runova/redis:/data \
               redis:7-alpine redis-server --appendonly yes
 

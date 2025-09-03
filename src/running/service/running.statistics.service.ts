@@ -2,22 +2,22 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { RunningRecord } from "../../modules/running";
 import { Repository } from "typeorm";
-import { RunningDashboardDTO, RunningRecordFilters } from "../dto";
+import { RunningStatisticsDTO, RunningRecordFilters } from "../dto";
 import { setFilters } from "./service.internal";
 import { plainToInstanceOrReject } from "../../utils";
 
 @Injectable()
-export class RunningDashboardsService {
+export class RunningStatisticsService {
 
     constructor(
        @InjectRepository(RunningRecord)
        private readonly recordsRepo: Repository<RunningRecord>
     ) {}
 
-    async getRunningDashboard(
+    async getRunningStatistics(
         userId: number,
         filters?: RunningRecordFilters
-    ): Promise<RunningDashboardDTO> {
+    ): Promise<RunningStatisticsDTO> {
 
         const qb = this.recordsRepo
             .createQueryBuilder("record")
@@ -34,7 +34,7 @@ export class RunningDashboardsService {
         qb.groupBy("userId");
 
         const raw = await qb.getRawOne();
-        return plainToInstanceOrReject(RunningDashboardDTO, raw);
+        return plainToInstanceOrReject(RunningStatisticsDTO, raw);
     }
 
 }

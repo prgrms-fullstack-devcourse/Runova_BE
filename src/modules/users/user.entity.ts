@@ -1,14 +1,11 @@
 import {
   Column,
-  CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
   Unique,
-  Index, OneToOne,
+  Index
 } from "typeorm";
 import { EntityBase } from "../../common/entity";
-import { RunningDashboard } from "../running/running-dashboard.entity";
 
 @Entity({ name: "users" })
 @Unique("UQ_users_email", ["email"])

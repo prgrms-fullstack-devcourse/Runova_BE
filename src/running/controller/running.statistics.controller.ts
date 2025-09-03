@@ -27,7 +27,7 @@ export class RunningStatisticsController {
         @Query() query?: GetRunningDashboardQuery,
     ): Promise<RunningStatisticsDTO> {
         return this.statisticsService
-            .getRunningDashboard(userId, query);
+            .getRunningStatistics(userId, query);
     }
 
 }

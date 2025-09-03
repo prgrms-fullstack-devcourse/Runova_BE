@@ -15,7 +15,7 @@ export const REDIS_CLIENT = Symbol("REDIS_CLIENT");
       inject: [ConfigService],
     },
     {
-      provide: Redis,
+      provide: REDIS_CLIENT,
       useFactory: (options: RedisOptions) => new Redis(options),
       inject: [REDIS_OPTIONS],
     },

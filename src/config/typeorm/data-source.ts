@@ -8,6 +8,10 @@ const env =
   process.env.NODE_ENV === "production" ? "production" : "development";
 dotenv.config({ path: path.resolve(process.cwd(), `.env.${env}`) });
 
+const ca = fs
+  .readFileSync(path.join(process.cwd(), "/app/certs/global-bundle.pem"))
+  .toString();
+
 export default new DataSource({
   type: "postgres",
   host: process.env.DB_HOST,
@@ -19,9 +23,7 @@ export default new DataSource({
   migrations: [path.join(__dirname, "/../../migrations/*{.js,.ts}")],
   ssl: {
     rejectUnauthorized: true,
-    ca: fs
-      .readFileSync(path.join(process.cwd(), "etc/ssl/certs/global-bundle.pem"))
-      .toString(),
+    ca: ca,
   },
   synchronize: false,
   logging: false,

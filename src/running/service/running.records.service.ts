@@ -49,7 +49,7 @@ export class RunningRecordsService {
             .addSelect(`record.pace`, "pace")
             .addSelect(`record.calories`, "calories")
             .addSelect(
-                `EXTRACT(EPOCH FROM course.endAt) - EXTRACT(EPOCH FROM course.startAt)`,
+                `EXTRACT(EPOCH FROM record.endAt) - EXTRACT(EPOCH FROM record.startAt)`,
                 "duration"
             )
             .addSelect(

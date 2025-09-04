@@ -1,8 +1,6 @@
 import { SelectQueryBuilder } from "typeorm";
 import { CompletedCourse, CourseBookmark } from "../../modules/courses";
 import { PagingOptions } from "../../common/paging";
-import { User } from "../../modules/users";
-import { Clazz } from "../../utils";
 
 export function setSelect<E extends object>(
     qb: SelectQueryBuilder<E>,
@@ -25,7 +23,7 @@ export function setSelect<E extends object>(
             .addSelect(`course.length / :pace`, "time")
             .setParameter("pace", pace)
             .addSelect("course.createdAt", "createdAt")
-            .innerJoin(User, "user")
+            .innerJoin("course.user", "user")
             .addSelect("user.nickname", "author");
 }
 

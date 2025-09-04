@@ -101,7 +101,7 @@ export class CoursesController {
         if (cached) return cached;
 
         const results = await this.searchCoursesService
-            .searchBookmarkedCourses(userId, query);
+            .searchCompletedCourses(userId, query);
 
         return { results };
     }

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { DataSource } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import { User } from "../modules/users/user.entity";
 import { Course } from "../modules/courses/course.entity";
 import { Post, PostType } from "../modules/posts/post.entity";
@@ -9,88 +9,117 @@ const PREVIEW_COUNT = 2;
 
 @Injectable()
 export class MyPageService {
-  constructor(private readonly ds: DataSource) {}
+  private userRepo: Repository<User>;
+  private courseRepo: Repository<Course>;
+  private postRepo: Repository<Post>;
 
-  private toIso(d: Date | null | undefined) {
-    return d ? d.toISOString() : "";
+  constructor(private readonly dataSource: DataSource) {
+    this.userRepo = dataSource.getRepository(User);
+    this.courseRepo = dataSource.getRepository(Course);
+    this.postRepo = dataSource.getRepository(Post);
   }
 
-  async getOverview(userId: number): Promise<MyPageOverviewDto> {
-    const userRepo = this.ds.getRepository(User);
-    const user = await userRepo.findOne({
+  private toIsoString(date: Date | null | undefined): string {
+    return date ? date.toISOString() : "";
+  }
+
+  private async getProfile(userId: number) {
+    const user = await this.userRepo.findOne({
       where: { id: userId },
       select: ["id", "nickname", "email", "avatarUrl", "createdAt"],
     });
-    if (!user) throw new NotFoundException("USER_NOT_FOUND");
 
-    const courseRepo = this.ds.getRepository(Course);
-    const postRepo = this.ds.getRepository(Post);
+    if (!user) {
+      throw new NotFoundException("USER_NOT_FOUND");
+    }
 
-    const [courses, postsAll, proofPosts] = await Promise.all([
-      courseRepo.find({
-        where: { userId },
-        order: { createdAt: "DESC" },
-        take: PREVIEW_COUNT,
-        select: ["id", "title", "length", "createdAt", "imageURL"],
-      }),
-      postRepo.find({
-        where: { authorId: userId },
-        order: { createdAt: "DESC" },
-        take: PREVIEW_COUNT,
-        select: [
-          "id",
-          "title",
-          "content",
-          "createdAt",
-          "likeCount",
-          "commentCount",
-          "type",
-        ],
-      }),
+    return {
+      id: user.id,
+      nickname: user.nickname,
+      email: user.email,
+      avatarUrl: user.avatarUrl ?? "",
+      createdAt: this.toIsoString(user.createdAt),
+    };
+  }
 
-      postRepo.find({
-        where: { authorId: userId, type: PostType.PROOF, isDeleted: false },
-        order: { createdAt: "DESC" },
-        take: PREVIEW_COUNT,
-        select: ["id", "routeId", "title", "imageUrls", "createdAt"],
-      }),
+  private async getRecentCourses(userId: number) {
+    const courses = await this.courseRepo.find({
+      where: { userId },
+      order: { createdAt: "DESC" },
+      take: PREVIEW_COUNT,
+      select: ["id", "title", "length", "createdAt", "imageURL"],
+    });
+
+    return courses.map((course) => ({
+      id: course.id,
+      title: course.title,
+      length: course.length,
+      createdAt: this.toIsoString(course.createdAt),
+      previewImageUrl: course.imageURL ?? "",
+    }));
+  }
+
+  private async getRecentPosts(userId: number) {
+    const posts = await this.postRepo.find({
+      where: { authorId: userId },
+      order: { createdAt: "DESC" },
+      take: PREVIEW_COUNT,
+      select: [
+        "id",
+        "title",
+        "content",
+        "createdAt",
+        "likeCount",
+        "commentCount",
+        "type",
+      ],
+    });
+
+    return posts.map((post) => ({
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      createdAt: this.toIsoString(post.createdAt),
+      likeCount: post.likeCount ?? 0,
+      commentCount: post.commentCount ?? 0,
+    }));
+  }
+
+  private async getRecentProofPhotos(userId: number) {
+    const proofPosts = await this.postRepo.find({
+      where: { authorId: userId, type: PostType.PROOF, isDeleted: false },
+      order: { createdAt: "DESC" },
+      take: PREVIEW_COUNT,
+      select: ["id", "routeId", "title", "imageUrls", "createdAt"],
+    });
+
+    return proofPosts
+      .filter(
+        (post) => Array.isArray(post.imageUrls) && post.imageUrls.length > 0
+      )
+      .slice(0, PREVIEW_COUNT)
+      .map((post) => ({
+        id: post.id,
+        courseId: post.routeId ?? 0,
+        title: post.title,
+        imageUrl: post.imageUrls[0],
+        createdAt: this.toIsoString(post.createdAt),
+      }));
+  }
+
+  async getOverview(userId: number): Promise<MyPageOverviewDto> {
+    const [profile, courses, posts, proofPhotos] = await Promise.all([
+      this.getProfile(userId),
+      this.getRecentCourses(userId),
+      this.getRecentPosts(userId),
+      this.getRecentProofPhotos(userId),
     ]);
 
-    const dto: MyPageOverviewDto = {
-      profile: {
-        id: user.id,
-        nickname: user.nickname,
-        email: user.email,
-        avatarUrl: user.avatarUrl ?? "",
-        createdAt: this.toIso(user.createdAt),
-      },
-      myCourses: courses.map((c) => ({
-        id: c.id,
-        title: c.title,
-        length: c.length,
-        createdAt: this.toIso(c.createdAt),
-        previewImageUrl: (c as any).imageURL ?? "",
-      })),
-      myPosts: postsAll.map((p) => ({
-        id: p.id,
-        title: p.title,
-        content: p.content,
-        createdAt: this.toIso(p.createdAt),
-        likeCount: p.likeCount ?? 0,
-        commentCount: p.commentCount ?? 0,
-      })),
-      myPhotos: proofPosts
-        .filter((ph) => Array.isArray(ph.imageUrls) && ph.imageUrls.length > 0)
-        .slice(0, PREVIEW_COUNT)
-        .map((ph) => ({
-          id: ph.id,
-          courseId: ph.routeId ?? 0,
-          title: ph.title,
-          imageUrl: ph.imageUrls[0],
-          createdAt: this.toIso(ph.createdAt),
-        })),
+    return {
+      profile,
+      myCourses: courses,
+      myPosts: posts,
+      myPhotos: proofPhotos,
     };
-
-    return dto;
   }
 }

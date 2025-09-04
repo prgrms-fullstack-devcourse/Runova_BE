@@ -191,3 +191,5 @@ dist
 /generated/prisma
 
 /etc/ssl/certs/*.pem
+runova.pem
+server.sh

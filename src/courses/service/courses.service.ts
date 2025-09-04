@@ -24,7 +24,17 @@ export class CoursesService {
         const { path, ...rest } = dto;
         const { length, nodes } = await this.inspectPathService.inspect(path);
         const departure = nodes[0].location;
-        const { id } = await this.coursesRepo.save({ ...rest, length, departure });
+
+        const result = await this.coursesRepo
+            .createQueryBuilder()
+            .insert()
+            .into(Course)
+            .values({
+
+            })
+            .execute();
+
+        const id: number = result.generatedMaps[0].id;
         await this.nodesService.createCourseNodes(id, nodes);
     }
 
@@ -32,4 +42,6 @@ export class CoursesService {
     async deleteCourse(id: number, userId: number): Promise<void> {
         await this.coursesRepo.delete({ id, userId, });
     }
+
+
 }

@@ -1,28 +1,17 @@
 import { Global, Module } from "@nestjs/common";
-import Redis, { RedisOptions } from "iovalkey";
-import { redisOptionsFactory } from "./redis.options.factory";
+import Redis from "iovalkey";
 import { ConfigService } from "@nestjs/config";
-
-export const REDIS_OPTIONS = Symbol("REDIS_OPTIONS");
-export const REDIS_CLIENT = Symbol("REDIS_CLIENT");
+import { redisFactory } from "./redis.factory";
 
 @Global()
 @Module({
   providers: [
     {
-      provide: REDIS_OPTIONS,
-      useFactory: redisOptionsFactory,
+      provide: Redis,
+      useFactory: redisFactory,
       inject: [ConfigService],
-    },
-    {
-      provide: REDIS_CLIENT,
-      useFactory: (options: RedisOptions) => {
-        console.log("[REDIS_CLIENT Factory] options:", options);
-        return new Redis(options);
-      },
-      inject: [REDIS_OPTIONS],
-    },
+    }
   ],
-  exports: [REDIS_OPTIONS, REDIS_CLIENT],
+  exports: [Redis],
 })
 export class RedisModule {}

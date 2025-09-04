@@ -29,7 +29,7 @@ export class RunningStatisticsController {
         return this.statisticsService
             .getRunningStatistics(
                 userId,
-                ["totalDistance", "totalDistance", "totalCalories", "meanPace"],
+                ["totalDistance", "totalDuration", "totalCalories", "meanPace"],
                 query
             );
     }

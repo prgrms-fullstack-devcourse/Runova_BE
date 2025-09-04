@@ -32,8 +32,10 @@ export class Course extends EntityBase {
   @Column({ name: "image_url", type: "varchar" })
   imageURL: string;
 
+
   @LineStringColumn()
   path: Coordinates[];
+
 
   @PointColumn()
   departure: Coordinates;
@@ -41,8 +43,8 @@ export class Course extends EntityBase {
   @Column({ type: "float8" })
   length: number;
 
-  //@PolygonColumn()
-  //shape: Polygon;
+  @PolygonColumn()
+  shape: Polygon;
 
   @OneToMany(() => CourseNode, (n) => n.course)
   nodes: CourseNode[];

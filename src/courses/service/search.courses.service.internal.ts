@@ -25,7 +25,7 @@ export function setSelect<E extends object>(
             .addSelect(`course.length / :pace`, "time")
             .setParameter("pace", pace)
             .addSelect("course.createdAt", "createdAt")
-            .innerJoin(User, "user")
+            .innerJoin("course.user", "user")
             .addSelect("user.nickname", "author");
 }
 

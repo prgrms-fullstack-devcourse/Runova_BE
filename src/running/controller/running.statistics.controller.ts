@@ -1,0 +1,33 @@
+import { Controller, Get, Inject, Query, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { RunningStatisticsService } from "../service";
+import { GetRunningDashboardQuery } from "../api";
+import { RunningStatisticsDTO } from "../dto";
+import { User } from "../../utils/decorator";
+import { AuthGuard } from "@nestjs/passport";
+
+@ApiTags("Running", "Statistics")
+@Controller("/api/running/statistics")
+@UseGuards(AuthGuard("jwt"))
+export class RunningStatisticsController {
+
+    constructor(
+       @Inject(RunningStatisticsService)
+       private readonly statisticsService: RunningStatisticsService,
+    ) {}
+
+    @Get("/")
+    @ApiOperation({ summary: "유저 러닝 관련 통계 조회" })
+    @ApiBearerAuth()
+    @ApiQuery({ type: GetRunningDashboardQuery, required: false })
+    @ApiOkResponse({ type: RunningStatisticsDTO })
+    @ApiForbiddenResponse()
+    async getRunningDashboard(
+        @User("userId") userId: number,
+        @Query() query?: GetRunningDashboardQuery,
+    ): Promise<RunningStatisticsDTO> {
+        return this.statisticsService
+            .getRunningStatistics(userId, query);
+    }
+
+}

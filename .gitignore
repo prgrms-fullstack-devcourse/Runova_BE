@@ -190,4 +190,4 @@ dist
 
 /generated/prisma
 
-/etc/ssl/certs
+/etc/ssl/certs/*.pem

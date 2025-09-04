@@ -5,8 +5,5 @@ export class InspectRecordResult {
     isExists: boolean;
 
     @IsBoolean()
-    isOwn: boolean;
-
-    @IsBoolean()
     hasValidPath: boolean;
 }

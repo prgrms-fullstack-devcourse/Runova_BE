@@ -1,8 +1,8 @@
 import { Controller, Get, Inject, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
-import { RunningStatisticsService } from "../service/records";
-import { GetRunningDashboardQuery } from "../api/records";
-import { RunningStatisticsDTO } from "../records/dto";
+import { RunningStatisticsService } from "../service";
+import { GetRunningDashboardQuery } from "../api";
+import { RunningStatisticsDTO } from "../dto";
 import { User } from "../../utils/decorator";
 import { AuthGuard } from "@nestjs/passport";
 
@@ -29,7 +29,7 @@ export class RunningStatisticsController {
         return this.statisticsService
             .getRunningStatistics(
                 userId,
-                ["totalDistance", "totalDuration", "totalCalories", "meanPace"],
+                ["totalDistance", "totalDistance", "totalCalories", "meanPace"],
                 query
             );
     }

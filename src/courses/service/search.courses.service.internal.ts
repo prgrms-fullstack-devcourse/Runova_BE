@@ -1,8 +1,6 @@
 import { SelectQueryBuilder } from "typeorm";
 import { CompletedCourse, CourseBookmark } from "../../modules/courses";
 import { PagingOptions } from "../../common/paging";
-import { User } from "../../modules/users";
-import { Clazz } from "../../utils";
 
 export function setSelect<E extends object>(
     qb: SelectQueryBuilder<E>,

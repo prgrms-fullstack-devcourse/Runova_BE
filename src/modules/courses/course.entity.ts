@@ -10,7 +10,7 @@ import {
 import { EntityBase } from "../../common/entity";
 import { User } from "../users";
 import { CourseNode } from "./course.node.entity";
-import { Coordinates, PointColumn } from "../../common/geo";
+import { Coordinates, LineStringColumn, PointColumn } from "../../common/geo";
 
 @Entity({ name: "courses" })
 export class Course extends EntityBase {
@@ -30,6 +30,9 @@ export class Course extends EntityBase {
 
   @Column({ name: "image_url", type: "varchar" })
   imageURL: string;
+
+  @LineStringColumn()
+  path: Coordinates[];
 
   @PointColumn()
   departure: Coordinates;

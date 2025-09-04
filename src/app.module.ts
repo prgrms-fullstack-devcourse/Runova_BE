@@ -14,10 +14,9 @@ import { RunningModule } from "./running/running.module";
 import { CoursesModule } from "./courses/courses.module";
 import { CacheModule } from "@nestjs/cache-manager";
 import { cacheOptionsFactory } from "./config/cache";
-import { FilesModule } from './files/files.module';
-import { MypageModule } from './mypage/mypage.module';
+import { FilesModule } from "./files/files.module";
+import { MyPageModule } from "./mypage/mypage.module";
 import Redis from "iovalkey";
-
 
 @Module({
   imports: [
@@ -42,7 +41,7 @@ import Redis from "iovalkey";
     CoursesModule,
     RunningModule,
     FilesModule,
-    MypageModule,
+    MyPageModule,
   ],
   providers: [],
   controllers: [],

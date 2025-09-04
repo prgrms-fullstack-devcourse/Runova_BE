@@ -77,7 +77,7 @@ export class SearchCoursesService {
         setSelect(qb, await this.getMeanPaceService.getMeanPace(userId));
         setSelectBookmarked(qb, userId);
         qb.addSelect("completed", "true");
-        qb.where("bookmark.userId = :userId", { userId });
+        qb.where("cc.userId = :userId", { userId });
         setPagingOptions(qb, options ?? {});
 
         const raws = await qb.getRawMany();

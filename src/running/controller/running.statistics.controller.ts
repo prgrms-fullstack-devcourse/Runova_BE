@@ -2,7 +2,6 @@ import { Controller, Get, Inject, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { RunningStatisticsService } from "../service";
 import { GetRunningDashboardQuery } from "../api";
-import { RunningStatisticsDTO } from "../dto";
 import { User } from "../../utils/decorator";
 import { AuthGuard } from "@nestjs/passport";
 

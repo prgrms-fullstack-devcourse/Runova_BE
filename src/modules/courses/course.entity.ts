@@ -10,7 +10,8 @@ import {
 import { EntityBase } from "../../common/entity";
 import { User } from "../users";
 import { CourseNode } from "./course.node.entity";
-import { Coordinates, LineStringColumn, PointColumn } from "../../common/geo";
+import { Coordinates, LineStringColumn, PointColumn, PolygonColumn } from "../../common/geo";
+import { Polygon } from "geojson";
 
 @Entity({ name: "courses" })
 export class Course extends EntityBase {
@@ -41,6 +42,9 @@ export class Course extends EntityBase {
 
   @Column({ type: "float8" })
   length: number;
+
+  @PolygonColumn()
+  shape: Polygon;
 
   @OneToMany(() => CourseNode, (n) => n.course)
   nodes: CourseNode[];

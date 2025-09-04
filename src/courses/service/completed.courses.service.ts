@@ -35,7 +35,7 @@ export class CompletedCoursesService {
         const { isExists, hasValidPath }
             = await this.inspectRecordService.inspectRecord(dto);
 
-        if (!isExists) throw new NotFoundException(dto);
-        if (!hasValidPath) throw new ConflictException(dto);
+        if (!isExists) throw new NotFoundException("존재하지 않는 레코드이거나 권한이 없습니다.");
+        if (!hasValidPath) throw new ConflictException("경로와 레코드의 경로가 일치하지 않습니다.");
     }
 }

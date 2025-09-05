@@ -1,6 +1,6 @@
 import { ImmutableEntityBase } from "../../common/entity";
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Coordinates, PointColumn, Position } from "../../common/geometry";
+import { Coordinates, PointColumn } from "../../common/geo";
 import { Course } from "./course.entity";
 
 @Entity("course_nodes")
@@ -17,7 +17,7 @@ export class CourseNode extends ImmutableEntityBase {
     course: Course;
 
     @PointColumn()
-    location: Position;
+    location: Coordinates;
 
     @Column({ type: "float8" })
     progress: number;

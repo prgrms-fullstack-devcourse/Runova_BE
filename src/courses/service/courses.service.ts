@@ -21,21 +21,19 @@ export class CoursesService {
 
     @Transactional()
     async createCourse(dto: CreateCourseDTO): Promise<void> {
-        const { path, ...rest } = dto;
-        const { length, nodes } = await this.inspectPathService.inspect(path);
-        const departure = nodes[0].location;
 
         const result = await this.coursesRepo
             .createQueryBuilder()
             .insert()
             .into(Course)
             .values({
+                ...dto,
+                departure: dto.path[0],
 
             })
             .execute();
 
         const id: number = result.generatedMaps[0].id;
-        await this.nodesService.createCourseNodes(id, nodes);
     }
 
     @Transactional()

@@ -31,8 +31,10 @@ export class Course extends EntityBase {
   @Column({ name: "image_url", type: "varchar" })
   imageURL: string;
 
+
   @LineStringColumn()
   path: Coordinates[];
+
 
   @PointColumn()
   departure: Coordinates;

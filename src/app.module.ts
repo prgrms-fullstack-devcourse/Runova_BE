@@ -6,7 +6,7 @@ import {
   typeormDataSourceFactory,
   typeormOptionsFactory,
 } from "./config/typeorm";
-import { REDIS_CLIENT, RedisModule } from "./config/redis";
+import { RedisModule } from "./config/redis";
 import { HealthModule } from "./health/health.module";
 import { AuthModule } from "./auth/auth.module";
 import { CommunityModule } from "./community/community.module";
@@ -33,7 +33,7 @@ import Redis from "iovalkey";
     CacheModule.registerAsync({
       isGlobal: true,
       useFactory: cacheOptionsFactory,
-      inject: [REDIS_CLIENT],
+      inject: [Redis],
     }),
     HealthModule,
     AuthModule,

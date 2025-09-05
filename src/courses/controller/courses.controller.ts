@@ -1,19 +1,19 @@
-import { Body, Controller, Delete, Get, Inject, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
     ApiBody,
     ApiCreatedResponse, ApiForbiddenResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse,
-    ApiOperation, ApiParam, ApiQuery,
+    ApiOperation, ApiParam, ApiQuery, ApiResetContentResponse,
     ApiTags
 } from "@nestjs/swagger";
-import { CourseNodesService, CoursesService, SearchCoursesService } from "../service";
+import { CourseBookmarksService, CourseNodesService, CoursesService, SearchCoursesService } from "../service";
 import { Cached, Caching, User } from "../../utils/decorator";
 import {
     CreateCourseBody, GetCourseNodesResponse,
     SearchAdjacentCoursesQuery,
     SearchAdjacentCoursesResponse,
-    SearchCoursesResponse
+    SearchCoursesResponse, UpdateBookmarkResponse
 } from "../api";
 import { AuthGuard } from "@nestjs/passport";
 import { PagingOptions } from "../../common/paging";
@@ -30,6 +30,8 @@ export class CoursesController {
         private readonly searchCoursesService: SearchCoursesService,
         @Inject(CourseNodesService)
         private readonly nodesService: CourseNodesService,
+        @Inject(CourseBookmarksService)
+        private readonly bookmarksService: CourseBookmarksService,
     ) {}
 
     @Post("/")
@@ -41,9 +43,9 @@ export class CoursesController {
     @ApiForbiddenResponse()
     async createCourse(
         @User("userId") userId: number,
-        @Body() { path }: CreateCourseBody,
+        @Body() body: CreateCourseBody,
     ): Promise<void> {
-        await this.coursesService.createCourse(userId, path);
+        await this.coursesService.createCourse({ userId, ...body });
     }
 
     @Get("/search/users")
@@ -66,7 +68,7 @@ export class CoursesController {
         return { results };
     }
 
-    @Get("/search/bookmarks")
+    @Get("/search/bookmarked")
     @ApiOperation({ summary: "북마크한 경로 검색" })
     @ApiBearerAuth()
     @ApiQuery({ type: PagingOptions, required: false })
@@ -82,6 +84,26 @@ export class CoursesController {
 
         const results = await this.searchCoursesService
             .searchBookmarkedCourses(userId, query);
+
+        return { results };
+    }
+
+    @Get("/search/completed")
+    @ApiOperation({ summary: "완주한 경로 검색" })
+    @ApiBearerAuth()
+    @ApiQuery({ type: PagingOptions, required: false })
+    @ApiOkResponse({ type: SearchCoursesResponse })
+    @ApiForbiddenResponse()
+    @Caching({ schema: SearchCoursesResponse })
+    async searchCompletedCourses(
+        @User("userId") userId: number,
+        @Query() query?: PagingOptions,
+        @Cached() cached?: SearchCoursesResponse,
+    ): Promise<SearchCoursesResponse> {
+        if (cached) return cached;
+
+        const results = await this.searchCoursesService
+            .searchCompletedCourses(userId, query);
 
         return { results };
     }
@@ -121,6 +143,21 @@ export class CoursesController {
         if (cached) return cached;
         const results = await this.nodesService.getCourseNodes(id);
         return { results };
+    }
+
+    @Put("/:id/bookmarks")
+    @ApiOperation({ summary: "경로의 북마크 상태 반전"})
+    @ApiParam({ name: "id", type: "integer", required: true, description: "북마크하거나 북마크 해제할 경로 아이디" })
+    @ApiBearerAuth()
+    @ApiResetContentResponse({ type: UpdateBookmarkResponse })
+    @ApiForbiddenResponse()
+    @ApiNotFoundResponse({ description: "존재하지 않는 경로" })
+    async updateCourseBookmark(
+        @Param("id") id: number,
+        @User("userId") userId: number,
+    ): Promise<UpdateBookmarkResponse> {
+       const bookmarked = await this.bookmarksService.updateBookmark(id, userId);
+       return { bookmarked };
     }
 
     @Delete("/:id")

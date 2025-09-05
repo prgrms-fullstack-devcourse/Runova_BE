@@ -1,15 +1,18 @@
-import { Module } from "@nestjs/common";
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { RunningRecord } from "../modules/running";
 import { RunningStatisticsService, RunningRecordsService } from "./service";
-import {
-  RunningRecordsController,
-  RunningStatisticsController,
-} from "./controller";
+import { RunningRecordsController } from "./controller";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([RunningRecord])],
-  providers: [RunningRecordsService, RunningStatisticsService],
-  controllers: [RunningRecordsController, RunningStatisticsController],
+    imports: [TypeOrmModule.forFeature([RunningRecord])],
+    providers: [
+        RunningRecordsService,
+        RunningStatisticsService,
+    ],
+    controllers: [
+        RunningRecordsController,
+    ],
+    exports: [RunningStatisticsService],
 })
 export class RunningModule {}

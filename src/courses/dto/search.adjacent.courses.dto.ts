@@ -1,5 +1,5 @@
 import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
-import { Coordinates } from "../../common/geometry";
+import { Coordinates } from "../../common/geo";
 import { Type } from "class-transformer";
 import { IsNumber, IsPositive, ValidateNested } from "class-validator";
 import { PagingOptions } from "../../common/paging";

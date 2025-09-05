@@ -4,11 +4,14 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { EntityBase } from "../../common/entity";
 import { User } from "../users";
-import { Line, LineStringColumn, PointColumn, Position } from "../../common/geometry";
+import { CourseNode } from "./course.node.entity";
+import { Coordinates, LineStringColumn, PointColumn, PolygonColumn } from "../../common/geo";
+import { Polygon } from "geojson";
 
 @Entity({ name: "courses" })
 export class Course extends EntityBase {
@@ -23,9 +26,6 @@ export class Course extends EntityBase {
   @JoinColumn({ name: "user_id" })
   user: User;
 
-  @Column({ type: "boolean" })
-  shared: boolean;
-
   @Column({ type: "varchar" })
   title: string;
 
@@ -34,12 +34,18 @@ export class Course extends EntityBase {
 
 
   @LineStringColumn()
-  path: Line;
+  path: Coordinates[];
 
 
   @PointColumn()
-  departure: Position;
+  departure: Coordinates;
 
   @Column({ type: "float8" })
   length: number;
+
+  @PolygonColumn()
+  shape: Polygon;
+
+  @OneToMany(() => CourseNode, (n) => n.course)
+  nodes: CourseNode[];
 }

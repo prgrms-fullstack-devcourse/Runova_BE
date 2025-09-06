@@ -1,16 +1,15 @@
-import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
+import { ApiProperty } from "@nestjs/swagger";
 import { Coordinates } from "../../common/geo";
 import { Type } from "class-transformer";
-import { IsNumber, IsPositive, ValidateNested } from "class-validator";
+import { IsNumber, IsPositive } from "class-validator";
 import { PagingOptions } from "../../common/paging";
+import { ApiPointProperty } from "../../utils/decorator";
 
-@ApiExtraModels(Coordinates)
+
 export class SearchAdjacentCoursesDTO extends PagingOptions {
     userId: number;
 
-    @ValidateNested()
-    @Type(() => Coordinates)
-    @ApiProperty({ type: Coordinates, required: true, description: "현재 위치" })
+    @ApiPointProperty({ required: true, description: "현재 위치" })
     location: Coordinates;
 
     @IsPositive()

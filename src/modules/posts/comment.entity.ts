@@ -6,8 +6,8 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Post } from "./post.entity";
-import { User } from "../users/user.entity";
-import { EntityBase } from "../../common/entity/entity.base";
+import { User } from "../users";
+import { EntityBase } from "../../common/entity";
 
 @Entity("comments")
 export class Comment extends EntityBase {

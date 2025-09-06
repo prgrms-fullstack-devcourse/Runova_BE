@@ -1,4 +1,4 @@
-import { Coordinates } from "../../common/geo";
+import { Coordinates } from "../../common/geometry";
 import { CourseNodeDTO, InspectPathResult } from "../dto";
 import converter from "../../config/proj4";
 

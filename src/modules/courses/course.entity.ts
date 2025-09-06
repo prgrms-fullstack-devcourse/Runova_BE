@@ -10,7 +10,7 @@ import {
 import { EntityBase } from "../../common/entity";
 import { User } from "../users";
 import { CourseNode } from "./course.node.entity";
-import { Coordinates, LineStringColumn, PointColumn, PolygonColumn } from "../../common/geo";
+import { Coordinates, LineStringColumn, PointColumn, PolygonColumn } from "../../common/geometry";
 import { Polygon } from "geojson";
 
 @Entity({ name: "courses" })

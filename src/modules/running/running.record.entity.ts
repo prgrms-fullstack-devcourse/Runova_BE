@@ -9,7 +9,7 @@ import {
 } from "typeorm";
 import { User } from "../users";
 import { Course } from "../courses";
-import { Coordinates, LineStringColumn } from "../../common/geometry";
+import { Coordinates, LineStringColumn } from "../../common/geo";
 
 @Entity("running_records")
 export class RunningRecord extends ImmutableEntityBase {

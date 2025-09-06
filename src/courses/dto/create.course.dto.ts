@@ -1,6 +1,6 @@
 import { ArrayMinSize, IsString, IsUrl, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
-import { Coordinates } from "../../common/geometry";
+import { Coordinates } from "../../common/geo";
 import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
 
 @ApiExtraModels(Coordinates)

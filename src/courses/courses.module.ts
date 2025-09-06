@@ -1,9 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import {
     CourseBookmarksService,
-    CourseNodesService,
     CoursesService, GetMeanPaceService,
-    InspectPathService,
     SearchCoursesService
 } from './service';
 import { TypeOrmModule } from "@nestjs/typeorm";
@@ -31,11 +29,9 @@ const __EXTERNAL_PROVIDERS = [RunningStatisticsService];
   providers: [
       ...__EXTERNAL_PROVIDERS,
       CoursesService,
-      CourseNodesService,
       CourseBookmarksService,
       CompletedCoursesService,
       SearchCoursesService,
-      InspectPathService,
       InspectRecordService,
       GetMeanPaceService,
   ],

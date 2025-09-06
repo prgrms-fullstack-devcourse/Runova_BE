@@ -3,27 +3,33 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
 import { Course, CourseNode } from "../../modules/courses";
-import { CourseNodeDTO, CourseTopologyDTO, CreateCourseDTO, UpdateCourseDTO } from "../dto";
-import { MakeCourseNodesService } from "./make.course.nodes.service";
+import { CourseTopologyDTO, CreateCourseDTO, UpdateCourseDTO } from "../dto";
+import { InspectPathService } from "./inspect.path.service";
 import { pick } from "../../utils/object";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class CoursesService {
+    private readonly courseRadius: number;
 
     constructor(
         @InjectRepository(Course)
         private readonly coursesRepo: Repository<Course>,
         @InjectRepository(CourseNode)
         private readonly nodesRepo: Repository<CourseNode>,
-        @Inject(MakeCourseNodesService)
-        private readonly makeCourseNodesService: MakeCourseNodesService,
-    ) {}
+        @Inject(InspectPathService)
+        private readonly inspectPathService: InspectPathService,
+        @Inject(ConfigService)
+        config: ConfigService,
+    ) {
+        this.courseRadius = config.get<number>("COURSE_RADIUS") ?? 6;
+    }
 
     @Transactional()
     async createCourse(dto: CreateCourseDTO): Promise<void> {
         const { path, ...rest } = dto;
 
-        const nodes: CourseNodeDTO[] = await this.makeCourseNodesService
+        const { wkt5179, nodes } = await this.inspectPathService
             .makeCourseNodes(path);
 
         const result = await this.coursesRepo
@@ -36,15 +42,12 @@ export class CoursesService {
                 departure: nodes[0].location,
                 shape: () => `
                 ST_Transform(
-                    ST_Buffer(
-                        ST_Transform(ST_GeomFromText(:wkt), 5179),
-                        6
-                    ),
+                    ST_Buffer(ST_GeomFromText(:wkt), :radius),
                     4326
                 )
                 `
             })
-            .setParameter("wkt", __makeWkt(path))
+            .setParameters({ wkt: wkt5179, radius: this.courseRadius })
             .updateEntity(false)
             .returning("id")
             .execute();
@@ -89,10 +92,3 @@ export class CoursesService {
     }
 }
 
-function __makeWkt(line: [number, number][]): string {
-
-    const inner = line.map(p => p.join(' '))
-        .join(',');
-
-    return `SRID=4326;LINESTRING(${inner})`;
-}

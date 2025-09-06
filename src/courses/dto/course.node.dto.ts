@@ -1,12 +1,11 @@
 import { IsNumber } from "class-validator";
-import { Coordinates } from "../../common/geo";
 import { ApiProperty } from "@nestjs/swagger";
 import { ApiPointProperty, IsPoint } from "../../utils/decorator";
 
 export class CourseNodeDTO {
     @IsPoint()
     @ApiPointProperty({ description: "방향 전환 일어나는 곳 위치" })
-    location: Coordinates;
+    location: [number, number];
 
     @IsNumber()
     @ApiProperty({

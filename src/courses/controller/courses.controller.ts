@@ -159,7 +159,7 @@ export class CoursesController {
     }
 
     @Patch("/:id")
-    @ApiOperation({ summary: "경로 삭제"})
+@ApiOperation({ summary: "경로 수정"})
     @ApiParam({ name: "id", type: "integer", required: true, description: "수정할 경로의 아이디" })
     @ApiBody({ type: UpdateCourseBody, required: true })
     @ApiBearerAuth()

@@ -7,18 +7,24 @@ import {
     SearchCoursesService
 } from './service';
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { Course, CourseBookmark, CourseNode, CompletedCourse } from "../modules/courses";
+import { CompletedCourse, Course, CourseBookmark, CourseNode } from "../modules/courses";
 import { CoursesController } from "./controller";
 import { RunningRecord } from "../modules/running";
 import { RunningStatisticsService } from "../running/service";
 import { RunningModule } from "../running/running.module";
+import { CompletedCoursesService } from "./service/completed.courses.service";
+import { InspectRecordService } from "./service/inspect.record.servcie";
 
 const __EXTERNAL_PROVIDERS = [RunningStatisticsService];
 
 @Module({
   imports: [
       TypeOrmModule.forFeature([
-          Course, CourseNode, CourseBookmark, CompletedCourse, RunningRecord
+          Course,
+          CourseNode,
+          CourseBookmark,
+          CompletedCourse,
+          RunningRecord,
       ]),
       forwardRef(() => RunningModule)
   ],
@@ -27,10 +33,13 @@ const __EXTERNAL_PROVIDERS = [RunningStatisticsService];
       CoursesService,
       CourseNodesService,
       CourseBookmarksService,
+      CompletedCoursesService,
       SearchCoursesService,
       InspectPathService,
+      InspectRecordService,
       GetMeanPaceService,
   ],
   controllers: [CoursesController],
+  exports: [CompletedCoursesService, InspectRecordService],
 })
 export class CoursesModule {}

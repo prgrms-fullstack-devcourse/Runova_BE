@@ -3,11 +3,11 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { RunningRecord } from "../../modules/running";
 import { Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
-import { RecordRunningDTO, RunningRecordDTO, SearchRunningRecordsDTO } from "../dto";
+import { CreateRunningRecordDTO, RunningRecordDTO, SearchRunningRecordsDTO } from "../dto";
 import { omit } from "../../utils/object";
 import { SearchRunningRecordResult } from "../dto/search.running.record.result";
 import { plainToInstance } from "class-transformer";
-import { setRunningRecordFilters } from "../utils";
+import { setFilters } from "./service.internal";
 
 @Injectable()
 export class RunningRecordsService {
@@ -18,7 +18,7 @@ export class RunningRecordsService {
     ) {}
 
     @Transactional()
-    async createRunningRecord(dto: RecordRunningDTO): Promise<void> {
+    async createRunningRecord(dto: CreateRunningRecordDTO): Promise<void> {
         await this.recordsRepo.save(dto);
     }
 
@@ -31,7 +31,7 @@ export class RunningRecordsService {
 
         return {
             duration: (record.endAt.getTime() - record.startAt.getTime()) / 1000,
-            ...omit(record, ["userId", "createdAt"])
+            ...omit(record, ["userId", "course", "createdAt"])
         };
     }
 
@@ -63,7 +63,7 @@ export class RunningRecordsService {
            )
           .where("record.userId  = :userId", { userId });
 
-        const raws = await setRunningRecordFilters(qb, filters)
+        const raws = await setFilters(qb, filters)
             .andWhere("record.id > :cursor", { cursor: cursor ?? 0 })
             .limit(limit ?? 10)
             .getRawMany();

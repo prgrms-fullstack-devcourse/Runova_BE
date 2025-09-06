@@ -1,8 +1,8 @@
 import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
-import { CourseNode } from "../dto";
+import { CourseNodeDTO } from "../dto";
 
-@ApiExtraModels(CourseNode)
+@ApiExtraModels(CourseNodeDTO)
 export class GetCourseNodesResponse {
-    @ApiProperty({ type: [CourseNode] })
-    results: CourseNode[];
+    @ApiProperty({ type: [CourseNodeDTO] })
+    results: CourseNodeDTO[];
 }

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MyPageService } from './mypage.service';
 
-describe('MypageService', () => {
+describe('MyPageService', () => {
   let service: MyPageService;
 
   beforeEach(async () => {

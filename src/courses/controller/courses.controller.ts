@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Put, Query, UseGuards } from "@nestjs/common";
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
@@ -7,16 +7,17 @@ import {
     ApiOperation, ApiParam, ApiQuery, ApiResetContentResponse,
     ApiTags
 } from "@nestjs/swagger";
-import { CourseBookmarksService, CourseNodesService, CoursesService, SearchCoursesService } from "../service";
+import { CourseBookmarksService, CoursesService, SearchCoursesService } from "../service";
 import { Cached, Caching, User } from "../../utils/decorator";
 import {
-    CreateCourseBody, GetCourseNodesResponse,
+    CreateCourseBody,
     SearchAdjacentCoursesQuery,
     SearchAdjacentCoursesResponse,
-    SearchCoursesResponse, UpdateBookmarkResponse
+    SearchCoursesResponse, UpdateBookmarkResponse, UpdateCourseBody
 } from "../api";
 import { AuthGuard } from "@nestjs/passport";
 import { PagingOptions } from "../../common/paging";
+import { CourseTopologyDTO } from "../dto";
 
 @ApiTags("Courses")
 @Controller("/api/courses")
@@ -28,8 +29,6 @@ export class CoursesController {
         private readonly coursesService: CoursesService,
         @Inject(SearchCoursesService)
         private readonly searchCoursesService: SearchCoursesService,
-        @Inject(CourseNodesService)
-        private readonly nodesService: CourseNodesService,
         @Inject(CourseBookmarksService)
         private readonly bookmarksService: CourseBookmarksService,
     ) {}
@@ -128,21 +127,20 @@ export class CoursesController {
         return { results };
     }
 
-    @Get("/:id/nodes")
-    @ApiOperation({ summary: "경로 노드(경로의 양 끝 점과 방향 전환이 발생하는 점들) 조회"})
-    @ApiParam({ name: "id", type: "integer", required: true, description: "노드들이 속한 경로의 아이디" })
+    @Get("/:id/topology")
+    @ApiOperation({ summary: "경로 노드(경로의 양 끝 점과 방향 전환이 발생하는 점들)와 경로의 모형(polygon) 조회"})
+    @ApiParam({ name: "id", type: "integer", required: true, description: "경로 아이디" })
     @ApiBearerAuth()
-    @ApiOkResponse({ type: GetCourseNodesResponse })
+    @ApiOkResponse({ type: CourseTopologyDTO })
     @ApiForbiddenResponse()
     @ApiNotFoundResponse({ description: "존재하지 않는 경로" })
-    @Caching({ schema: GetCourseNodesResponse })
+    @Caching({ schema: CourseTopologyDTO })
     async getCourseNodes(
         @Param("id") id: number,
-        @Cached() cached?: GetCourseNodesResponse,
-    ): Promise<GetCourseNodesResponse> {
-        if (cached) return cached;
-        const results = await this.nodesService.getCourseNodes(id);
-        return { results };
+        @Cached() cached?: CourseTopologyDTO,
+    ): Promise<CourseTopologyDTO> {
+       return cached ?? await this.coursesService
+           .getCourseTopology(id);
     }
 
     @Put("/:id/bookmarks")
@@ -158,6 +156,23 @@ export class CoursesController {
     ): Promise<UpdateBookmarkResponse> {
        const bookmarked = await this.bookmarksService.updateBookmark(id, userId);
        return { bookmarked };
+    }
+
+    @Patch("/:id")
+    @ApiOperation({ summary: "경로 삭제"})
+    @ApiParam({ name: "id", type: "integer", required: true, description: "수정할 경로의 아이디" })
+    @ApiBody({ type: UpdateCourseBody, required: true })
+    @ApiBearerAuth()
+    @ApiResetContentResponse()
+    @ApiBadRequestResponse({ description: "유효하지 않은 body" })
+    @ApiForbiddenResponse()
+    async updateCourse(
+        @Param("id") id: number,
+        @User("userId") userId: number,
+        @Body() body: UpdateCourseBody,
+    ): Promise<void> {
+        await this.coursesService
+            .updateCourse({ id, userId, ...body });
     }
 
     @Delete("/:id")

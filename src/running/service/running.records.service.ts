@@ -53,12 +53,7 @@ export class RunningRecordsService {
                 "duration"
             )
             .addSelect(
-                `
-                jsonb_build_object(
-                    'lon', ST_X(ST_StartPoint(record.path)),
-                    'lat', ST_Y(ST_StartPoint(record.path))
-                )
-                `,
+                `ST_AsGeoJSON(ST_StartPoint(record.path))::jsonb.coordinates`,
             "departure"
            )
           .where("record.userId  = :userId", { userId });

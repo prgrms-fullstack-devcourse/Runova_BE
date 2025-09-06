@@ -1,9 +1,7 @@
-import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
-import { Coordinates } from "../../common/geo";
-import { IsBoolean, IsDate, IsInt, IsNumber, IsString, ValidateNested } from "class-validator";
-import { Type } from "class-transformer";
+import { ApiProperty } from "@nestjs/swagger";
+import { IsBoolean, IsDate, IsInt, IsNumber, IsString } from "class-validator";
+import { ApiPointProperty, IsPoint } from "../../utils/decorator";
 
-@ApiExtraModels(Coordinates)
 export class CourseDTO {
     @IsInt()
     @ApiProperty({ type: "integer" })
@@ -17,10 +15,9 @@ export class CourseDTO {
     @ApiProperty({ type: "string", description: "이미지 경로" })
     imageURL: string;
 
-    @ValidateNested()
-    @Type(() => Coordinates)
-    @ApiProperty({ type: Coordinates, description: "시작 지점" })
-    departure: Coordinates;
+    @IsPoint()
+    @ApiPointProperty({ description: "출발지점" })
+    departure: [number, number];
 
     @IsNumber()
     @ApiProperty({ type: "number", description: "총 거리(m)" })

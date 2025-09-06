@@ -1,5 +1,4 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Coordinates } from "../../common/geo";
 import { Type } from "class-transformer";
 import { IsNumber, IsPositive } from "class-validator";
 import { PagingOptions } from "../../common/paging";
@@ -10,7 +9,7 @@ export class SearchAdjacentCoursesDTO extends PagingOptions {
     userId: number;
 
     @ApiPointProperty({ required: true, description: "현재 위치" })
-    location: Coordinates;
+    location: [number, number];
 
     @IsPositive()
     @IsNumber()

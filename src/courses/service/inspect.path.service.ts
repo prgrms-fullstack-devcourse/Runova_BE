@@ -26,7 +26,7 @@ export class InspectPathService implements OnModuleDestroy{
 
 
     async inspect(path: Coordinates[]): Promise<InspectPathResult> {
-        return await this.pool.exec(inspectPath, [path]);
+        return inspectPath(path);
     }
 
 }

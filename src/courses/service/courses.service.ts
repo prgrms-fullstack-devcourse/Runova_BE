@@ -2,10 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
-import { Course, CourseNode } from "../../modules/courses";
+import { Course } from "../../modules/courses";
+import { InspectPathService } from "./inspect.path.service";
+import { CourseNodesService } from "./course.nodes.service";
 import { CreateCourseDTO } from "../dto";
-import { MakeCourseNodesService } from "./make.course.nodes.service";
-import { Line } from "../../common/geometry";
 
 @Injectable()
 export class CoursesService {
@@ -13,45 +13,35 @@ export class CoursesService {
     constructor(
         @InjectRepository(Course)
         private readonly coursesRepo: Repository<Course>,
-        @Inject(MakeCourseNodesService)
-        private readonly makeCourseNodesService: MakeCourseNodesService,
+        @Inject(InspectPathService)
+        private readonly inspectPathService: InspectPathService,
+        @Inject(CourseNodesService)
+        private readonly nodesService: CourseNodesService,
     ) {}
 
     @Transactional()
     async createCourse(dto: CreateCourseDTO): Promise<void> {
         const { path, ...rest } = dto;
+        const { length, nodes } = await this.inspectPathService.inspect(path);
+        const departure = nodes[0].location;
 
-        const nodes: CourseNode[] = await this.makeCourseNodesService
-            .makeCourseNodes(path);
-
-        await this.coursesRepo
+        const result = await this.coursesRepo
             .createQueryBuilder()
             .insert()
             .into(Course)
             .values({
-                ...rest,
-                nodes,
-                length: nodes.at(-1)!.progress,
-                departure: nodes[0].location,
-                shape: () => `
-                ST_Transform(ST_Buffer(ST_Transform(ST_SetSRID(ST_GeomFromText(:wkt), 4326), 5179), 6), 4326)
-                `
+
             })
-            .setParameter("wkt", __makeWkt(path))
-            .updateEntity(false)
             .execute();
+
+        const id: number = result.generatedMaps[0].id;
+        await this.nodesService.createCourseNodes(id, nodes);
     }
 
     @Transactional()
     async deleteCourse(id: number, userId: number): Promise<void> {
         await this.coursesRepo.delete({ id, userId, });
     }
-}
 
-function __makeWkt(path: Line): string {
 
-    const inner = path.map(pos => pos.join(' '))
-        .join(',');
-
-    return `LINESTRING (${inner})`;
 }

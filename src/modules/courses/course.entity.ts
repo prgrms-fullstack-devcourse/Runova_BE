@@ -41,8 +41,8 @@ export class Course extends EntityBase {
   @Column({ type: "float8" })
   length: number;
 
-  @PolygonColumn()
-  shape: Polygon;
+  //@PolygonColumn()
+  //shape: Polygon;
 
   @OneToMany(() => CourseNode, (n) => n.course)
   nodes: CourseNode[];

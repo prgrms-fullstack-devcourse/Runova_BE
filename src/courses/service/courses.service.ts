@@ -30,7 +30,10 @@ export class CoursesService {
             .insert()
             .into(Course)
             .values({
-
+                ...rest,
+                path,
+                departure,
+                length,
             })
             .execute();
 

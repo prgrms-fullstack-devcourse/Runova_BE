@@ -3,7 +3,7 @@
  */
 import converter from "../../config/proj4";
 import { inspectPath } from "./inspect.path.service.internal";
-import type { Coordinates } from "../../common/geo";
+import type { Coordinates } from "../../common/geometry";
 
 jest.setTimeout(60_000);
 

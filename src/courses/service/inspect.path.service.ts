@@ -1,5 +1,5 @@
 import { Inject, Injectable, OnModuleDestroy } from "@nestjs/common";
-import { Coordinates } from "../../common/geo";
+import { Coordinates } from "../../common/geometry";
 import { InspectPathResult } from "../dto";
 import { pool, Pool } from "workerpool";
 import { ConfigService } from "@nestjs/config";

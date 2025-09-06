@@ -1,6 +1,6 @@
 import { ImmutableEntityBase } from "../../common/entity";
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Coordinates, PointColumn } from "../../common/geo";
+import { Coordinates, PointColumn } from "../../common/geometry";
 import { Course } from "./course.entity";
 
 @Entity("course_nodes")

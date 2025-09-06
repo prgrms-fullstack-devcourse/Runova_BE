@@ -1,7 +1,7 @@
 /**
  * Jest tests + perf micro-bench for inspectPath
  */
-import converter from "../../config/proj4";
+import converter from "../../common/geo/converter";
 import { inspectPath } from "./inspect.path.service.internal";
 import type { Coordinates } from "../../common/geo";
 

@@ -1,6 +1,6 @@
 import { Coordinates } from "../../common/geo";
 import { CourseNodeDTO, InspectPathResult } from "../dto";
-import converter from "../../config/proj4";
+import converter from "../../common/geo/converter";
 
 export function inspectPath(
     path: Coordinates[],

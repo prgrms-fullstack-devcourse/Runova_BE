@@ -11,12 +11,7 @@ export function setSelect<E extends object>(
             .addSelect("course.title", "title")
             .addSelect("course.imageURL", "imageURL")
             .addSelect(
-            `
-                    jsonb_build_object(
-                        'lon', ST_X(course.departure),
-                        'lat', ST_Y(course.departure),
-                    )
-                `,
+            `ST_AsGeoJSON(course.departure)::jsonb.coordinates`,
                 "departure"
             )
             .addSelect("course.length", "length")

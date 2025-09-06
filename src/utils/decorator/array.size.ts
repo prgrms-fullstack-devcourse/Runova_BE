@@ -1,9 +1,9 @@
 import { applyDecorators } from "@nestjs/common";
-import { ArrayMaxSize, ArrayMinSize } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, ValidationOptions } from "class-validator";
 
-export function ArraySize(size: number) {
+export function ArraySize(size: number, options?: ValidationOptions) {
     return applyDecorators(
-        ArrayMinSize(size),
-        ArrayMaxSize(size)
+        ArrayMinSize(size, options),
+        ArrayMaxSize(size, options),
     );
 }

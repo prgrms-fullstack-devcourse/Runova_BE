@@ -1,4 +1,4 @@
-import { EntityBase, ImmutableEntityBase } from "../../common/entity";
+import { ImmutableEntityBase } from "../../common/entity";
 import {
   Column,
   Entity,
@@ -9,7 +9,7 @@ import {
 } from "typeorm";
 import { User } from "../users";
 import { Course } from "../courses";
-import { Coordinates, LineStringColumn } from "../../common/geo";
+import { LineStringColumn } from "../../common/geo";
 
 @Entity("running_records")
 export class RunningRecord extends ImmutableEntityBase {
@@ -33,7 +33,7 @@ export class RunningRecord extends ImmutableEntityBase {
   course: Course | null;
 
   @LineStringColumn()
-  path: Coordinates[];
+  path: [number, number][];
 
   @Column({ name: "start_at", type: "timestamptz" })
   startAt: Date;

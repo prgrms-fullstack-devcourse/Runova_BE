@@ -19,6 +19,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
   private readonly isProd = process.env.NODE_ENV === "production";
 
   catch(exception: unknown, host: ArgumentsHost) {
+    this.logger.error(exception as any);
+    
     const ctx = host.switchToHttp();
     const req = ctx.getRequest<Request>();
     const res = ctx.getResponse<Response>();

@@ -1,40 +1,38 @@
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
+import { IQueryHandler } from "@nestjs/cqrs";
+import { GetRunningStatisticsQuery } from "./get.running.statistics.query";
+import { AggregationFields, RunningStatisticsDTO, RunningStatisticsSchema } from "../dto";
 import { RunningRecord } from "../../modules/running";
 import { Repository, SelectQueryBuilder } from "typeorm";
-import { RunningStatisticsDTO, RunningRecordFilters, RunningDashboardDTO, RunningStatisticsSchema } from "../dto";
-import { setFilters } from "./service.internal";
+import { setRunningRecordFilters } from "../utils/set.running.record.filters";
 import { plainToInstanceOrReject } from "../../utils";
 
-@Injectable()
-export class RunningStatisticsService {
-
+export class GetRunningStatisticsQueryHandler<
+   K extends AggregationFields
+> implements IQueryHandler<GetRunningStatisticsQuery<K>>
+{
     constructor(
-       @InjectRepository(RunningRecord)
-       private readonly recordsRepo: Repository<RunningRecord>
+        protected readonly recordsRepo: Repository<RunningRecord>
     ) {}
 
-    async getRunningStatistics<
-        K extends keyof RunningDashboardDTO
-    >(
-        userId: number,
-        props: K[],
-        filters?: RunningRecordFilters
+    async execute(
+        query: GetRunningStatisticsQuery<K>
     ): Promise<RunningStatisticsDTO<K>> {
+        const { userId, props, filters } = query;
 
-        const qb = this.createSelectQueryBuilder(new Set<K>(props))
+        const qb = this
+            .createSelectQueryBuilder(new Set(props))
             .where("record.userId = :userId", { userId });
 
-        filters && setFilters(qb, filters);
+        filters && setRunningRecordFilters(qb, filters);
         qb.groupBy("userId");
 
         const raw = await qb.getRawOne();
         return plainToInstanceOrReject(RunningStatisticsSchema(props), raw);
     }
 
-    private createSelectQueryBuilder<
-        K extends keyof RunningDashboardDTO
-    >(props: Set<K>): SelectQueryBuilder<RunningRecord> {
+    protected createSelectQueryBuilder(
+        props: Set<K>
+    ): SelectQueryBuilder<RunningRecord> {
 
         const qb = this.recordsRepo
             .createQueryBuilder("record")
@@ -58,5 +56,4 @@ export class RunningStatisticsService {
 
         return qb;
     }
-
 }

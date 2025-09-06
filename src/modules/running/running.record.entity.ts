@@ -1,4 +1,4 @@
-import { EntityBase, ImmutableEntityBase } from "../../common/entity";
+import { ImmutableEntityBase } from "../../common/entity";
 import {
   Column,
   Entity,
@@ -8,8 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { User } from "../users";
-import { Course } from "../courses";
-import { Coordinates, LineStringColumn } from "../../common/geo";
+import { Line, LineStringColumn } from "../../common/geometry";
 
 @Entity("running_records")
 export class RunningRecord extends ImmutableEntityBase {
@@ -24,16 +23,8 @@ export class RunningRecord extends ImmutableEntityBase {
   @JoinColumn({ name: "user_id" })
   user: User;
 
-  @Index()
-  @Column({ name: "course_id", type: "int", nullable: true })
-  courseId: number | null;
-
-  @ManyToOne(() => Course, { onDelete: "SET NULL" })
-  @JoinColumn({ name: "course_id" })
-  course: Course | null;
-
   @LineStringColumn()
-  path: Coordinates[];
+  path: Line;
 
   @Column({ name: "start_at", type: "timestamptz" })
   startAt: Date;

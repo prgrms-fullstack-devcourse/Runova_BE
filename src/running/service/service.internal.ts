@@ -1,7 +1,7 @@
 import { SelectQueryBuilder } from "typeorm";
 import { RunningRecordFilters } from "../dto";
 
-export function setRunningRecordFilters<E extends object>(
+export function setFilters<E extends object>(
     qb: SelectQueryBuilder<E>,
     filters: RunningRecordFilters,
 ): SelectQueryBuilder<E> {

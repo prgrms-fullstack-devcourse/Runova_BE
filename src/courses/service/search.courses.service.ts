@@ -93,11 +93,11 @@ export class SearchCoursesService {
             .createQueryBuilder("course")
             .addCommonTableExpression(
                 `
-                SELECT ST_SetSRID(ST_MakePoint(:...coords), 4326) AS geom
+                SELECT ST_SetSRID(ST_MakePoint(:lon, :lat), 4326) AS geom
                 `,
                 "location"
             )
-            .setParameter("coords", location)
+            .setParameters({ ...location })
             .addFrom("location", "loc");
 
         setSelect(qb, await this.getMeanPaceService.getMeanPace(userId));
@@ -117,5 +117,8 @@ export class SearchCoursesService {
         const raws = await qb.getRawMany();
         return plainsToInstancesOrReject(AdjacentCourseDTO, raws);
     }
+
+
+
 }
 

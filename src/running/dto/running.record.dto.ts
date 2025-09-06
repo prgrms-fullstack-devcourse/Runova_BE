@@ -1,7 +1,9 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsDate, IsInt, IsNumber, ValidateIf } from "class-validator";
-import { ApiLineProperty, Line } from "../../common/geometry";
+import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
+import { Coordinates } from "../../common/geo";
+import { IsDate, IsInt, IsNumber, ValidateIf, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
 
+@ApiExtraModels(Coordinates)
 export class RunningRecordDTO {
     @IsInt()
     @ApiProperty({ type: "integer" })
@@ -12,8 +14,10 @@ export class RunningRecordDTO {
     @ApiProperty({ type: "integer", nullable: true, description: "경로 아이디(존재하는 경우만)" })
     courseId: number | null;
 
-    @ApiLineProperty({ description: "달린 경로" })
-    path: Line;
+    @ValidateNested({ each: true })
+    @Type(() => Coordinates)
+    @ApiProperty({ type: [Coordinates], description: "달린 경로" })
+    path: Coordinates[];
 
     @IsNumber()
     @ApiProperty({ type: "number", description: "달린 거리(m)" })

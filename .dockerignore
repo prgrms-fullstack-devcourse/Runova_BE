@@ -6,3 +6,5 @@ docker-compose.yml
 *.log
 .env*
 etc/ssl/certs/*.pem
+runova.pem
+server.sh

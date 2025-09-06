@@ -20,7 +20,7 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "moduleResolution": "node",
-    "lib": ["ES2023", "ESNext"]
+    "lib": ["ES2023", "ESNext"],
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "test/**/*"]
 }

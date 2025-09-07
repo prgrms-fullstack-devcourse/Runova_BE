@@ -2,7 +2,7 @@ import { ConflictException, Inject, Injectable, NotFoundException } from "@nestj
 import { InjectRepository } from "@nestjs/typeorm";
 import { CompletedCourse } from "../../modules/courses";
 import { Repository } from "typeorm";
-import { InspectRecordService } from "./inspect.record.servcie";
+import { InspectRunningRecordService } from "./inspect.running.record.service";
 import { CompleteCourseDTO } from "../dto";
 import { Transactional } from "typeorm-transactional";
 
@@ -12,8 +12,8 @@ export class CompletedCoursesService {
     constructor(
        @InjectRepository(CompletedCourse)
        private readonly completedCoursesRepo: Repository<CompletedCourse>,
-       @Inject(InspectRecordService)
-       private readonly inspectRecordService: InspectRecordService,
+       @Inject(InspectRunningRecordService)
+       private readonly inspectRecordService: InspectRunningRecordService,
     ) {}
 
     @Transactional()

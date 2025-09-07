@@ -3,10 +3,11 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
 import { Course, CourseNode } from "../../modules/courses";
-import { CourseTopologyDTO, CreateCourseDTO, UpdateCourseDTO } from "../dto";
+import { CourseTopologyDTO, CreateCourseDTO, CreateCourseFromRunningRecordDTO, UpdateCourseDTO } from "../dto";
 import { InspectPathService } from "./inspect.path.service";
 import { pick } from "../../utils/object";
 import { ConfigService } from "@nestjs/config";
+import { RunningRecord } from "../../modules/running";
 
 @Injectable()
 export class CoursesService {
@@ -17,6 +18,8 @@ export class CoursesService {
         private readonly coursesRepo: Repository<Course>,
         @InjectRepository(CourseNode)
         private readonly nodesRepo: Repository<CourseNode>,
+        @InjectRepository(RunningRecord)
+        private readonly recordsRepo: Repository<RunningRecord>,
         @Inject(InspectPathService)
         private readonly inspectPathService: InspectPathService,
         @Inject(ConfigService)
@@ -59,6 +62,26 @@ export class CoursesService {
                 ({ courseId, ...node })
             )
         );
+    }
+
+    @Transactional()
+    async createCourseFromRunningRecord(
+        dto: CreateCourseFromRunningRecordDTO,
+    ): Promise<void> {
+        const { recordId, userId, ...rest } = dto;
+
+        const record = await this.recordsRepo.findOne({
+            select: ["path"],
+            where: { id: recordId, userId },
+        });
+
+        if (!record) throw new NotFoundException();
+
+        await this.createCourse({
+            userId,
+            path: record.path,
+            ...rest
+        });
     }
 
     async getCourseTopology(id: number): Promise<CourseTopologyDTO> {

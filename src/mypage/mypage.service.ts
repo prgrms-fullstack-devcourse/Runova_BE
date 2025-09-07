@@ -47,7 +47,7 @@ export class MyPageService {
       where: { userId },
       order: { createdAt: "DESC" },
       take: PREVIEW_COUNT,
-      select: ["id", "title", "length", "createdAt", "imageUrl"],
+      select: ["id", "title", "length", "createdAt", "imageURL"],
     });
 
     return courses.map((course) => ({
@@ -55,7 +55,7 @@ export class MyPageService {
       title: course.title,
       length: course.length,
       createdAt: this.toIsoString(course.createdAt),
-      previewImageUrl: course.imageUrl ?? "",
+      previewImageUrl: course.imageURL ?? "",
     }));
   }
 

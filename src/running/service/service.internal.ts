@@ -8,12 +8,12 @@ export function setFilters<E extends object>(
     const { startDate, endDate, limit } = filters;
 
     startDate && qb.andWhere(
-        `record.createdAt >= :startDate`,
+        `running.createdAt >= :startDate`,
         { startDate }
     );
 
     endDate && qb.andWhere(
-        `record.createdAt <= :endDate`,
+        `running.createdAt <= :endDate`,
         { endDate }
     );
 

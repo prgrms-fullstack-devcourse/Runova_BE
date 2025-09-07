@@ -1,13 +1,12 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
-import { Course, CourseNode } from "../../modules/courses";
-import { CourseTopologyDTO, CreateCourseDTO, CreateCourseFromRunningRecordDTO, UpdateCourseDTO } from "../dto";
-import { InspectPathService } from "./inspect.path.service";
+import { Course } from "../../modules/courses";
+import { CourseTopologyDTO, CreateCourseDTO, UpdateCourseDTO } from "../dto";
 import { pick } from "../../utils/object";
-import { ConfigService } from "@nestjs/config";
 import { RunningRecord } from "../../modules/running";
+import { InsertCourseService } from "./insert.course.service";
 
 @Injectable()
 export class CoursesService {
@@ -16,72 +15,19 @@ export class CoursesService {
     constructor(
         @InjectRepository(Course)
         private readonly coursesRepo: Repository<Course>,
-        @InjectRepository(CourseNode)
-        private readonly nodesRepo: Repository<CourseNode>,
         @InjectRepository(RunningRecord)
         private readonly recordsRepo: Repository<RunningRecord>,
-        @Inject(InspectPathService)
-        private readonly inspectPathService: InspectPathService,
-        @Inject(ConfigService)
-        config: ConfigService,
-    ) {
-        this.courseRadius = config.get<number>("COURSE_RADIUS") ?? 6;
-    }
+        @Inject(InsertCourseService)
+        private readonly insertCourseService: InsertCourseService,
+    ) {}
 
     @Transactional()
     async createCourse(dto: CreateCourseDTO): Promise<void> {
-        const { path, ...rest } = dto;
+        const { runningId, ...values } = dto;
 
-        const { wkt5179, nodes } = await this.inspectPathService
-            .makeCourseNodes(path);
+        if (runningId) {
 
-        const result = await this.coursesRepo
-            .createQueryBuilder()
-            .insert()
-            .into(Course)
-            .values({
-                ...rest,
-                length: nodes.at(-1)!.progress,
-                departure: nodes[0].location,
-                shape: () => `
-                ST_Transform(
-                    ST_Buffer(ST_GeomFromText(:wkt), :radius),
-                    4326
-                )
-                `
-            })
-            .setParameters({ wkt: wkt5179, radius: this.courseRadius })
-            .updateEntity(false)
-            .returning("id")
-            .execute();
-
-        const courseId: number = result.generatedMaps[0].id;
-
-        await this.nodesRepo.insert(
-            nodes.map(node =>
-                ({ courseId, ...node })
-            )
-        );
-    }
-
-    @Transactional()
-    async createCourseFromRunningRecord(
-        dto: CreateCourseFromRunningRecordDTO,
-    ): Promise<void> {
-        const { recordId, userId, ...rest } = dto;
-
-        const record = await this.recordsRepo.findOne({
-            select: ["path"],
-            where: { id: recordId, userId },
-        });
-
-        if (!record) throw new NotFoundException();
-
-        await this.createCourse({
-            userId,
-            path: record.path,
-            ...rest
-        });
+        }
     }
 
     async getCourseTopology(id: number): Promise<CourseTopologyDTO> {

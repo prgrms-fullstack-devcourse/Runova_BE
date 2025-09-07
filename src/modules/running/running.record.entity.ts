@@ -8,7 +8,8 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { User } from "../users";
-import { LineStringColumn, PointColumn } from "../../common/geo";
+import { Course } from "../courses";
+import { LineStringColumn } from "../../common/geo";
 
 @Entity("running_records")
 export class RunningRecord extends ImmutableEntityBase {
@@ -23,11 +24,16 @@ export class RunningRecord extends ImmutableEntityBase {
   @JoinColumn({ name: "user_id" })
   user: User;
 
+  @Index()
+  @Column({ name: "course_id", type: "int", nullable: true })
+  courseId: number | null;
+
+  @ManyToOne(() => Course, { onDelete: "SET NULL" })
+  @JoinColumn({ name: "course_id" })
+  course: Course | null;
+
   @LineStringColumn()
   path: [number, number][];
-
-  @PointColumn({ generatedType: "STORED" })
-  departure: [number, number];
 
   @Column({ name: "start_at", type: "timestamptz" })
   startAt: Date;
@@ -37,9 +43,6 @@ export class RunningRecord extends ImmutableEntityBase {
 
   @Column({ type: "float8" })
   distance: number;
-
-  @Column({ type: "double precision", generatedType: "STORED" })
-  duration: number;
 
   @Column({ type: "float8" })
   pace: number;

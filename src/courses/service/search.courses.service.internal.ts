@@ -1,15 +1,16 @@
 import { SelectQueryBuilder } from "typeorm";
 import { CompletedCourse, CourseBookmark } from "../../modules/courses";
-import { PagingOptions } from "../../common/paging";
+import { PagingOptions } from "../../common/query-params";
 
 export function setSelect<E extends object>(
     qb: SelectQueryBuilder<E>,
     pace: number,
+    location?: [number, number],
 ): SelectQueryBuilder<E> {
-        return qb
-            .select("course.id", "id")
+
+        qb.select("course.id", "id")
             .addSelect("course.title", "title")
-            .addSelect("course.imageURL", "imageURL")
+            .addSelect("course.imageUrl", "imageUrl")
             .addSelect(
             `ST_AsGeoJSON(course.departure)::jsonb.coordinates`,
                 "departure"
@@ -19,7 +20,26 @@ export function setSelect<E extends object>(
             .setParameter("pace", pace)
             .addSelect("course.createdAt", "createdAt")
             .innerJoin("course.user", "user")
-            .addSelect("user.nickname", "author");
+            .addSelect(
+                `jsonb_build_object('nickname', user.nickname, 'imageUrl', user.imageUrl)`,
+                "author"
+            );
+
+        if (location) {
+            qb.addCommonTableExpression(
+                `SELECT ST_SetSRID(ST_MakePoint(:...coords), 4326) AS geom`,
+                "location"
+            ).setParameter("coords", location);
+
+            qb.addFrom("location", "loc");
+
+            qb.addSelect(
+                `ST_DistanceSphere(course.departure, loc.geom)`,
+                "distance"
+            );
+        }
+
+        return qb;
 }
 
 export function setSelectBookmarked<E extends object>(

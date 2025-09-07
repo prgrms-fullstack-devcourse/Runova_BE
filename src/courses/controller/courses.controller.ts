@@ -16,7 +16,7 @@ import {
     SearchCoursesResponse, UpdateBookmarkResponse, UpdateCourseBody
 } from "../api";
 import { AuthGuard } from "@nestjs/passport";
-import { PagingOptions } from "../../common/paging";
+import { PagingOptions } from "../../common/query-params";
 import { CourseTopologyDTO } from "../dto";
 
 @ApiTags("Courses")

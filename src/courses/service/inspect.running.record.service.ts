@@ -2,19 +2,19 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Course } from "../../modules/courses";
 import { Repository } from "typeorm";
-import { CompleteCourseDTO, InspectRecordResult } from "../dto";
+import { CompleteCourseDTO, InspectRunningRecordResult } from "../dto";
 import { RunningRecord } from "../../modules/running";
 import { plainToInstanceOrReject } from "../../utils";
 
 @Injectable()
-export class InspectRecordService {
+export class InspectRunningRecordService {
 
     constructor(
        @InjectRepository(Course)
        private readonly coursesRepo: Repository<Course>,
     ) {}
 
-    async inspectRecord(dto: CompleteCourseDTO): Promise<InspectRecordResult> {
+    async inspectRecord(dto: CompleteCourseDTO): Promise<InspectRunningRecordResult> {
 
         const raw = await this.coursesRepo
             .createQueryBuilder("course")
@@ -31,7 +31,7 @@ export class InspectRecordService {
             .setParameters(dto)
             .getRawOne();
 
-        return plainToInstanceOrReject(InspectRecordResult, raw);
+        return plainToInstanceOrReject(InspectRunningRecordResult, raw);
     }
 
 }

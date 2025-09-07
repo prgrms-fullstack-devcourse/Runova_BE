@@ -1,6 +1,6 @@
 import { IsBoolean } from "class-validator";
 
-export class InspectRecordResult {
+export class InspectRunningRecordResult {
     @IsBoolean()
     isExists: boolean;
 

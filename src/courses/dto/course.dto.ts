@@ -13,7 +13,7 @@ export class CourseDTO {
 
     @IsString()
     @ApiProperty({ type: "string", description: "이미지 경로" })
-    imageURL: string;
+    imageUrl: string;
 
     @IsPoint()
     @ApiPointProperty({ description: "출발지점" })

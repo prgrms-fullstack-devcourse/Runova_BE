@@ -9,7 +9,7 @@ export function setSelect<E extends object>(
         return qb
             .select("course.id", "id")
             .addSelect("course.title", "title")
-            .addSelect("course.imageURL", "imageURL")
+            .addSelect("course.imageUrl", "imageUrl")
             .addSelect(
             `ST_AsGeoJSON(course.departure)::jsonb.coordinates`,
                 "departure"

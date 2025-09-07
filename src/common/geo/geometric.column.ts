@@ -2,8 +2,7 @@ import { Column, ColumnOptions } from "typeorm";
 import { Coordinates, GeoJson } from "./geojson";
 
 export type GeometricColumnOptions
-    = Omit<ColumnOptions, "type" | "spatialFeatureType" | "srid" | "transformer">
-    & { spatialFeatureType: string; };
+    = Omit<ColumnOptions, "type" | "spatialFeatureType" | "srid" | "transformer">;
 
 
 function __MakeGeometricColumn(type: string) {

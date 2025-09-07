@@ -5,9 +5,9 @@ import { Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
 import { CreateRunningRecordDTO, RunningRecordDTO, SearchRunningRecordsDTO } from "../dto";
 import { omit } from "../../utils/object";
-import { SearchRunningRecordResult } from "../dto/search.running.record.result";
 import { plainToInstance } from "class-transformer";
 import { setFilters } from "./service.internal";
+import { plainsToInstancesOrReject } from "../../utils";
 
 @Injectable()
 export class RunningRecordsService {
@@ -22,51 +22,40 @@ export class RunningRecordsService {
         await this.recordsRepo.save(dto);
     }
 
-    async getRunningRecord(id: number): Promise<RunningRecordDTO> {
-
-        const record = await this.recordsRepo
-            .findOne({ where: { id }, cache: true });
-
-        if (!record) throw new NotFoundException();
-
-        return {
-            duration: (record.endAt.getTime() - record.startAt.getTime()) / 1000,
-            ...omit(record, ["userId", "course", "createdAt"])
-        };
-    }
-
     async searchRunningRecords(
         dto: SearchRunningRecordsDTO
-    ): Promise<SearchRunningRecordResult[]> {
+    ): Promise<RunningRecordDTO[]> {
         const { userId, cursor, limit, ...filters } = dto;
 
         const qb =  this.recordsRepo
-            .createQueryBuilder("record")
-            .select(`record.id`, "id")
-            .addSelect(`record.startAt`, "startAt")
-            .addSelect(`record.endAt`, "endAt")
-            .addSelect(`record.distance`, "distance")
-            .addSelect(`record.pace`, "pace")
-            .addSelect(`record.calories`, "calories")
+            .createQueryBuilder("running")
+            .select(`running.id`, "id")
+            .addSelect(`running.startAt`, "startAt")
+            .addSelect(`running.endAt`, "endAt")
             .addSelect(
-                `EXTRACT(EPOCH FROM record.endAt) - EXTRACT(EPOCH FROM record.startAt)`,
+                `EXTRACT(EPOCH FROM running.endAt) - EXTRACT(EPOCH FROM running.startAt)`,
                 "duration"
             )
+            .addSelect(`running.distance`, "distance")
+            .addSelect(`running.pace`, "pace")
+            .addSelect(`record.calories`, "calories")
             .addSelect(
-                `ST_AsGeoJSON(ST_StartPoint(record.path))::jsonb.coordinates`,
+                `ST_AsGeoJSON(running.path)::jsonb.coordinates`,
+                "path"
+            )
+            .addSelect(
+                `ST_AsGeoJSON(ST_StartPoint(running.path))::jsonb.coordinates`,
             "departure"
            )
-          .where("record.userId  = :userId", { userId });
+          .where("running.userId  = :userId", { userId });
 
         const raws = await setFilters(qb, filters)
-            .andWhere("record.id > :cursor", { cursor: cursor ?? 0 })
+            .andWhere("running.id < :cursor", { cursor: cursor ?? 0 })
             .limit(limit ?? 10)
             .getRawMany();
 
 
-        return raws.map(raw =>
-            plainToInstance(SearchRunningRecordResult, raw)
-        );
+        return plainsToInstancesOrReject(RunningRecordDTO, raws);
     }
 }
 

@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsDate, IsInt, IsNumber, ValidateIf } from "class-validator";
-import { ApiLineProperty, IsLine } from "../../utils/decorator";
+import { ApiLineProperty, ApiPointProperty, IsLine, IsPoint } from "../../utils/decorator";
 
 
 export class RunningRecordDTO {
@@ -16,6 +16,10 @@ export class RunningRecordDTO {
     @IsLine()
     @ApiLineProperty({ required: true })
     path: [number, number][];
+
+    @IsPoint()
+    @ApiPointProperty({ description: "출발지점" })
+    departure: [number, number];
 
     @IsNumber()
     @ApiProperty({ type: "number", description: "달린 거리(m)" })

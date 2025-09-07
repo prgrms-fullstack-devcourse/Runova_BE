@@ -3,7 +3,7 @@ export * from "./course.node.dto";
 export * from "./course.topology.dto";
 export * from "./adjacent.course.dto";
 export * from "./create.course.dto";
-export * from "./insert.course.dto";
+export * from "./create.course.from.running.record.dto";
 export * from "./search.adjacent.courses.dto";
 export * from "./update.course.dto";
 export * from "./complete.course.dto";

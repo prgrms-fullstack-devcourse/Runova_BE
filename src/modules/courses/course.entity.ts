@@ -29,7 +29,7 @@ export class Course extends EntityBase {
   title: string;
 
   @Column({ name: "image_url", type: "varchar" })
-  imageURL: string;
+  imageUrl: string;
 
   @Column({ type: "float8" })
   length: number;

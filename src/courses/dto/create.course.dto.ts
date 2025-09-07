@@ -11,7 +11,7 @@ export class CreateCourseDTO {
 
     @IsUrl()
     @ApiProperty({ type: "string", required: true })
-    imageURL: string;
+    imageUrl: string;
 
     @IsLine()
     @ApiLineProperty({ required: true })

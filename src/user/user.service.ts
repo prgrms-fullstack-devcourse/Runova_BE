@@ -35,18 +35,21 @@ export class UserService {
     return date ? date.toISOString() : "";
   }
 
+  private async buildDisplayUrlFromKey(key?: string | null): Promise<string> {
+    if (!key) return "";
+    const cdn = process.env.CLOUDFRONT_DOMAIN?.trim();
+    if (cdn) return `${cdn}/${key}`;
+    const bucket = process.env.S3_BUCKET?.trim();
+    if (!bucket) throw new Error("S3_BUCKET not set");
+    const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
+    return await getSignedUrl(this.s3, cmd, { expiresIn: 60 * 5 });
+  }
+
   private async buildAvatarDisplayUrl(
     user: Pick<User, "avatarKey" | "avatarUrl">
   ): Promise<string> {
     if (user.avatarKey) {
-      const key = user.avatarKey.trim();
-      const cdn = process.env.CLOUDFRONT_DOMAIN?.trim();
-      if (cdn) return `${cdn}/${key}`;
-
-      const bucket = process.env.S3_BUCKET?.trim();
-      if (!bucket) throw new Error("S3_BUCKET not set");
-      const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
-      return await getSignedUrl(this.s3, cmd, { expiresIn: 60 * 5 });
+      return this.buildDisplayUrlFromKey(user.avatarKey);
     }
     return user.avatarUrl ?? "";
   }
@@ -120,20 +123,26 @@ export class UserService {
       where: { authorId: userId, type: PostType.PROOF, isDeleted: false },
       order: { createdAt: "DESC" },
       take: PREVIEW_COUNT,
-      select: ["id", "routeId", "title", "imageUrls", "createdAt"],
+      select: ["id", "routeId", "title", "imageKey", "createdAt"],
     });
 
-    return proofPosts
-      .filter((p) => Array.isArray(p.imageUrls) && p.imageUrls.length > 0)
-      .slice(0, PREVIEW_COUNT)
-      .map((p) => ({
+    const sliced = proofPosts
+      .filter((p) => !!p.imageKey)
+      .slice(0, PREVIEW_COUNT);
+
+    const withUrls = await Promise.all(
+      sliced.map(async (p) => ({
         id: p.id,
         courseId: p.routeId ?? 0,
         title: p.title,
-        imageUrl: p.imageUrls![0],
+        imageUrl: await this.buildDisplayUrlFromKey(p.imageKey),
         createdAt: this.toIso(p.createdAt),
-      }));
+      }))
+    );
+
+    return withUrls;
   }
+
   async getProfile(userId: number): Promise<ProfileDto> {
     const [profile, myCourses, myPosts, myPhotos] = await Promise.all([
       this.getProfileCore(userId),
@@ -144,6 +153,7 @@ export class UserService {
 
     return { profile, myCourses, myPosts, myPhotos };
   }
+
   async updateAvatarKey(userId: number, key: string): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException("User not found");

@@ -9,7 +9,7 @@ export function encodeCursor(createdAt: Date, id: number): string {
   return b64e(JSON.stringify(payload));
 }
 
-export function decodeCursor(cursor?: string): CursorPayload | null {
+export function decodeCursor(cursor: string | null): CursorPayload | null {
   if (!cursor) return null;
   try {
     const obj = JSON.parse(b64d(cursor)) as CursorPayload;

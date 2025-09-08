@@ -68,16 +68,4 @@ export class AuthController {
     await this.authService.logout(user.userId, deviceAll);
     return; // 204 No Content
   }
-
-  @UseGuards(JwtAuthGuard)
-  @Get("me")
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "내 정보 조회 (인증 필요)" })
-  @ApiResponse({ status: 200, description: "조회 성공" })
-  async me(@User() user: AuthUser) {
-    return {
-      userId: user.userId,
-      nickname: user.nickname,
-    };
-  }
 }

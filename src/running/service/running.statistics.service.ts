@@ -26,7 +26,7 @@ export class RunningStatisticsService {
             .where("record.userId = :userId", { userId });
 
         filters && setFilters(qb, filters);
-        qb.groupBy("userId");
+        qb.groupBy(`record.userId`);
 
         const raw = await qb.getRawOne();
         return plainToInstanceOrReject(RunningStatisticsSchema(props), raw);

@@ -18,6 +18,6 @@ export function setFilters<E extends object>(
     );
 
     return qb
-        .orderBy("createdAt", "DESC")
+        .orderBy(`record.createdAt`, "DESC")
         .take(limit);
 }

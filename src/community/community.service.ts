@@ -61,14 +61,14 @@ export class CommunityService {
   }
 
   private applyCursorWhereDesc<T extends ObjectLiteral>(
-    qb: SelectQueryBuilder<T>,
+    queryBuilder: SelectQueryBuilder<T>,
     alias: string,
     cursorStr?: string | null
   ): void {
     const cursor = decodeCursor(cursorStr ?? null);
     if (!cursor) return;
 
-    qb.andWhere(
+    queryBuilder.andWhere(
       `(${alias}.createdAt < :cursorAt OR (${alias}.createdAt = :cursorAt AND ${alias}.id < :cursorId))`,
       { cursorAt: cursor.createdAt, cursorId: cursor.id }
     );
@@ -130,21 +130,27 @@ export class CommunityService {
   ): Promise<CursorResult<PostWithUrl>> {
     const limit = query.limit ?? DEFAULT_LIMIT;
 
-    const qb = this.postRepo
+    const queryBuilder = this.postRepo
       .createQueryBuilder("p")
       .where("p.isDeleted = false");
-    if (filter.type) qb.andWhere("p.type = :type", { type: filter.type });
+    if (filter.type)
+      queryBuilder.andWhere("p.type = :type", { type: filter.type });
     if (filter.authorId)
-      qb.andWhere("p.authorId = :authorId", { authorId: filter.authorId });
+      queryBuilder.andWhere("p.authorId = :authorId", {
+        authorId: filter.authorId,
+      });
     if (filter.routeId)
-      qb.andWhere("p.routeId = :routeId", { routeId: filter.routeId });
+      queryBuilder.andWhere("p.routeId = :routeId", {
+        routeId: filter.routeId,
+      });
 
-    this.applyCursorWhereDesc(qb, "p", query.cursor);
-    qb.orderBy("p.createdAt", "DESC")
+    this.applyCursorWhereDesc(queryBuilder, "p", query.cursor);
+    queryBuilder
+      .orderBy("p.createdAt", "DESC")
       .addOrderBy("p.id", "DESC")
       .take(limit + 1);
 
-    const rows: Post[] = await qb.getMany();
+    const rows: Post[] = await queryBuilder.getMany();
     const { items, nextCursor } = this.sliceWithNextCursor(rows, limit);
 
     const itemsWithUrl: PostWithUrl[] = await Promise.all(
@@ -235,23 +241,24 @@ export class CommunityService {
     await this.findActivePostOrThrow(postId);
 
     const limit = query.limit ?? DEFAULT_LIMIT;
-    const qb = this.commentRepo
+    const queryBuilder = this.commentRepo
       .createQueryBuilder("c")
       .where("c.postId = :postId", { postId });
 
     const cursor = decodeCursor(query.cursor ?? null);
     if (cursor) {
-      qb.andWhere(
+      queryBuilder.andWhere(
         "(c.createdAt > :cursorAt OR (c.createdAt = :cursorAt AND c.id > :cursorId))",
         { cursorAt: cursor.createdAt, cursorId: cursor.id }
       );
     }
 
-    qb.orderBy("c.createdAt", "ASC")
+    queryBuilder
+      .orderBy("c.createdAt", "ASC")
       .addOrderBy("c.id", "ASC")
       .take(limit + 1);
 
-    const rows: Comment[] = await qb.getMany();
+    const rows: Comment[] = await queryBuilder.getMany();
     const { items, nextCursor } = this.sliceWithNextCursor(rows, limit);
     return { items, nextCursor };
   }

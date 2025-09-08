@@ -1,10 +1,4 @@
-import {
-  Column,
-  Entity,
-  PrimaryGeneratedColumn,
-  Unique,
-  Index
-} from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn, Unique, Index } from "typeorm";
 import { EntityBase } from "../../common/entity";
 
 @Entity({ name: "users" })
@@ -26,6 +20,9 @@ export class User extends EntityBase {
 
   @Column({ type: "varchar", length: 512, nullable: true })
   avatarUrl?: string;
+
+  @Column({ type: "varchar", length: 512, nullable: true })
+  avatarKey?: string | null;
 
   @Column({ type: "text", nullable: true, default: null })
   refreshTokenHash: string | null;

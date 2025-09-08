@@ -8,7 +8,7 @@ const env =
   process.env.NODE_ENV === "production" ? "production" : "development";
 dotenv.config({ path: path.resolve(process.cwd(), `.env.${env}`) });
 
-const ca = fs.readFileSync("/app/certs/global-bundle.pem").toString();
+const ca = fs.readFileSync("./etc/ssl/certs/global-bundle.pem").toString();
 
 export default new DataSource({
   type: "postgres",

@@ -1,15 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
-  IsArray,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
   MaxLength,
   MinLength,
-  ArrayMaxSize,
-  IsUrl,
-  IsIn,
 } from "class-validator";
 import { PostType } from "../../modules/posts/post.entity";
 import { Type } from "class-transformer";
@@ -19,12 +15,10 @@ export class CreatePostDto {
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(100) title: string;
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(50000) content: string;
 
-  @ApiPropertyOptional({ type: [String] })
-  @IsArray()
-  @ArrayMaxSize(10)
-  @IsUrl({}, { each: true })
   @IsOptional()
-  imageUrls?: string[] = [];
+  @IsString()
+  @MaxLength(512)
+  imageKey?: string | null;
 
   @ApiPropertyOptional()
   @IsInt()
@@ -52,12 +46,10 @@ export class UpdatePostDto {
   @IsOptional()
   content?: string;
 
-  @ApiPropertyOptional({ type: [String] })
-  @IsArray()
-  @ArrayMaxSize(10)
-  @IsUrl({}, { each: true })
   @IsOptional()
-  imageUrls?: string[];
+  @IsString()
+  @MaxLength(512)
+  imageKey?: string | null;
 
   @ApiPropertyOptional()
   @IsInt()

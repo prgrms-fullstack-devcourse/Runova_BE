@@ -40,8 +40,8 @@ export class Post extends EntityBase {
   @Column({ type: "text" })
   content: string;
 
-  @Column({ type: "text", array: true, default: "{}" })
-  imageUrls: string[];
+  @Column({ type: "varchar", length: 512, nullable: true })
+  imageKey?: string | null;
 
   @Column({ type: "int", nullable: true, default: null })
   routeId: number;

@@ -1,13 +1,19 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { RunningRecord } from "../../modules/running";
-import { Repository } from "typeorm";
+import {
+    Between,
+    FindManyOptions,
+    FindOptionsWhere,
+    LessThanOrEqual,
+    MoreThan,
+    MoreThanOrEqual,
+    Repository
+} from "typeorm";
 import { Transactional } from "typeorm-transactional";
 import { CreateRunningRecordDTO, RunningRecordDTO, SearchRunningRecordsDTO } from "../dto";
 import { omit } from "../../utils/object";
-import { SearchRunningRecordResult } from "../dto/search.running.record.result";
-import { plainToInstance } from "class-transformer";
-import { setFilters } from "./service.internal";
+import { Period } from "../../common/types";
 
 @Injectable()
 export class RunningRecordsService {
@@ -17,56 +23,62 @@ export class RunningRecordsService {
        private readonly recordsRepo: Repository<RunningRecord>,
     ) {}
 
+    // --ToDo 별자리 이미지 생성 로직 추가
     @Transactional()
     async createRunningRecord(dto: CreateRunningRecordDTO): Promise<void> {
         await this.recordsRepo.save(dto);
     }
 
-    async getRunningRecord(id: number): Promise<RunningRecordDTO> {
+    async getRunningRecord(id: number, userId: number): Promise<RunningRecordDTO> {
 
         const record = await this.recordsRepo
-            .findOne({ where: { id }, cache: true });
+            .findOne({ where: { id, userId }, cache: true });
 
         if (!record) throw new NotFoundException();
-
-        return {
-            duration: (record.endAt.getTime() - record.startAt.getTime()) / 1000,
-            ...omit(record, ["userId", "course", "createdAt"])
-        };
+        return omit(record, ["userId", "user", "createdAt"]);
     }
 
+    // 메모리 낭비적 구현, 개선 필요
     async searchRunningRecords(
         dto: SearchRunningRecordsDTO
-    ): Promise<SearchRunningRecordResult[]> {
-        const { userId, cursor, limit, ...filters } = dto;
+    ): Promise<RunningRecordDTO[]> {
 
-        const qb =  this.recordsRepo
-            .createQueryBuilder("record")
-            .select(`record.id`, "id")
-            .addSelect(`record.startAt`, "startAt")
-            .addSelect(`record.endAt`, "endAt")
-            .addSelect(`record.distance`, "distance")
-            .addSelect(`record.pace`, "pace")
-            .addSelect(`record.calories`, "calories")
-            .addSelect(
-                `EXTRACT(EPOCH FROM record.endAt) - EXTRACT(EPOCH FROM record.startAt)`,
-                "duration"
-            )
-            .addSelect(
-                `ST_AsGeoJSON(ST_StartPoint(record.path))::jsonb.coordinates`,
-            "departure"
-           )
-          .where("record.userId  = :userId", { userId });
+        const records = await this.recordsRepo.find(
+            __makeFindOptions(dto)
+        );
 
-        const raws = await setFilters(qb, filters)
-            .andWhere("record.id > :cursor", { cursor: cursor ?? 0 })
-            .limit(limit ?? 10)
-            .getRawMany();
-
-
-        return raws.map(raw =>
-            plainToInstance(SearchRunningRecordResult, raw)
+        return records.map(record =>
+            omit(record, ["userId", "createdAt", "user"])
         );
     }
+}
+
+function __makeFindOptions(
+    dto: SearchRunningRecordsDTO
+): FindManyOptions<RunningRecord> {
+    const { userId, period, paging } = dto;
+
+    const where: FindOptionsWhere<RunningRecord>
+        = __makeFindOptionsWhere(userId, period, paging?.cursor);
+
+    return { where, take: paging?.limit };
+}
+
+function __makeFindOptionsWhere(
+    userId: number,
+    period?: Period,
+    cursor?: number,
+): FindOptionsWhere<RunningRecord> {
+    const where: FindOptionsWhere<RunningRecord> = { userId };
+
+    if (period?.since && period?.until)
+        where.createdAt = Between(period.since, period.until);
+    else if (period?.since)
+        where.createdAt = MoreThanOrEqual(period.since);
+    else if (period?.until)
+        where.createdAt = LessThanOrEqual(period.until);
+
+    cursor && (where.id = MoreThan(cursor));
+    return where;
 }
 

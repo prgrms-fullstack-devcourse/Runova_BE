@@ -47,8 +47,9 @@ export class RunningRecordsController {
     @ApiNotFoundResponse()
     async getRunningRecord(
         @Param("id") id: number,
+        @User("userId") userId: number,
     ): Promise<RunningRecordDTO> {
-        return this.recordsService.getRunningRecord(id);
+        return this.recordsService.getRunningRecord(id, userId);
     }
 
     @Get("/users")

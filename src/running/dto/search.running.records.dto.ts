@@ -1,9 +1,7 @@
-import { PagingOptions } from "../../common/paging";
-import { IntersectionType } from "@nestjs/swagger";
-import { RunningRecordFilters } from "./running.record.filters";
+import { PagingOptions, Period } from "../../common/types";
 
-export class SearchRunningRecordsDTO
-    extends IntersectionType(PagingOptions, RunningRecordFilters)
-{
+export class SearchRunningRecordsDTO {
     userId: number;
+    period?: Period;
+    paging?: PagingOptions;
 }

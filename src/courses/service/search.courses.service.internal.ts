@@ -1,6 +1,6 @@
 import { SelectQueryBuilder } from "typeorm";
-import { CompletedCourse, CourseBookmark } from "../../modules/courses";
-import { PagingOptions } from "../../common/paging";
+import { CourseBookmark } from "../../modules/courses";
+import { PagingOptions } from "../../common/types";
 
 export function setSelect<E extends object>(
     qb: SelectQueryBuilder<E>,
@@ -37,24 +37,6 @@ export function setSelectBookmarked<E extends object>(
         })
             `,
         "bookmarked"
-    );
-}
-
-export function setSelectCompleted<E extends object>(
-    qb: SelectQueryBuilder<E>,
-    userId: number,
-): SelectQueryBuilder<E> {
-    return qb.addSelect(
-        `
-            EXISTS(${
-            qb.subQuery()
-                .select("1")
-                .from(CompletedCourse, "cc")
-                .where("cc.courseId = course.id")
-                .andWhere("cc.userId = :userId", { userId })
-        })
-            `,
-        "completed"
     );
 }
 

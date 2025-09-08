@@ -5,11 +5,6 @@ import { ApiLineProperty, IsLine } from "../../utils/decorator";
 export class CreateCourseDTO {
     userId: number;
 
-    @IsInt()
-    @IsOptional()
-    @ApiProperty({ type: "integer", required: false })
-    recordId?: number;
-
     @IsString()
     @ApiProperty({ type: "string", required: true })
     title: string;

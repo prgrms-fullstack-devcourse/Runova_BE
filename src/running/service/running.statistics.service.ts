@@ -2,8 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { RunningRecord } from "../../modules/running";
 import { Repository, SelectQueryBuilder } from "typeorm";
-import { RunningStatisticsDTO, RunningRecordFilters, RunningDashboardDTO, RunningStatisticsSchema } from "../dto";
-import { setFilters } from "./service.internal";
+import { RunningStatisticsDTO, RunningAggregationDTO, RunningStatisticsSchema, GetRunningStatisticsOptions } from "../dto";
 import { plainToInstanceOrReject } from "../../utils";
 
 @Injectable()
@@ -15,25 +14,30 @@ export class RunningStatisticsService {
     ) {}
 
     async getRunningStatistics<
-        K extends keyof RunningDashboardDTO
+        K extends keyof RunningAggregationDTO
     >(
         userId: number,
         props: K[],
-        filters?: RunningRecordFilters
+        options?: GetRunningStatisticsOptions,
     ): Promise<RunningStatisticsDTO<K>> {
 
         const qb = this.createSelectQueryBuilder(new Set<K>(props))
-            .where("record.userId = :userId", { userId });
+            .where("record.userId = :userId", { userId })
+            .groupBy("record.userId");
 
-        filters && setFilters(qb, filters);
-        qb.groupBy("userId");
+        if (options?.period) {
+           const { since, until } = options.period;
+           (since || until) && qb.addGroupBy("record.createdAt");
+           since && qb.andWhere(`record.createdAt >= :since`, { since });
+           until && qb.andWhere(`record.createdAt <= :until`, { until });
+        }
 
-        const raw = await qb.getRawOne();
+        const raw = await qb.take(options?.limit).getRawOne();
         return plainToInstanceOrReject(RunningStatisticsSchema(props), raw);
     }
 
     private createSelectQueryBuilder<
-        K extends keyof RunningDashboardDTO
+        K extends keyof RunningAggregationDTO
     >(props: Set<K>): SelectQueryBuilder<RunningRecord> {
 
         const qb = this.recordsRepo

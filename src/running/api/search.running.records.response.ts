@@ -1,8 +1,8 @@
 import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
-import { SearchRunningRecordResult } from "../dto/search.running.record.result";
+import { RunningRecordDTO } from "../dto";
 
-@ApiExtraModels(SearchRunningRecordResult)
+@ApiExtraModels(RunningRecordDTO)
 export class SearchRunningRecordsResponse {
-    @ApiProperty({ type: [SearchRunningRecordResult] })
-    results: SearchRunningRecordResult[];
+    @ApiProperty({ type: [RunningRecordDTO] })
+    results: RunningRecordDTO[];
 }

@@ -18,7 +18,6 @@ import { FilesModule } from "./files/files.module";
 import { MyPageModule } from "./mypage/mypage.module";
 import Redis from "iovalkey";
 import { WorkerPoolModule } from "./config/workerpool";
-import { ConstellationsModule } from './constellations/constellations.module';
 
 @Module({
   imports: [
@@ -38,14 +37,13 @@ import { ConstellationsModule } from './constellations/constellations.module';
       inject: [Redis],
     }),
     WorkerPoolModule,
-    HealthModule,
+    //HealthModule,
     AuthModule,
     CommunityModule,
     CoursesModule,
     RunningModule,
     FilesModule,
     MyPageModule,
-    ConstellationsModule,
   ],
   providers: [],
   controllers: [],

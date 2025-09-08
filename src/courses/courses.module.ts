@@ -1,17 +1,15 @@
 import { forwardRef, Module } from '@nestjs/common';
 import {
     CourseBookmarksService,
-    CoursesService, GetMeanPaceService,
+    CoursesService, GetMeanPaceService, InspectPathService,
     SearchCoursesService
 } from './service';
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { CompletedCourse, Course, CourseBookmark, CourseNode } from "../modules/courses";
+import { Course, CourseBookmark, CourseNode } from "../modules/courses";
 import { CoursesController } from "./controller";
 import { RunningRecord } from "../modules/running";
 import { RunningStatisticsService } from "../running/service";
 import { RunningModule } from "../running/running.module";
-import { CompletedCoursesService } from "./service/completed.courses.service";
-import { InspectRunningRecordService } from "./service/inspect.running.record.service";
 
 const __EXTERNAL_PROVIDERS = [RunningStatisticsService];
 
@@ -21,7 +19,6 @@ const __EXTERNAL_PROVIDERS = [RunningStatisticsService];
           Course,
           CourseNode,
           CourseBookmark,
-          CompletedCourse,
           RunningRecord,
       ]),
       forwardRef(() => RunningModule)
@@ -30,12 +27,10 @@ const __EXTERNAL_PROVIDERS = [RunningStatisticsService];
       ...__EXTERNAL_PROVIDERS,
       CoursesService,
       CourseBookmarksService,
-      CompletedCoursesService,
       SearchCoursesService,
-      InspectRunningRecordService,
       GetMeanPaceService,
+      InspectPathService,
   ],
   controllers: [CoursesController],
-  exports: [CompletedCoursesService, InspectRunningRecordService],
 })
 export class CoursesModule {}

@@ -1,7 +1,7 @@
 import { IsNumber } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
-export class RunningDashboardDTO {
+export class RunningAggregationDTO {
     @IsNumber()
     @ApiProperty({ type: "number", description: "달린 총 거리(m)" })
     totalDistance: number;
@@ -18,3 +18,4 @@ export class RunningDashboardDTO {
     @ApiProperty({ type: "number", description: "평균 페이스(m/s)" })
     meanPace: number;
 }
+

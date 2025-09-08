@@ -11,7 +11,7 @@ export class InspectPathService {
        private readonly poolService: WorkerPoolService,
     ) {}
 
-    async makeCourseNodes(path: [number, number][]): Promise<InspectPathResult> {
+    async inspectPath(path: [number, number][]): Promise<InspectPathResult> {
         return await this.poolService.exec(inspectPath, path);
     }
 }

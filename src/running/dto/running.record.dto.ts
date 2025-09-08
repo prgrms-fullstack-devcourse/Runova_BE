@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsDate, IsInt, IsNumber, ValidateIf } from "class-validator";
+import { IsDate, IsInt, IsNumber, IsString } from "class-validator";
 import { ApiLineProperty, IsLine } from "../../utils/decorator";
 
 
@@ -8,14 +8,13 @@ export class RunningRecordDTO {
     @ApiProperty({ type: "integer" })
     id: number;
 
-    @IsInt()
-    @ValidateIf((_, val) => val !== null)
-    @ApiProperty({ type: "integer", nullable: true, description: "경로 아이디(존재하는 경우만)" })
-    courseId: number | null;
-
     @IsLine()
-    @ApiLineProperty({ required: true })
+    @ApiLineProperty()
     path: [number, number][];
+
+    @IsString()
+    @ApiProperty({ type: "string", description: "별자리 이미지 경로" })
+    artUrl: string;
 
     @IsNumber()
     @ApiProperty({ type: "number", description: "달린 거리(m)" })

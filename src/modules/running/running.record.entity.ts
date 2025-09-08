@@ -26,14 +26,20 @@ export class RunningRecord extends ImmutableEntityBase {
   @LineStringColumn()
   path: [number, number][];
 
+  @Column({ name: "art_url", type: "varchar" })
+  artUrl: string;
+
   @Column({ name: "start_at", type: "timestamptz" })
   startAt: Date;
 
   @Column({ name: "end_at", type: "timestamptz" })
   endAt: Date;
 
-  @Column({ type: "float8" })
+  @Column({ type: "float8", generatedType: "STORED" })
   distance: number;
+
+  @Column({ type: "float8", generatedType: "STORED" })
+  duration: number;
 
   @Column({ type: "float8" })
   pace: number;

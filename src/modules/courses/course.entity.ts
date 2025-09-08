@@ -3,14 +3,13 @@ import {
   Entity,
   Index,
   JoinColumn,
-  ManyToOne,
-  OneToMany,
+  ManyToOne, OneToMany,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { EntityBase } from "../../common/entity";
 import { User } from "../users";
-import { CourseNode } from "./course.node.entity";
 import { PointColumn, PolygonColumn } from "../../common/geo";
+import { CourseNode } from "./course.node.entity";
 
 @Entity({ name: "courses" })
 export class Course extends EntityBase {
@@ -25,23 +24,21 @@ export class Course extends EntityBase {
   @JoinColumn({ name: "user_id" })
   user: User;
 
-  @Column({ name: "is_drawn", type: "boolean" })
-  isDrawn: boolean;
-
   @Column({ type: "varchar" })
   title: string;
 
   @Column({ name: "image_url", type: "varchar" })
   imageUrl: string;
 
-  @Column({ type: "float8" })
-  length: number;
-
+  @Index({ spatial: true })
   @PointColumn()
   departure: [number, number];
 
   @PolygonColumn()
   shape: [number, number][][];
+
+  @Column({ type: "float8" })
+  length: number;
 
   @OneToMany(() => CourseNode, (n) => n.course)
   nodes: CourseNode[];

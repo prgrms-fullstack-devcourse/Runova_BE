@@ -1,15 +1,14 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { CompletedCourse, Course, CourseBookmark } from "../../modules/courses";
+import { Course, CourseBookmark } from "../../modules/courses";
 import { Repository } from "typeorm";
 import { AdjacentCourseDTO, CourseDTO, SearchAdjacentCoursesDTO } from "../dto";
 import { plainsToInstancesOrReject } from "../../utils";
-import { PagingOptions } from "../../common/paging";
+import { PagingOptions } from "../../common/types";
 import {
     setPagingOptions,
     setSelect,
     setSelectBookmarked,
-    setSelectCompleted
 } from "./search.courses.service.internal";
 import { GetMeanPaceService } from "./get.mean.pace.service";
 
@@ -21,8 +20,6 @@ export class SearchCoursesService {
         private readonly coursesRepo: Repository<Course>,
         @InjectRepository(CourseBookmark)
         private readonly bookmarksRepo: Repository<CourseBookmark>,
-        @InjectRepository(CompletedCourse)
-        private readonly completedCoursesRepo: Repository<CompletedCourse>,
         @Inject(GetMeanPaceService)
         private readonly getMeanPaceService: GetMeanPaceService,
     ) {}
@@ -38,7 +35,6 @@ export class SearchCoursesService {
         );
 
         setSelectBookmarked(qb, userId);
-        setSelectCompleted(qb, userId);
         qb.where("course.userId = :userId", { userId });
         setPagingOptions(qb, options ?? {});
 
@@ -57,7 +53,6 @@ export class SearchCoursesService {
 
         setSelect(qb, await this.getMeanPaceService.getMeanPace(userId));
         qb.addSelect("bookmarked", "true");
-        setSelectCompleted(qb, userId);
         qb.where("bookmark.userId = :userId", { userId });
         setPagingOptions(qb, options ?? {});
 
@@ -65,24 +60,7 @@ export class SearchCoursesService {
         return plainsToInstancesOrReject(CourseDTO, raws);
     }
 
-    async searchCompletedCourses(
-        userId: number,
-        options?: PagingOptions,
-    ): Promise<CourseDTO[]> {
 
-        const qb = this.completedCoursesRepo
-            .createQueryBuilder("cc")
-            .innerJoin(Course, "course", "course.id = cc.courseId");
-
-        setSelect(qb, await this.getMeanPaceService.getMeanPace(userId));
-        setSelectBookmarked(qb, userId);
-        qb.addSelect("completed", "true");
-        qb.where("cc.userId = :userId", { userId });
-        setPagingOptions(qb, options ?? {});
-
-        const raws = await qb.getRawMany();
-        return plainsToInstancesOrReject(CourseDTO, raws);
-    }
 
     async searchAdjacentCourses(
         dto: SearchAdjacentCoursesDTO
@@ -102,7 +80,6 @@ export class SearchCoursesService {
 
         setSelect(qb, await this.getMeanPaceService.getMeanPace(userId));
         setSelectBookmarked(qb, userId);
-        setSelectCompleted(qb, userId);
 
         qb.addSelect(
                 `

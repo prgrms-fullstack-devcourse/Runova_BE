@@ -16,7 +16,7 @@ import {
     SearchCoursesResponse, UpdateBookmarkResponse, UpdateCourseBody
 } from "../api";
 import { AuthGuard } from "@nestjs/passport";
-import { PagingOptions } from "../../common/paging";
+import { PagingOptions } from "../../common/types";
 import { CourseTopologyDTO } from "../dto";
 
 @ApiTags("Courses")
@@ -83,26 +83,6 @@ export class CoursesController {
 
         const results = await this.searchCoursesService
             .searchBookmarkedCourses(userId, query);
-
-        return { results };
-    }
-
-    @Get("/search/completed")
-    @ApiOperation({ summary: "완주한 경로 검색" })
-    @ApiBearerAuth()
-    @ApiQuery({ type: PagingOptions, required: false })
-    @ApiOkResponse({ type: SearchCoursesResponse })
-    @ApiForbiddenResponse()
-    @Caching({ schema: SearchCoursesResponse })
-    async searchCompletedCourses(
-        @User("userId") userId: number,
-        @Query() query?: PagingOptions,
-        @Cached() cached?: SearchCoursesResponse,
-    ): Promise<SearchCoursesResponse> {
-        if (cached) return cached;
-
-        const results = await this.searchCoursesService
-            .searchCompletedCourses(userId, query);
 
         return { results };
     }

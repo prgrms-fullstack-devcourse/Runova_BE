@@ -5,10 +5,16 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
+import {
+  DataSource,
+  Repository,
+  SelectQueryBuilder,
+  ObjectLiteral,
+} from "typeorm";
 import { Post, PostType } from "../modules/posts/post.entity";
 import { Comment } from "../modules/posts/comment.entity";
 import { PostLike } from "../modules/posts/post-like.entity";
+
 import { CreatePostDto, UpdatePostDto, ListPostsFilter } from "./dto/post.dto";
 import { CreateCommentDto, UpdateCommentDto } from "./dto/comment.dto";
 import { CursorQuery } from "./dto/cursor.dto";
@@ -20,13 +26,22 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 type CursorResult<T> = { items: T[]; nextCursor: string | null };
 type PostWithUrl = Post & { imageUrl: string };
 
+const DEFAULT_LIMIT = 20;
+const URL_EXPIRES_SEC = 60 * 5;
+
 @Injectable()
 export class CommunityService {
+  private readonly awsRegion = process.env.AWS_REGION?.trim();
+  private readonly awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID?.trim();
+  private readonly awsSecret = process.env.AWS_SECRET_ACCESS_KEY?.trim();
+  private readonly s3Bucket = process.env.S3_BUCKET?.trim();
+  private readonly cdnDomain = process.env.CLOUDFRONT_DOMAIN?.trim();
+
   private readonly s3 = new S3Client({
-    region: process.env.AWS_REGION?.trim(),
+    region: this.awsRegion,
     credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID?.trim()!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY?.trim()!,
+      accessKeyId: this.awsAccessKeyId!,
+      secretAccessKey: this.awsSecret!,
     },
   });
 
@@ -34,23 +49,52 @@ export class CommunityService {
     @InjectRepository(Post) private readonly postRepo: Repository<Post>,
     @InjectRepository(Comment)
     private readonly commentRepo: Repository<Comment>,
-    @InjectRepository(PostLike) private readonly likeRepo: Repository<PostLike>,
     private readonly dataSource: DataSource
   ) {}
 
-  // ---------- 내부 유틸 ----------
+  private async findActivePostOrThrow(postId: number): Promise<Post> {
+    const post = await this.postRepo.findOne({
+      where: { id: postId, isDeleted: false },
+    });
+    if (!post) throw new NotFoundException("Post not found");
+    return post;
+  }
+
+  private applyCursorWhereDesc<T extends ObjectLiteral>(
+    qb: SelectQueryBuilder<T>,
+    alias: string,
+    cursorStr?: string | null
+  ): void {
+    const cursor = decodeCursor(cursorStr ?? null);
+    if (!cursor) return;
+
+    qb.andWhere(
+      `(${alias}.createdAt < :cursorAt OR (${alias}.createdAt = :cursorAt AND ${alias}.id < :cursorId))`,
+      { cursorAt: cursor.createdAt, cursorId: cursor.id }
+    );
+  }
+
+  private sliceWithNextCursor<T extends { id: number; createdAt: Date }>(
+    rows: T[],
+    limit: number
+  ): { items: T[]; nextCursor: string | null } {
+    const hasMore = rows.length > limit;
+    const items = hasMore ? rows.slice(0, limit) : rows;
+    const last = items[items.length - 1];
+    const nextCursor =
+      hasMore && last ? encodeCursor(last.createdAt, last.id) : null;
+    return { items, nextCursor };
+  }
 
   private async buildImageUrlFromKey(key?: string | null): Promise<string> {
     if (!key) return "";
-    const cdn = process.env.CLOUDFRONT_DOMAIN?.trim();
-    if (cdn) return `${cdn}/${key}`;
-    const bucket = process.env.S3_BUCKET?.trim();
-    if (!bucket) throw new Error("S3_BUCKET not set");
-    const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
-    return await getSignedUrl(this.s3, cmd, { expiresIn: 60 * 5 });
+    if (this.cdnDomain) return `${this.cdnDomain}/${key}`;
+    if (!this.s3Bucket) throw new Error("S3_BUCKET not set");
+    const cmd = new GetObjectCommand({ Bucket: this.s3Bucket, Key: key });
+    return getSignedUrl(this.s3, cmd, { expiresIn: URL_EXPIRES_SEC });
   }
 
-  private assertOwnPostImageKey(authorId: number, key?: string | null) {
+  private assertOwnPostImageKey(authorId: number, key?: string | null): void {
     if (!key) return;
     const expectedPrefix = `posts/${authorId}/`;
     if (!key.startsWith(expectedPrefix)) {
@@ -58,86 +102,67 @@ export class CommunityService {
     }
   }
 
-  // ---------- 게시글 ----------
-
   async createPost(authorId: number, dto: CreatePostDto): Promise<PostWithUrl> {
     this.assertOwnPostImageKey(authorId, dto.imageKey);
 
-    const post = this.postRepo.create({
+    const entity = this.postRepo.create({
       authorId,
       type: dto.type,
       title: dto.title,
       content: dto.content,
-      imageKey: dto.imageKey ?? null, // 단일 이미지
+      imageKey: dto.imageKey ?? null,
       routeId: dto.routeId ?? null,
       likeCount: 0,
       commentCount: 0,
       isDeleted: false,
     });
 
-    const saved = await this.postRepo.save(post);
-    const imageUrl = await this.buildImageUrlFromKey(saved.imageKey);
-    return { ...saved, imageUrl };
+    const saved = await this.postRepo.save(entity);
+    return {
+      ...saved,
+      imageUrl: await this.buildImageUrlFromKey(saved.imageKey),
+    };
   }
 
   async listPostsCursor(
-    q: CursorQuery,
-    f: ListPostsFilter
+    query: CursorQuery,
+    filter: ListPostsFilter
   ): Promise<CursorResult<PostWithUrl>> {
-    const limit = q.limit ?? 20;
-    const cursor = decodeCursor(q.cursor);
+    const limit = query.limit ?? DEFAULT_LIMIT;
 
     const qb = this.postRepo
       .createQueryBuilder("p")
       .where("p.isDeleted = false");
+    if (filter.type) qb.andWhere("p.type = :type", { type: filter.type });
+    if (filter.authorId)
+      qb.andWhere("p.authorId = :authorId", { authorId: filter.authorId });
+    if (filter.routeId)
+      qb.andWhere("p.routeId = :routeId", { routeId: filter.routeId });
 
-    if (f.type) qb.andWhere("p.type = :type", { type: f.type });
-    if (f.authorId)
-      qb.andWhere("p.authorId = :authorId", { authorId: f.authorId });
-    if (f.routeId) qb.andWhere("p.routeId = :routeId", { routeId: f.routeId });
-
-    if (cursor) {
-      qb.andWhere(
-        "(p.createdAt < :cAt OR (p.createdAt = :cAt AND p.id < :cId))",
-        {
-          cAt: cursor.createdAt,
-          cId: cursor.id,
-        }
-      );
-    }
-
+    this.applyCursorWhereDesc(qb, "p", query.cursor);
     qb.orderBy("p.createdAt", "DESC")
       .addOrderBy("p.id", "DESC")
       .take(limit + 1);
 
-    const rows = await qb.getMany();
-    const hasMore = rows.length > limit;
-    const sliced = hasMore ? rows.slice(0, limit) : rows;
+    const rows: Post[] = await qb.getMany();
+    const { items, nextCursor } = this.sliceWithNextCursor(rows, limit);
 
-    const items: PostWithUrl[] = await Promise.all(
-      sliced.map(async (p) => ({
+    const itemsWithUrl: PostWithUrl[] = await Promise.all(
+      items.map(async (p) => ({
         ...p,
         imageUrl: await this.buildImageUrlFromKey(p.imageKey),
       }))
     );
 
-    const nextCursor = hasMore
-      ? encodeCursor(
-          sliced[sliced.length - 1].createdAt,
-          sliced[sliced.length - 1].id
-        )
-      : null;
-
-    return { items, nextCursor };
+    return { items: itemsWithUrl, nextCursor };
   }
 
   async getPost(id: number): Promise<PostWithUrl> {
-    const post = await this.postRepo.findOne({
-      where: { id, isDeleted: false },
-    });
-    if (!post) throw new NotFoundException("Post not found");
-    const imageUrl = await this.buildImageUrlFromKey(post.imageKey);
-    return { ...post, imageUrl };
+    const post = await this.findActivePostOrThrow(id);
+    return {
+      ...post,
+      imageUrl: await this.buildImageUrlFromKey(post.imageKey),
+    };
   }
 
   async updatePost(
@@ -147,8 +172,9 @@ export class CommunityService {
   ): Promise<PostWithUrl> {
     const post = await this.postRepo.findOne({ where: { id } });
     if (!post || post.isDeleted) throw new NotFoundException("Post not found");
-    if (post.authorId !== editorId)
+    if (post.authorId !== editorId) {
       throw new ForbiddenException("No permission to edit this post");
+    }
 
     if (dto.type) post.type = dto.type as PostType;
     if (dto.content !== undefined) post.content = dto.content;
@@ -160,15 +186,18 @@ export class CommunityService {
     }
 
     const saved = await this.postRepo.save(post);
-    const imageUrl = await this.buildImageUrlFromKey(saved.imageKey);
-    return { ...saved, imageUrl };
+    return {
+      ...saved,
+      imageUrl: await this.buildImageUrlFromKey(saved.imageKey),
+    };
   }
 
   async deletePost(id: number, requesterId: number): Promise<void> {
     const post = await this.postRepo.findOne({ where: { id } });
     if (!post || post.isDeleted) throw new NotFoundException("Post not found");
-    if (post.authorId !== requesterId)
+    if (post.authorId !== requesterId) {
       throw new ForbiddenException("No permission to delete this post");
+    }
 
     post.isDeleted = true;
     await this.postRepo.save(post);
@@ -178,55 +207,43 @@ export class CommunityService {
     postId: number,
     userId: number
   ): Promise<{ liked: boolean; likeCount: number }> {
-    const post = await this.postRepo.findOne({
-      where: { id: postId, isDeleted: false },
-    });
-    if (!post) throw new NotFoundException("Post not found");
+    await this.findActivePostOrThrow(postId);
 
-    return this.dataSource.transaction(async (m) => {
-      const likeRepo = m.getRepository(PostLike);
-      const postRepo = m.getRepository(Post);
+    return this.dataSource.transaction(async (trx) => {
+      const likeRepo = trx.getRepository(PostLike);
+      const postRepo = trx.getRepository(Post);
 
-      const prev = await likeRepo.findOne({ where: { postId, userId } });
-      if (prev) {
-        await likeRepo.remove(prev);
+      const existing = await likeRepo.findOne({ where: { postId, userId } });
+      if (existing) {
+        await likeRepo.remove(existing);
         await postRepo.decrement({ id: postId }, "likeCount", 1);
         const { likeCount } = await postRepo.findOneByOrFail({ id: postId });
         return { liked: false, likeCount };
-      } else {
-        await likeRepo.save(likeRepo.create({ postId, userId }));
-        await postRepo.increment({ id: postId }, "likeCount", 1);
-        const { likeCount } = await postRepo.findOneByOrFail({ id: postId });
-        return { liked: true, likeCount };
       }
+
+      await likeRepo.save(likeRepo.create({ postId, userId }));
+      await postRepo.increment({ id: postId }, "likeCount", 1);
+      const { likeCount } = await postRepo.findOneByOrFail({ id: postId });
+      return { liked: true, likeCount };
     });
   }
 
-  // ---------- 댓글 ----------
-
   async listCommentsCursor(
     postId: number,
-    q: CursorQuery
+    query: CursorQuery
   ): Promise<CursorResult<Comment>> {
-    const post = await this.postRepo.findOne({
-      where: { id: postId, isDeleted: false },
-    });
-    if (!post) throw new NotFoundException("Post not found");
+    await this.findActivePostOrThrow(postId);
 
-    const limit = q.limit ?? 20;
-    const cursor = decodeCursor(q.cursor);
-
+    const limit = query.limit ?? DEFAULT_LIMIT;
     const qb = this.commentRepo
       .createQueryBuilder("c")
       .where("c.postId = :postId", { postId });
 
+    const cursor = decodeCursor(query.cursor ?? null);
     if (cursor) {
       qb.andWhere(
-        "(c.createdAt > :cAt OR (c.createdAt = :cAt AND c.id > :cId))",
-        {
-          cAt: cursor.createdAt,
-          cId: cursor.id,
-        }
+        "(c.createdAt > :cursorAt OR (c.createdAt = :cursorAt AND c.id > :cursorId))",
+        { cursorAt: cursor.createdAt, cursorId: cursor.id }
       );
     }
 
@@ -234,18 +251,9 @@ export class CommunityService {
       .addOrderBy("c.id", "ASC")
       .take(limit + 1);
 
-    const items = await qb.getMany();
-    const hasMore = items.length > limit;
-    const sliced = hasMore ? items.slice(0, limit) : items;
-
-    const nextCursor = hasMore
-      ? encodeCursor(
-          sliced[sliced.length - 1].createdAt,
-          sliced[sliced.length - 1].id
-        )
-      : null;
-
-    return { items: sliced, nextCursor };
+    const rows: Comment[] = await qb.getMany();
+    const { items, nextCursor } = this.sliceWithNextCursor(rows, limit);
+    return { items, nextCursor };
   }
 
   async createComment(
@@ -253,21 +261,14 @@ export class CommunityService {
     authorId: number,
     dto: CreateCommentDto
   ): Promise<Comment> {
-    const post = await this.postRepo.findOne({
-      where: { id: postId, isDeleted: false },
-    });
-    if (!post) throw new NotFoundException("Post not found");
+    await this.findActivePostOrThrow(postId);
 
-    return this.dataSource.transaction(async (m) => {
-      const commentRepo = m.getRepository(Comment);
-      const postRepo = m.getRepository(Post);
+    return this.dataSource.transaction(async (trx) => {
+      const commentRepo = trx.getRepository(Comment);
+      const postRepo = trx.getRepository(Post);
 
       const saved = await commentRepo.save(
-        commentRepo.create({
-          postId,
-          authorId,
-          content: dto.content,
-        })
+        commentRepo.create({ postId, authorId, content: dto.content })
       );
       await postRepo.increment({ id: postId }, "commentCount", 1);
       return saved;
@@ -279,26 +280,27 @@ export class CommunityService {
     editorId: number,
     dto: UpdateCommentDto
   ): Promise<Comment> {
-    const c = await this.commentRepo.findOne({ where: { id } });
-    if (!c) throw new NotFoundException("Comment not found");
-    if (c.authorId !== editorId)
+    const comment = await this.commentRepo.findOne({ where: { id } });
+    if (!comment) throw new NotFoundException("Comment not found");
+    if (comment.authorId !== editorId) {
       throw new ForbiddenException("No permission to edit this comment");
-
-    c.content = dto.content;
-    return this.commentRepo.save(c);
+    }
+    comment.content = dto.content;
+    return this.commentRepo.save(comment);
   }
 
   async deleteComment(id: number, requesterId: number): Promise<void> {
-    const c = await this.commentRepo.findOne({ where: { id } });
-    if (!c) throw new NotFoundException("Comment not found");
-    if (c.authorId !== requesterId)
+    const comment = await this.commentRepo.findOne({ where: { id } });
+    if (!comment) throw new NotFoundException("Comment not found");
+    if (comment.authorId !== requesterId) {
       throw new ForbiddenException("No permission to delete this comment");
+    }
 
-    await this.dataSource.transaction(async (m) => {
-      const commentRepo = m.getRepository(Comment);
-      const postRepo = m.getRepository(Post);
-      await commentRepo.delete({ id: c.id });
-      await postRepo.decrement({ id: c.postId }, "commentCount", 1);
+    await this.dataSource.transaction(async (trx) => {
+      const commentRepo = trx.getRepository(Comment);
+      const postRepo = trx.getRepository(Post);
+      await commentRepo.delete({ id: comment.id });
+      await postRepo.decrement({ id: comment.postId }, "commentCount", 1);
     });
   }
 }

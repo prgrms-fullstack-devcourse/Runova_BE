@@ -1,12 +1,4 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Patch,
-  Body,
-  UseGuards,
-  Req,
-} from "@nestjs/common";
+import { Controller, Get, Patch, Body, UseGuards } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { User } from "src/utils/decorator/http.decorators";
@@ -14,7 +6,7 @@ import { UpdateAvatarDto } from "./dto/updateAvatar.dto";
 import { ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
 @Controller("users")
-export class UsersController {
+export class UserController {
   constructor(private readonly userService: UserService) {}
   @UseGuards(JwtAuthGuard)
   @Get("me")

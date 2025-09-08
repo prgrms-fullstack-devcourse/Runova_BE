@@ -1,4 +1,9 @@
-import { Injectable } from "@nestjs/common";
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { Post, PostType } from "../modules/posts/post.entity";
@@ -8,13 +13,23 @@ import { CreatePostDto, UpdatePostDto, ListPostsFilter } from "./dto/post.dto";
 import { CreateCommentDto, UpdateCommentDto } from "./dto/comment.dto";
 import { CursorQuery } from "./dto/cursor.dto";
 import { encodeCursor, decodeCursor } from "./utils/cursor.util";
-import { BusinessException } from "../common/exceptions/business.exception";
-import { ErrorCode } from "../common/constants/error-code";
+
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 type CursorResult<T> = { items: T[]; nextCursor: string | null };
+type PostWithUrl = Post & { imageUrl: string };
 
 @Injectable()
 export class CommunityService {
+  private readonly s3 = new S3Client({
+    region: process.env.AWS_REGION?.trim(),
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID?.trim()!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY?.trim()!,
+    },
+  });
+
   constructor(
     @InjectRepository(Post) private readonly postRepo: Repository<Post>,
     @InjectRepository(Comment)
@@ -23,25 +38,52 @@ export class CommunityService {
     private readonly dataSource: DataSource
   ) {}
 
-  async createPost(authorId: number, dto: CreatePostDto): Promise<Post> {
+  // ---------- 내부 유틸 ----------
+
+  private async buildImageUrlFromKey(key?: string | null): Promise<string> {
+    if (!key) return "";
+    const cdn = process.env.CLOUDFRONT_DOMAIN?.trim();
+    if (cdn) return `${cdn}/${key}`;
+    const bucket = process.env.S3_BUCKET?.trim();
+    if (!bucket) throw new Error("S3_BUCKET not set");
+    const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
+    return await getSignedUrl(this.s3, cmd, { expiresIn: 60 * 5 });
+  }
+
+  private assertOwnPostImageKey(authorId: number, key?: string | null) {
+    if (!key) return;
+    const expectedPrefix = `posts/${authorId}/`;
+    if (!key.startsWith(expectedPrefix)) {
+      throw new BadRequestException("Invalid imageKey prefix");
+    }
+  }
+
+  // ---------- 게시글 ----------
+
+  async createPost(authorId: number, dto: CreatePostDto): Promise<PostWithUrl> {
+    this.assertOwnPostImageKey(authorId, dto.imageKey);
+
     const post = this.postRepo.create({
-      authorId: authorId,
+      authorId,
       type: dto.type,
       title: dto.title,
       content: dto.content,
-      imageUrls: dto.imageUrls ?? [],
+      imageKey: dto.imageKey ?? null, // 단일 이미지
       routeId: dto.routeId ?? null,
       likeCount: 0,
       commentCount: 0,
       isDeleted: false,
     });
-    return this.postRepo.save(post);
+
+    const saved = await this.postRepo.save(post);
+    const imageUrl = await this.buildImageUrlFromKey(saved.imageKey);
+    return { ...saved, imageUrl };
   }
 
   async listPostsCursor(
     q: CursorQuery,
     f: ListPostsFilter
-  ): Promise<CursorResult<Post>> {
+  ): Promise<CursorResult<PostWithUrl>> {
     const limit = q.limit ?? 20;
     const cursor = decodeCursor(q.cursor);
 
@@ -63,13 +105,21 @@ export class CommunityService {
         }
       );
     }
+
     qb.orderBy("p.createdAt", "DESC")
       .addOrderBy("p.id", "DESC")
       .take(limit + 1);
 
-    const items = await qb.getMany();
-    const hasMore = items.length > limit;
-    const sliced = hasMore ? items.slice(0, limit) : items;
+    const rows = await qb.getMany();
+    const hasMore = rows.length > limit;
+    const sliced = hasMore ? rows.slice(0, limit) : rows;
+
+    const items: PostWithUrl[] = await Promise.all(
+      sliced.map(async (p) => ({
+        ...p,
+        imageUrl: await this.buildImageUrlFromKey(p.imageKey),
+      }))
+    );
 
     const nextCursor = hasMore
       ? encodeCursor(
@@ -78,42 +128,47 @@ export class CommunityService {
         )
       : null;
 
-    return { items: sliced, nextCursor };
+    return { items, nextCursor };
   }
 
-  async getPost(id: number): Promise<Post> {
+  async getPost(id: number): Promise<PostWithUrl> {
     const post = await this.postRepo.findOne({
       where: { id, isDeleted: false },
     });
-    if (!post) throw new BusinessException(ErrorCode.Community.POST_NOT_FOUND);
-    return post;
+    if (!post) throw new NotFoundException("Post not found");
+    const imageUrl = await this.buildImageUrlFromKey(post.imageKey);
+    return { ...post, imageUrl };
   }
 
   async updatePost(
     id: number,
     editorId: number,
     dto: UpdatePostDto
-  ): Promise<Post> {
+  ): Promise<PostWithUrl> {
     const post = await this.postRepo.findOne({ where: { id } });
-    if (!post || post.isDeleted)
-      throw new BusinessException(ErrorCode.Community.POST_NOT_FOUND);
+    if (!post || post.isDeleted) throw new NotFoundException("Post not found");
     if (post.authorId !== editorId)
-      throw new BusinessException(ErrorCode.Common.FORBIDDEN);
+      throw new ForbiddenException("No permission to edit this post");
 
     if (dto.type) post.type = dto.type as PostType;
     if (dto.content !== undefined) post.content = dto.content;
-    if (dto.imageUrls !== undefined) post.imageUrls = dto.imageUrls;
     if (dto.routeId !== undefined) post.routeId = dto.routeId;
 
-    return this.postRepo.save(post);
+    if (dto.imageKey !== undefined) {
+      this.assertOwnPostImageKey(editorId, dto.imageKey);
+      post.imageKey = dto.imageKey ?? null;
+    }
+
+    const saved = await this.postRepo.save(post);
+    const imageUrl = await this.buildImageUrlFromKey(saved.imageKey);
+    return { ...saved, imageUrl };
   }
 
   async deletePost(id: number, requesterId: number): Promise<void> {
     const post = await this.postRepo.findOne({ where: { id } });
-    if (!post || post.isDeleted)
-      throw new BusinessException(ErrorCode.Community.POST_NOT_FOUND);
+    if (!post || post.isDeleted) throw new NotFoundException("Post not found");
     if (post.authorId !== requesterId)
-      throw new BusinessException(ErrorCode.Common.FORBIDDEN);
+      throw new ForbiddenException("No permission to delete this post");
 
     post.isDeleted = true;
     await this.postRepo.save(post);
@@ -126,7 +181,7 @@ export class CommunityService {
     const post = await this.postRepo.findOne({
       where: { id: postId, isDeleted: false },
     });
-    if (!post) throw new BusinessException(ErrorCode.Community.POST_NOT_FOUND);
+    if (!post) throw new NotFoundException("Post not found");
 
     return this.dataSource.transaction(async (m) => {
       const likeRepo = m.getRepository(PostLike);
@@ -147,6 +202,8 @@ export class CommunityService {
     });
   }
 
+  // ---------- 댓글 ----------
+
   async listCommentsCursor(
     postId: number,
     q: CursorQuery
@@ -154,7 +211,7 @@ export class CommunityService {
     const post = await this.postRepo.findOne({
       where: { id: postId, isDeleted: false },
     });
-    if (!post) throw new BusinessException(ErrorCode.Community.POST_NOT_FOUND);
+    if (!post) throw new NotFoundException("Post not found");
 
     const limit = q.limit ?? 20;
     const cursor = decodeCursor(q.cursor);
@@ -172,6 +229,7 @@ export class CommunityService {
         }
       );
     }
+
     qb.orderBy("c.createdAt", "ASC")
       .addOrderBy("c.id", "ASC")
       .take(limit + 1);
@@ -198,7 +256,7 @@ export class CommunityService {
     const post = await this.postRepo.findOne({
       where: { id: postId, isDeleted: false },
     });
-    if (!post) throw new BusinessException(ErrorCode.Community.POST_NOT_FOUND);
+    if (!post) throw new NotFoundException("Post not found");
 
     return this.dataSource.transaction(async (m) => {
       const commentRepo = m.getRepository(Comment);
@@ -222,18 +280,19 @@ export class CommunityService {
     dto: UpdateCommentDto
   ): Promise<Comment> {
     const c = await this.commentRepo.findOne({ where: { id } });
-    if (!c) throw new BusinessException(ErrorCode.Community.COMMENT_NOT_FOUND);
+    if (!c) throw new NotFoundException("Comment not found");
     if (c.authorId !== editorId)
-      throw new BusinessException(ErrorCode.Common.FORBIDDEN);
+      throw new ForbiddenException("No permission to edit this comment");
+
     c.content = dto.content;
     return this.commentRepo.save(c);
   }
 
   async deleteComment(id: number, requesterId: number): Promise<void> {
     const c = await this.commentRepo.findOne({ where: { id } });
-    if (!c) throw new BusinessException(ErrorCode.Community.COMMENT_NOT_FOUND);
+    if (!c) throw new NotFoundException("Comment not found");
     if (c.authorId !== requesterId)
-      throw new BusinessException(ErrorCode.Common.FORBIDDEN);
+      throw new ForbiddenException("No permission to delete this comment");
 
     await this.dataSource.transaction(async (m) => {
       const commentRepo = m.getRepository(Comment);

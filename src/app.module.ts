@@ -18,6 +18,7 @@ import { FilesModule } from "./files/files.module";
 import { MyPageModule } from "./mypage/mypage.module";
 import Redis from "iovalkey";
 import { WorkerPoolModule } from "./config/workerpool";
+import { ConstellationsModule } from './constellations/constellations.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { WorkerPoolModule } from "./config/workerpool";
     RunningModule,
     FilesModule,
     MyPageModule,
+    ConstellationsModule,
   ],
   providers: [],
   controllers: [],

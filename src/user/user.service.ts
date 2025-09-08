@@ -5,9 +5,15 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { User } from "../modules/users/user.entity";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+import { User } from "../modules/users/user.entity";
+import { Course } from "../modules/courses/course.entity";
+import { Post, PostType } from "../modules/posts/post.entity";
+import { ProfileDto } from "./dto/profile";
+
+const PREVIEW_COUNT = 2;
 
 @Injectable()
 export class UserService {
@@ -20,25 +26,124 @@ export class UserService {
   });
 
   constructor(
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(Course) private readonly courseRepo: Repository<Course>,
+    @InjectRepository(Post) private readonly postRepo: Repository<Post>
   ) {}
 
-  private async buildAvatarDisplayUrl(user: User): Promise<string | null> {
+  private toIso(date?: Date | null): string {
+    return date ? date.toISOString() : "";
+  }
+
+  private async buildAvatarDisplayUrl(
+    user: Pick<User, "avatarKey" | "avatarUrl">
+  ): Promise<string> {
     if (user.avatarKey) {
       const key = user.avatarKey.trim();
       const cdn = process.env.CLOUDFRONT_DOMAIN?.trim();
-      if (cdn) {
-        return `${cdn}/${key}`;
-      }
+      if (cdn) return `${cdn}/${key}`;
+
       const bucket = process.env.S3_BUCKET?.trim();
       if (!bucket) throw new Error("S3_BUCKET not set");
       const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
       return await getSignedUrl(this.s3, cmd, { expiresIn: 60 * 5 });
     }
-    return user.avatarUrl ?? null;
+    return user.avatarUrl ?? "";
   }
 
+  private async getProfileCore(userId: number) {
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+      select: [
+        "id",
+        "nickname",
+        "email",
+        "avatarUrl",
+        "avatarKey",
+        "createdAt",
+      ],
+    });
+    if (!user) throw new NotFoundException("USER_NOT_FOUND");
+
+    return {
+      id: user.id,
+      nickname: user.nickname,
+      email: user.email,
+      avatarUrl: await this.buildAvatarDisplayUrl(user),
+      createdAt: this.toIso(user.createdAt),
+    };
+  }
+
+  private async getRecentCourses(userId: number) {
+    const courses = await this.courseRepo.find({
+      where: { userId },
+      order: { createdAt: "DESC" },
+      take: PREVIEW_COUNT,
+      select: ["id", "title", "length", "createdAt", "imageURL"],
+    });
+    return courses.map((c) => ({
+      id: c.id,
+      title: c.title,
+      length: c.length,
+      createdAt: this.toIso(c.createdAt),
+      previewImageUrl: c.imageURL ?? "",
+    }));
+  }
+
+  private async getRecentPosts(userId: number) {
+    const posts = await this.postRepo.find({
+      where: { authorId: userId },
+      order: { createdAt: "DESC" },
+      take: PREVIEW_COUNT,
+      select: [
+        "id",
+        "title",
+        "content",
+        "createdAt",
+        "likeCount",
+        "commentCount",
+        "type",
+      ],
+    });
+    return posts.map((p) => ({
+      id: p.id,
+      title: p.title,
+      content: p.content,
+      createdAt: this.toIso(p.createdAt),
+      likeCount: p.likeCount ?? 0,
+      commentCount: p.commentCount ?? 0,
+    }));
+  }
+
+  private async getRecentProofPhotos(userId: number) {
+    const proofPosts = await this.postRepo.find({
+      where: { authorId: userId, type: PostType.PROOF, isDeleted: false },
+      order: { createdAt: "DESC" },
+      take: PREVIEW_COUNT,
+      select: ["id", "routeId", "title", "imageUrls", "createdAt"],
+    });
+
+    return proofPosts
+      .filter((p) => Array.isArray(p.imageUrls) && p.imageUrls.length > 0)
+      .slice(0, PREVIEW_COUNT)
+      .map((p) => ({
+        id: p.id,
+        courseId: p.routeId ?? 0,
+        title: p.title,
+        imageUrl: p.imageUrls![0],
+        createdAt: this.toIso(p.createdAt),
+      }));
+  }
+  async getProfile(userId: number): Promise<ProfileDto> {
+    const [profile, myCourses, myPosts, myPhotos] = await Promise.all([
+      this.getProfileCore(userId),
+      this.getRecentCourses(userId),
+      this.getRecentPosts(userId),
+      this.getRecentProofPhotos(userId),
+    ]);
+
+    return { profile, myCourses, myPosts, myPhotos };
+  }
   async updateAvatarKey(userId: number, key: string): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException("User not found");
@@ -52,19 +157,5 @@ export class UserService {
     }
 
     await this.userRepo.update({ id: userId }, { avatarKey: cleanKey });
-  }
-
-  async getMeWithAvatarUrl(userId: number) {
-    const me = await this.userRepo.findOne({ where: { id: userId } });
-    if (!me) throw new NotFoundException("User not found");
-
-    const displayUrl = await this.buildAvatarDisplayUrl(me);
-    return {
-      id: me.id,
-      name: me["name"],
-      email: me["email"],
-      avatarKey: me.avatarKey ?? null,
-      avatarUrl: displayUrl,
-    };
   }
 }

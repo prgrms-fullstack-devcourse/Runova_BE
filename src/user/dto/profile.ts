@@ -1,4 +1,4 @@
-export class MyPageOverviewDto {
+export class ProfileDto {
   profile: {
     id: number;
     nickname: string;

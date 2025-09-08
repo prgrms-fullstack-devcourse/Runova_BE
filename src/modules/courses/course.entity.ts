@@ -25,6 +25,9 @@ export class Course extends EntityBase {
   @JoinColumn({ name: "user_id" })
   user: User;
 
+  @Column({ name: "is_drawn", type: "boolean" })
+  isDrawn: boolean;
+
   @Column({ type: "varchar" })
   title: string;
 

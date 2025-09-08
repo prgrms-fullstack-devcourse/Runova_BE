@@ -2,8 +2,10 @@ import { Column, ColumnOptions } from "typeorm";
 import { Coordinates, GeoJson } from "./geojson";
 
 export type GeometricColumnOptions
-    = Omit<ColumnOptions, "type" | "spatialFeatureType" | "srid" | "transformer">;
+    = Omit<ColumnOptions, "type" | "spatialFeatureType" | "transformer">
 
+const __DEFAULT_PRECISION = 6;
+const __DEFAULT_SRID = 4326;
 
 function __MakeGeometricColumn(type: string) {
     return function (options?: GeometricColumnOptions) {
@@ -11,8 +13,8 @@ function __MakeGeometricColumn(type: string) {
         const opts: ColumnOptions = {
             type: "geometry",
             spatialFeatureType: type,
-            precision: 6,
-            srid: 4326,
+            precision: __DEFAULT_PRECISION,
+            srid: __DEFAULT_SRID,
             transformer: {
                 from(geom: GeoJson): Coordinates {
                     return geom.coordinates;

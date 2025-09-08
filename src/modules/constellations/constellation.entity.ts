@@ -26,6 +26,9 @@ export class Constellation extends EntityBase {
     @Column({ name: "image_url", type: "varchar" })
     imageUrl: string;
 
+    @Column({ type: "float8" })
+    length: number;
+
     @Index({ spatial: true })
     @PointColumn()
     head: [number, number];

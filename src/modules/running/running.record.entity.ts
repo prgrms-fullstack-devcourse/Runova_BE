@@ -8,7 +8,6 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { User } from "../users";
-import { Course } from "../courses";
 import { LineStringColumn } from "../../common/geo";
 
 @Entity("running_records")
@@ -23,14 +22,6 @@ export class RunningRecord extends ImmutableEntityBase {
   @ManyToOne(() => User, { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
   user: User;
-
-  @Index()
-  @Column({ name: "course_id", type: "int", nullable: true })
-  courseId: number | null;
-
-  @ManyToOne(() => Course, { onDelete: "SET NULL" })
-  @JoinColumn({ name: "course_id" })
-  course: Course | null;
 
   @LineStringColumn()
   path: [number, number][];

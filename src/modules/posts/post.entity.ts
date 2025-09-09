@@ -41,7 +41,7 @@ export class Post extends EntityBase {
   content: string;
 
   @Column({ type: "varchar", length: 512, nullable: true })
-  imageKey?: string | null;
+  imageUrl?: string | null;
 
   @Column({ type: "int", nullable: true, default: null })
   routeId: number;

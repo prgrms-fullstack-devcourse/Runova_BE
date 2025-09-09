@@ -49,8 +49,8 @@ export class CoursesService {
             .returning("id")
             .execute();
 
-        const courseId: number = result.generatedMaps[0].id;
-
+        const courseId: number = result.identifiers[0].id;
+        
         await this.nodesRepo.insert(
             nodes.map(node =>
                 ({ courseId, ...node })

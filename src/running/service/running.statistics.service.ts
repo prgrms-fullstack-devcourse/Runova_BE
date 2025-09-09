@@ -1,20 +1,28 @@
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { RunningRecord } from "../../modules/running";
-import { Repository, SelectQueryBuilder } from "typeorm";
-import { RunningStatisticsDTO, RunningAggregationDTO, RunningStatisticsSchema, GetRunningStatisticsOptions } from "../dto";
+import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
+import {
+    RunningStatisticsDTO,
+    RunningStatisticsSchema,
+    GetRunningStatisticsOptions,
+    RunningAggregationFields
+} from "../dto";
 import { plainToInstanceOrReject } from "../../utils";
 
 @Injectable()
 export class RunningStatisticsService {
 
     constructor(
-       @InjectRepository(RunningRecord)
-       private readonly recordsRepo: Repository<RunningRecord>
-    ) {}
+        @InjectDataSource()
+        private readonly ds: DataSource,
+        @InjectRepository(RunningRecord)
+        private readonly recordsRepo: Repository<RunningRecord>,
+    ) {
+    }
 
     async getRunningStatistics<
-        K extends keyof RunningAggregationDTO
+        K extends RunningAggregationFields
     >(
         userId: number,
         props: K[],
@@ -33,15 +41,16 @@ export class RunningStatisticsService {
         }
 
         const raw = await qb.take(options?.limit).getRawOne();
-        return plainToInstanceOrReject(RunningStatisticsSchema(props), raw);
+        Logger.debug(raw, RunningStatisticsService.name);
+        return plainToInstanceOrReject(RunningStatisticsSchema, raw);
     }
 
     private createSelectQueryBuilder<
-        K extends keyof RunningAggregationDTO
+        K extends RunningAggregationFields
     >(props: Set<K>): SelectQueryBuilder<RunningRecord> {
 
-        const qb = this.recordsRepo
-            .createQueryBuilder("record")
+        const qb = this.ds
+            .createQueryBuilder()
             .select(`COUNT(record)`, "nRecords");
 
         if (props.has("totalDistance" as K))
@@ -49,7 +58,7 @@ export class RunningStatisticsService {
 
         if (props.has("totalDuration" as K)) {
             qb.addSelect(
-                `SUM(EXTRACT(EPOCH FROM record.endAt) - EXTRACT(EPOCH FROM record.startAt))`,
+                `SUM(record.duration)`,
                 "totalDuration"
             );
         }
@@ -60,7 +69,10 @@ export class RunningStatisticsService {
         if (props.has("meanPace" as K))
             qb.addSelect(`AVG(record.pace)`, "meanPace");
 
-        return qb;
+        return qb.from(
+            sqb =>
+        )
     }
 
 }
+

@@ -24,7 +24,9 @@ export class FilesService {
     const key =
       type === UploadType.AVATAR
         ? `users/${userId}/avatar/${fileName}`
-        : `users/${userId}/verify/${today}/${fileName}`;
+        : type === UploadType.VERIFY
+          ? `posts/${userId}/verify/${today}/${fileName}`
+          : `courses/${userId}/${today}/${fileName}`;
 
     const command = new PutObjectCommand({
       Bucket: bucket,

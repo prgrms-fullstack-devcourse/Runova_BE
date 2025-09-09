@@ -16,6 +16,7 @@ import { cacheOptionsFactory } from "./config/cache";
 import { FilesModule } from "./files/files.module";
 import Redis from "iovalkey";
 import { WorkerPoolModule } from "./config/workerpool";
+import { UserModule } from "./user/user.module";
 
 @Module({
   imports: [
@@ -35,12 +36,12 @@ import { WorkerPoolModule } from "./config/workerpool";
       inject: [Redis],
     }),
     WorkerPoolModule,
-    //HealthModule,
     AuthModule,
     CommunityModule,
     CoursesModule,
     RunningModule,
     FilesModule,
+    UserModule,
   ],
   providers: [],
   controllers: [],

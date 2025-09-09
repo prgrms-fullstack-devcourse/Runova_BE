@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException, } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
@@ -10,6 +14,7 @@ import { Post, PostType } from "../modules/posts";
 import { ProfileDto } from "./dto/profile";
 
 const PREVIEW_COUNT = 2;
+const URL_EXPIRES_SEC = 60 * 5;
 
 @Injectable()
 export class UserService {
@@ -20,6 +25,8 @@ export class UserService {
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY?.trim()!,
     },
   });
+  private readonly s3Bucket = process.env.S3_BUCKET?.trim();
+  private readonly cdnDomain = process.env.CLOUDFRONT_DOMAIN?.trim();
 
   constructor(
     @InjectRepository(User) private readonly userRepo: Repository<User>,
@@ -31,21 +38,19 @@ export class UserService {
     return date ? date.toISOString() : "";
   }
 
-  private async buildDisplayUrlFromKey(key?: string | null): Promise<string> {
+  private async buildImageUrlFromKey(key?: string | null): Promise<string> {
     if (!key) return "";
-    const cdn = process.env.CLOUDFRONT_DOMAIN?.trim();
-    if (cdn) return `${cdn}/${key}`;
-    const bucket = process.env.S3_BUCKET?.trim();
-    if (!bucket) throw new Error("S3_BUCKET not set");
-    const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
-    return await getSignedUrl(this.s3, cmd, { expiresIn: 60 * 5 });
+    if (this.cdnDomain) return `${this.cdnDomain}/${key}`;
+    if (!this.s3Bucket) throw new Error("S3_BUCKET not set");
+    const cmd = new GetObjectCommand({ Bucket: this.s3Bucket, Key: key });
+    return getSignedUrl(this.s3, cmd, { expiresIn: URL_EXPIRES_SEC });
   }
 
   private async buildAvatarDisplayUrl(
     user: Pick<User, "avatarKey" | "avatarUrl">
   ): Promise<string> {
     if (user.avatarKey) {
-      return this.buildDisplayUrlFromKey(user.avatarKey);
+      return this.buildImageUrlFromKey(user.avatarKey);
     }
     return user.avatarUrl ?? "";
   }
@@ -127,13 +132,13 @@ export class UserService {
       .slice(0, PREVIEW_COUNT);
 
     return await Promise.all(
-        sliced.map(async (p) => ({
-          id: p.id,
-          courseId: p.routeId ?? 0,
-          title: p.title,
-          imageUrl: await this.buildDisplayUrlFromKey(p.imageKey),
-          createdAt: this.toIso(p.createdAt),
-        }))
+      sliced.map(async (p) => ({
+        id: p.id,
+        courseId: p.routeId ?? 0,
+        title: p.title,
+        imageUrl: await this.buildImageUrlFromKey(p.imageKey),
+        createdAt: this.toIso(p.createdAt),
+      }))
     );
   }
 

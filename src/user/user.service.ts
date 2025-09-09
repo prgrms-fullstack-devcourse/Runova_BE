@@ -1,16 +1,12 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-import { User } from "../modules/users/user.entity";
-import { Course } from "../modules/courses/course.entity";
-import { Post, PostType } from "../modules/posts/post.entity";
+import { User } from "../modules/users";
+import { Course } from "../modules/courses";
+import { Post, PostType } from "../modules/posts";
 import { ProfileDto } from "./dto/profile";
 
 const PREVIEW_COUNT = 2;
@@ -82,14 +78,14 @@ export class UserService {
       where: { userId },
       order: { createdAt: "DESC" },
       take: PREVIEW_COUNT,
-      select: ["id", "title", "length", "createdAt", "imageURL"],
+      select: ["id", "title", "length", "createdAt", "imageUrl"],
     });
     return courses.map((c) => ({
       id: c.id,
       title: c.title,
       length: c.length,
       createdAt: this.toIso(c.createdAt),
-      previewImageUrl: c.imageURL ?? "",
+      previewImageUrl: c.imageUrl ?? "",
     }));
   }
 
@@ -130,17 +126,15 @@ export class UserService {
       .filter((p) => !!p.imageKey)
       .slice(0, PREVIEW_COUNT);
 
-    const withUrls = await Promise.all(
-      sliced.map(async (p) => ({
-        id: p.id,
-        courseId: p.routeId ?? 0,
-        title: p.title,
-        imageUrl: await this.buildDisplayUrlFromKey(p.imageKey),
-        createdAt: this.toIso(p.createdAt),
-      }))
+    return await Promise.all(
+        sliced.map(async (p) => ({
+          id: p.id,
+          courseId: p.routeId ?? 0,
+          title: p.title,
+          imageUrl: await this.buildDisplayUrlFromKey(p.imageKey),
+          createdAt: this.toIso(p.createdAt),
+        }))
     );
-
-    return withUrls;
   }
 
   async getProfile(userId: number): Promise<ProfileDto> {

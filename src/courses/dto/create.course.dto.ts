@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, IsUrl } from "class-validator";
+import { IsString, IsUrl } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 import { ApiLineProperty, IsLine } from "../../utils/decorator";
 

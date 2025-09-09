@@ -12,7 +12,8 @@ export class InspectPathService {
     ) {}
 
     async inspectPath(path: [number, number][]): Promise<InspectPathResult> {
-        return await this.poolService.exec(inspectPath, path);
+        return inspectPath(path);
+        //return await this.poolService.exec(inspectPath, path);
     }
 }
 

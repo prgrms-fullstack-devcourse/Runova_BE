@@ -2,7 +2,12 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { RunningRecord } from "../../modules/running";
 import { Repository, SelectQueryBuilder } from "typeorm";
-import { RunningStatisticsDTO, RunningAggregationDTO, RunningStatisticsSchema, GetRunningStatisticsOptions } from "../dto";
+import {
+    RunningStatisticsDTO,
+    RunningStatisticsSchema,
+    GetRunningStatisticsOptions,
+    RunningAggregationFields
+} from "../dto";
 import { plainToInstanceOrReject } from "../../utils";
 
 @Injectable()
@@ -14,7 +19,7 @@ export class RunningStatisticsService {
     ) {}
 
     async getRunningStatistics<
-        K extends keyof RunningAggregationDTO
+        K extends RunningAggregationFields
     >(
         userId: number,
         props: K[],
@@ -33,11 +38,11 @@ export class RunningStatisticsService {
         }
 
         const raw = await qb.take(options?.limit).getRawOne();
-        return plainToInstanceOrReject(RunningStatisticsSchema(props), raw);
+        return plainToInstanceOrReject(RunningStatisticsSchema, raw);
     }
 
     private createSelectQueryBuilder<
-        K extends keyof RunningAggregationDTO
+        K extends RunningAggregationFields
     >(props: Set<K>): SelectQueryBuilder<RunningRecord> {
 
         const qb = this.recordsRepo

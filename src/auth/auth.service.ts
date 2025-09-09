@@ -26,7 +26,7 @@ interface RefreshJwtPayload {
   exp?: number;
 }
 
-type PublicUser = Pick<User, "id" | "nickname" | "email" | "avatarUrl">;
+type PublicUser = Pick<User, "id" | "nickname" | "email" | "imageUrl">;
 
 const PG_UNIQUE_VIOLATION = "23505";
 
@@ -51,7 +51,7 @@ export class AuthService {
 
     if (user) {
       user.providerUserId = providerUserId;
-      if (!user.avatarUrl && picture) user.avatarUrl = picture;
+      if (!user.imageUrl && picture) user.imageUrl = picture;
       await this.userRepo.save(user);
     } else {
       try {
@@ -59,7 +59,7 @@ export class AuthService {
           email,
           nickname: name,
           providerUserId,
-          avatarUrl: picture,
+          imageUrl: picture,
         });
         await this.userRepo.save(user);
       } catch (error) {
@@ -109,7 +109,7 @@ export class AuthService {
       id: user.id,
       nickname: user.nickname,
       email: user.email,
-      avatarUrl: user.avatarUrl,
+      imageUrl: user.imageUrl,
     };
   }
 

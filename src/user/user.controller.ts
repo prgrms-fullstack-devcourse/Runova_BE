@@ -9,7 +9,6 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { User } from "src/utils/decorator/http.decorators";
 import { AuthUser } from "../auth/types/types";
 import { UserService } from "./user.service";
-import { UpdateAvatarDto } from "./dto/updateAvatar.dto";
 
 @ApiTags("Users")
 @ApiBearerAuth()

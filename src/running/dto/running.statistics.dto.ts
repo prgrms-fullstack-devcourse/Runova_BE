@@ -1,25 +1,38 @@
-import { ApiProperty, IntersectionType, PickType } from "@nestjs/swagger";
-import { IsInt } from "class-validator";
-import { RunningAggregationDTO } from "./running.aggregation.dto";
-import { Clazz } from "../../utils";
+import { ApiProperty } from "@nestjs/swagger";
+import { IsInt, IsNumber, IsOptional } from "class-validator";
 
-class RecordsCnt {
+export class RunningStatisticsSchema {
     @IsInt()
     @ApiProperty({ type: "integer", description: "통계 대상이 된 레코드 수" })
     nRecords: number;
+
+    @IsNumber()
+    @IsOptional()
+    @ApiProperty({ type: "number", description: "달린 총 거리(m)" })
+    totalDistance: number;
+
+    @IsNumber()
+    @IsOptional()
+    @ApiProperty({ type: "number", description: "총 러닝 지속 시간(s))" })
+    totalDuration: number;
+
+    @IsNumber()
+    @IsOptional()
+    @ApiProperty({ type: "number", description: "소모한 총 칼로리(kcal)" })
+    totalCalories: number;
+
+    @IsNumber()
+    @IsOptional()
+    @ApiProperty({ type: "number", description: "평균 페이스(m/s)" })
+    meanPace: number;
 }
+
+export type RunningAggregationFields = Exclude<keyof RunningStatisticsSchema, "nRecords">;
 
 export type RunningStatisticsDTO<
-    K extends keyof RunningAggregationDTO
-> = RecordsCnt & Pick<RunningAggregationDTO, K>;
+    K extends RunningAggregationFields
+> = Pick<RunningStatisticsSchema, "nRecords" | K>;
 
-export function RunningStatisticsSchema<
-    K extends keyof RunningAggregationDTO
->(props: K[]): Clazz<RunningStatisticsDTO<K>> {
-    return IntersectionType(
-        RecordsCnt,
-        PickType(RunningAggregationDTO, props)
-    ) as Clazz<RunningStatisticsDTO<K>>;
-}
+
 
 

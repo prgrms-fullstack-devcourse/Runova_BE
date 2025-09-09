@@ -11,7 +11,7 @@ export function setSelect<E extends object>(
             .addSelect("course.title", "title")
             .addSelect("course.imageUrl", "imageUrl")
             .addSelect(
-            `ST_AsGeoJSON(course.departure)::jsonb.coordinates`,
+            `ST_AsGeoJSON(course.departure)::jsonb -> 'coordinates'`,
                 "departure"
             )
             .addSelect("course.length", "length")
@@ -34,6 +34,7 @@ export function setSelectBookmarked<E extends object>(
                 .from(CourseBookmark, "bookmark")
                 .where("bookmark.courseId = course.id")
                 .andWhere("bookmark.userId = :userId", { userId })
+                .getQuery()
         })
             `,
         "bookmarked"

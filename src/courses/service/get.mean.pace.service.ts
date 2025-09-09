@@ -19,10 +19,10 @@ export class GetMeanPaceService {
 
     async getMeanPace(userId: number): Promise<number> {
 
-        const { meanPace } = await this.statsService
-            .getRunningStatistics(userId, ["meanPace"], { limit: 5 });
+        //const { meanPace } = await this.statsService
+            //.getRunningStatistics(userId, ["meanPace"], { limit: 5 });
 
-        return meanPace || this.defaultMeanPace;
+        return this.defaultMeanPace;
     }
 
 }

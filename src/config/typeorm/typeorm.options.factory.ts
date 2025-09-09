@@ -7,6 +7,7 @@ export function typeormOptionsFactory(
   config: ConfigService
 ): TypeOrmModuleOptions {
   const ca = config.get<string>("DB_SSL_CA");
+
   const ssl = ca
     ? {
         ca: fs.readFileSync(ca).toString(),
@@ -19,10 +20,6 @@ export function typeormOptionsFactory(
             config.get<boolean>("DB_SSL_REJECT_UNAUTHORIZED") ?? false,
         }
       : false;
-
-  // const ssl = config.get("NODE_ENV") === "production"
-  //     ?{ rejectUnauthorized: false }
-  //     : undefined;
 
   return {
     type: "postgres" as any,

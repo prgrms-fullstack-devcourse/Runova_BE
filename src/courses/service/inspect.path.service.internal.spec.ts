@@ -3,7 +3,6 @@
  */
 
 import { inspectPath } from "./inspect.path.service.internal";
-import { CourseNodeDTO, InspectPathResult } from "../dto";
 import converter from "../../common/geo/converter";
 
 /** Build a polyline roughly ~10–15km long around central Seoul */

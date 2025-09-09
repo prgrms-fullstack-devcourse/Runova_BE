@@ -38,8 +38,4 @@ export class CourseDTO {
     @IsBoolean()
     @ApiProperty({ type: "boolean", description: "북마크 여부" })
     bookmarked: boolean;
-
-    @IsBoolean()
-    @ApiProperty({ type: "boolean", description: "완주 여부" })
-    completed: boolean;
 }

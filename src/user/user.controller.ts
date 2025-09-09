@@ -28,8 +28,7 @@ export class UserController {
   @Patch("me/avatar")
   @ApiOperation({ summary: "내 아바타 업데이트(확정)" })
   @ApiResponse({ status: 200, description: "업데이트 성공" })
-  async updateMyAvatar(@User() user: AuthUser, @Body() dto: UpdateAvatarDto) {
-    await this.userService.updateAvatarKey(user.userId, dto.key);
+  async updateMyAvatar(@User() user: AuthUser) {
     return this.userService.getProfile(user.userId);
   }
 }

@@ -19,10 +19,7 @@ export class User extends EntityBase {
   providerUserId: string;
 
   @Column({ type: "varchar", length: 512, nullable: true })
-  avatarUrl?: string;
-
-  @Column({ type: "varchar", length: 512, nullable: true })
-  avatarKey?: string | null;
+  imageUrl: string;
 
   @Column({ type: "text", nullable: true, default: null })
   refreshTokenHash: string | null;

@@ -3,7 +3,7 @@ export class ProfileDto {
     id: number;
     nickname: string;
     email: string;
-    avatarUrl: string;
+    imageUrl: string;
     createdAt: string;
   };
   myCourses: Array<{

@@ -5,8 +5,6 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { User } from "../modules/users";
 import { Course } from "../modules/courses";
@@ -14,20 +12,9 @@ import { Post, PostType } from "../modules/posts";
 import { ProfileDto } from "./dto/profile";
 
 const PREVIEW_COUNT = 2;
-const URL_EXPIRES_SEC = 60 * 5;
 
 @Injectable()
 export class UserService {
-  private readonly s3 = new S3Client({
-    region: process.env.AWS_REGION?.trim(),
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID?.trim()!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY?.trim()!,
-    },
-  });
-  private readonly s3Bucket = process.env.S3_BUCKET?.trim();
-  private readonly cdnDomain = process.env.CLOUDFRONT_DOMAIN?.trim();
-
   constructor(
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(Course) private readonly courseRepo: Repository<Course>,
@@ -38,32 +25,10 @@ export class UserService {
     return date ? date.toISOString() : "";
   }
 
-  private async buildImageUrlFromKey(key?: string | null): Promise<string> {
-    if (!key) return "";
-    if (!this.s3Bucket) throw new Error("S3_BUCKET not set");
-    return `${this.cdnDomain}/${key}`;
-  }
-
-  private async buildAvatarDisplayUrl(
-    user: Pick<User, "avatarKey" | "avatarUrl">
-  ): Promise<string> {
-    if (user.avatarKey) {
-      return this.buildImageUrlFromKey(user.avatarKey);
-    }
-    return user.avatarUrl ?? "";
-  }
-
   private async getProfileCore(userId: number) {
     const user = await this.userRepo.findOne({
       where: { id: userId },
-      select: [
-        "id",
-        "nickname",
-        "email",
-        "avatarUrl",
-        "avatarKey",
-        "createdAt",
-      ],
+      select: ["id", "nickname", "email", "imageUrl", "createdAt"],
     });
     if (!user) throw new NotFoundException("USER_NOT_FOUND");
 
@@ -71,7 +36,7 @@ export class UserService {
       id: user.id,
       nickname: user.nickname,
       email: user.email,
-      avatarUrl: await this.buildAvatarDisplayUrl(user),
+      imageUrl: user.imageUrl ?? "",
       createdAt: this.toIso(user.createdAt),
     };
   }
@@ -122,22 +87,20 @@ export class UserService {
       where: { authorId: userId, type: PostType.PROOF, isDeleted: false },
       order: { createdAt: "DESC" },
       take: PREVIEW_COUNT,
-      select: ["id", "routeId", "title", "imageKey", "createdAt"],
+      select: ["id", "routeId", "title", "imageUrl", "createdAt"],
     });
 
     const sliced = proofPosts
-      .filter((p) => !!p.imageKey)
+      .filter((p) => !!p.imageUrl)
       .slice(0, PREVIEW_COUNT);
 
-    return await Promise.all(
-      sliced.map(async (p) => ({
-        id: p.id,
-        courseId: p.routeId ?? 0,
-        title: p.title,
-        imageUrl: await this.buildImageUrlFromKey(p.imageKey),
-        createdAt: this.toIso(p.createdAt),
-      }))
-    );
+    return sliced.map((p) => ({
+      id: p.id,
+      courseId: p.routeId ?? 0,
+      title: p.title,
+      imageUrl: p.imageUrl ?? "",
+      createdAt: this.toIso(p.createdAt),
+    }));
   }
 
   async getProfile(userId: number): Promise<ProfileDto> {
@@ -151,18 +114,13 @@ export class UserService {
     return { profile, myCourses, myPosts, myPhotos };
   }
 
-  async updateAvatarKey(userId: number, key: string): Promise<void> {
+  async updateAvatarUrl(userId: number, url: string): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException("User not found");
 
-    const cleanKey = key?.trim();
-    if (!cleanKey) throw new BadRequestException("key is required");
+    const cleanUrl = url?.trim();
+    if (!cleanUrl) throw new BadRequestException("url is required");
 
-    const expectedPrefix = `users/${userId}/avatar/`;
-    if (!cleanKey.startsWith(expectedPrefix)) {
-      throw new BadRequestException("Invalid key");
-    }
-
-    await this.userRepo.update({ id: userId }, { avatarKey: cleanKey });
+    await this.userRepo.update({ id: userId }, { imageUrl: cleanUrl });
   }
 }

@@ -51,7 +51,7 @@ export class CoursesService {
 
         Logger.debug(result, CoursesService.name);
         const courseId: number = result.raw[0].id;
-
+      
         await this.nodesRepo.insert(
             nodes.map(node =>
                 ({ courseId, ...node })

@@ -4,8 +4,6 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { UploadType } from "../common/constants/upload-type.enum";
 import { randomUUID } from "crypto";
 
-const S3_EXPIRES_IN = 300;
-
 @Injectable()
 export class FilesService {
   private readonly s3 = new S3Client({
@@ -36,9 +34,7 @@ export class FilesService {
       ACL: "private",
     });
 
-    const url = await getSignedUrl(this.s3, command, {
-      expiresIn: S3_EXPIRES_IN,
-    });
+    const url = await getSignedUrl(this.s3, command);
 
     return { url, key, bucket };
   }

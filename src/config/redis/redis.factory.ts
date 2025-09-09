@@ -11,6 +11,8 @@ export function redisFactory(config: ConfigService): Redis {
         host: config.get<string>("REDIS_HOST")!,
         port: config.get<number>("REDIS_PORT")!,
         db: config.get<number>("REDIS_DB") ?? 0,
+        //username: config.get<string>("REDIS_USERNAME"),
+        //password: config.get<string>("REDIS_PASSWORD"),
         tls
     });
 }

@@ -19,7 +19,10 @@ export function setSelect<E extends object>(
             .setParameter("pace", pace)
             .addSelect("course.createdAt", "createdAt")
             .innerJoin("course.user", "user")
-            .addSelect("user.nickname", "author");
+            .addSelect(
+                `jsonb_build_object('nickname', user.nickname, 'avatarUrl', user.avatarUrl)`,
+                "author"
+            );
 }
 
 export function setSelectBookmarked<E extends object>(
@@ -45,8 +48,8 @@ export function setPagingOptions<E extends object>(
     qb: SelectQueryBuilder<E>,
     options: PagingOptions,
 ): SelectQueryBuilder<E> {
-    options.cursor && qb.andWhere("course.id > :cursor", { cursor: options.cursor });
-    qb.limit(options.limit ?? 10);
+    options.cursor && qb.andWhere("course.id < :cursor", { cursor: options.cursor });
+    qb.limit(options.limit);
     return qb;
 }
 

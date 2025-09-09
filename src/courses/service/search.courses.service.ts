@@ -1,16 +1,13 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Course, CourseBookmark } from "../../modules/courses";
-import { Repository } from "typeorm";
-import { AdjacentCourseDTO, CourseDTO, SearchAdjacentCoursesDTO } from "../dto";
-import { plainsToInstancesOrReject } from "../../utils";
-import { PagingOptions } from "../../common/types";
+import { Repository, SelectQueryBuilder } from "typeorm";
+import { CourseDTO, SearchAdjacentCoursesDTO, SearchCoursesDTO } from "../dto";
 import {
     setPagingOptions,
     setSelect,
     setSelectBookmarked,
 } from "./search.courses.service.internal";
-import { GetMeanPaceService } from "./get.mean.pace.service";
 
 @Injectable()
 export class SearchCoursesService {
@@ -20,79 +17,70 @@ export class SearchCoursesService {
         private readonly coursesRepo: Repository<Course>,
         @InjectRepository(CourseBookmark)
         private readonly bookmarksRepo: Repository<CourseBookmark>,
-        @Inject(GetMeanPaceService)
-        private readonly getMeanPaceService: GetMeanPaceService,
     ) {}
 
-    async searchUserCourses(
-        userId: number,
-        options?: PagingOptions,
-    ): Promise<CourseDTO[]> {
+    async searchUserCourses(dto: SearchCoursesDTO): Promise<CourseDTO[]> {
+        const { userId, pace, paging } = dto;
 
-        const qb = setSelect(
-            this.coursesRepo.createQueryBuilder("course"),
-            await this.getMeanPaceService.getMeanPace(userId)
-        );
+        const qb: SelectQueryBuilder<Course>
+            = this.coursesRepo.createQueryBuilder("course");
 
+        setSelect(qb, pace);
         setSelectBookmarked(qb, userId);
+        qb.addSelect('NULL', "distance")
         qb.where("course.userId = :userId", { userId });
-        setPagingOptions(qb, options ?? {});
+        paging && setPagingOptions(qb, paging);
+        qb.orderBy(`course.id`, "DESC");
 
-        const raws = await qb.getRawMany();
-        return plainsToInstancesOrReject(CourseDTO, raws);
+        return qb.getRawMany<CourseDTO>();
     }
 
-    async searchBookmarkedCourses(
-        userId: number,
-        options?: PagingOptions,
-    ): Promise<CourseDTO[]> {
+    async searchBookmarkedCourses(dto: SearchCoursesDTO): Promise<CourseDTO[]> {
+        const { userId, pace, paging } = dto;
 
-        const qb = this.bookmarksRepo
+        const qb: SelectQueryBuilder<CourseBookmark> = this.bookmarksRepo
             .createQueryBuilder("bookmark")
             .innerJoin(Course, "course", "course.id = bookmark.courseId");
 
-        setSelect(qb, await this.getMeanPaceService.getMeanPace(userId));
-        qb.addSelect("bookmarked", "true");
+        setSelect(qb, pace);
+        qb.addSelect(`true`, "bookmarked");
         qb.where("bookmark.userId = :userId", { userId });
-        setPagingOptions(qb, options ?? {});
+        paging && setPagingOptions(qb, paging);
+        qb.orderBy(`course.id`, "DESC");
 
-        const raws = await qb.getRawMany();
-        return plainsToInstancesOrReject(CourseDTO, raws);
+        return qb.getRawMany<CourseDTO>();
     }
 
 
 
     async searchAdjacentCourses(
         dto: SearchAdjacentCoursesDTO
-    ): Promise<AdjacentCourseDTO[]> {
-        const { userId, location, radius, ...pagingOptions } = dto;
+    ): Promise<CourseDTO[]> {
+        const { userId, pace, location, radius } = dto;
 
-        const qb = this.coursesRepo
-            .createQueryBuilder("course")
-            .addCommonTableExpression(
+        const qb: SelectQueryBuilder<Course> = this.coursesRepo
+            .createQueryBuilder("course");
+
+        qb.addCommonTableExpression(
                 `
                 SELECT ST_SetSRID(ST_MakePoint(:...coords), 4326) AS geom
                 `,
                 "location"
-            )
-            .setParameter("coords", location)
+            ).setParameter("coords", location)
             .addFrom("location", "loc");
 
-        setSelect(qb, await this.getMeanPaceService.getMeanPace(userId));
+        setSelect(qb, pace);
         setSelectBookmarked(qb, userId);
 
         qb.addSelect(
-                `
-                ST_DistanceSphere(course.departure, loc.geom)`,
-                "distance"
+            `ST_DistanceSphere(course.departure, loc.geom)`,
+            "distance"
         );
 
-        qb.where(`ST_DWithin(course.departure, loc.geom, :radius)`, { radius })
-        setPagingOptions(qb, pagingOptions);
+        qb.where(`ST_DWithin(course.departure, loc.geom, :radius)`, { radius });
         qb.orderBy("distance", "ASC");
 
-        const raws = await qb.getRawMany();
-        return plainsToInstancesOrReject(AdjacentCourseDTO, raws);
+        return qb.getRawMany<CourseDTO>();
     }
 
 

@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Put, Query, UseGuards } from "@nestjs/common";
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Inject,
+    Param,
+    Patch,
+    Post,
+    Put,
+    Query,
+    UseGuards,
+    UseInterceptors
+} from "@nestjs/common";
 import {
     ApiBadRequestResponse,
     ApiBearerAuth,
@@ -12,16 +25,19 @@ import { Cached, Caching, User } from "../../utils/decorator";
 import {
     CreateCourseBody,
     SearchAdjacentCoursesQuery,
-    SearchAdjacentCoursesResponse,
     SearchCoursesResponse, UpdateBookmarkResponse, UpdateCourseBody
 } from "../api";
 import { AuthGuard } from "@nestjs/passport";
 import { PagingOptions } from "../../common/types";
 import { CourseTopologyDTO } from "../dto";
+import { HOUR_IN_MS, MINUTE_IN_MS } from "../../common/constants/datetime";
+import { CacheInterceptor } from "../../common/interceptor";
+import { SearchCoursesInterceptor } from "../interceptor";
 
 @ApiTags("Courses")
 @Controller("/api/courses")
 @UseGuards(AuthGuard("jwt"))
+@UseInterceptors(CacheInterceptor)
 export class CoursesController {
 
     constructor(
@@ -53,16 +69,18 @@ export class CoursesController {
     @ApiQuery({ type: PagingOptions, required: false })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    @Caching({ schema: SearchCoursesResponse })
+    @Caching({ ttl: 15 * MINUTE_IN_MS })
+    @UseInterceptors(SearchCoursesInterceptor)
     async searchUserCourses(
         @User("userId") userId: number,
+        @User("pace") pace: number,
         @Query() query?: PagingOptions,
         @Cached() cached?: SearchCoursesResponse,
     ): Promise<SearchCoursesResponse> {
         if (cached) return cached;
 
         const results = await this.searchCoursesService
-            .searchUserCourses(userId ?? 8, query);
+            .searchUserCourses({ userId, pace, paging: query });
 
         return { results };
     }
@@ -73,16 +91,18 @@ export class CoursesController {
     @ApiQuery({ type: PagingOptions, required: false })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    @Caching({ schema: SearchCoursesResponse })
+    @Caching({ ttl: 15 * MINUTE_IN_MS })
+    @UseInterceptors(SearchCoursesInterceptor)
     async searchBookmarkedCourses(
         @User("userId") userId: number,
+        @User("pace") pace: number,
         @Query() query?: PagingOptions,
         @Cached() cached?: SearchCoursesResponse,
     ): Promise<SearchCoursesResponse> {
         if (cached) return cached;
 
         const results = await this.searchCoursesService
-            .searchBookmarkedCourses(userId, query);
+            .searchBookmarkedCourses({ userId, pace, paging: query });
 
         return { results };
     }
@@ -91,18 +111,20 @@ export class CoursesController {
     @ApiOperation({ summary: "주변 경로 검색" })
     @ApiBearerAuth()
     @ApiQuery({ type: SearchAdjacentCoursesQuery, required: true })
-    @ApiOkResponse({ type: SearchAdjacentCoursesResponse })
+    @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    @Caching({ schema: SearchAdjacentCoursesResponse })
+    @Caching({ ttl: 15 * MINUTE_IN_MS })
+    @UseInterceptors(SearchCoursesInterceptor)
     async searchAdjacentCourses(
        @User("userId") userId: number,
+       @User("pace") pace: number,
        @Query() query: SearchAdjacentCoursesQuery,
-       @Cached() cached?: SearchAdjacentCoursesResponse,
-    ): Promise<SearchAdjacentCoursesResponse> {
+       @Cached() cached?: SearchCoursesResponse,
+    ): Promise<SearchCoursesResponse> {
         if (cached) return cached;
 
         const results = await this.searchCoursesService
-            .searchAdjacentCourses({ userId, ...query });
+            .searchAdjacentCourses({ userId, pace, ...query });
 
         return { results };
     }
@@ -114,7 +136,7 @@ export class CoursesController {
     @ApiOkResponse({ type: CourseTopologyDTO })
     @ApiForbiddenResponse()
     @ApiNotFoundResponse({ description: "존재하지 않는 경로" })
-    @Caching({ schema: CourseTopologyDTO })
+    @Caching({ ttl: 12 * HOUR_IN_MS })
     async getCourseNodes(
         @Param("id") id: number,
         @Cached() cached?: CourseTopologyDTO,

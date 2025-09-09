@@ -1,7 +1,7 @@
-import { ApiProperty } from "@nestjs/swagger";
 import { IsInt, IsNumber, IsOptional } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
 
-export class RunningStatisticsSchema {
+export class RunningDashboardDTO {
     @IsInt()
     @ApiProperty({ type: "integer", description: "통계 대상이 된 레코드 수" })
     nRecords: number;
@@ -26,13 +26,3 @@ export class RunningStatisticsSchema {
     @ApiProperty({ type: "number", description: "평균 페이스(m/s)" })
     meanPace: number;
 }
-
-export type RunningAggregationFields = Exclude<keyof RunningStatisticsSchema, "nRecords">;
-
-export type RunningStatisticsDTO<
-    K extends RunningAggregationFields
-> = Pick<RunningStatisticsSchema, "nRecords" | K>;
-
-
-
-

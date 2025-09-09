@@ -1,6 +1,6 @@
 import { Period } from "../../common/types";
 
-export interface GetRunningStatisticsOptions {
+export interface GetRunningDashboardOptions {
     period?: Period;
     limit?: number;
 }

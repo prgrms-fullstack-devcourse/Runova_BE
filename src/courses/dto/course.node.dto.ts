@@ -1,20 +1,16 @@
-import { IsNumber } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
-import { ApiPointProperty, IsPoint } from "../../utils/decorator";
+import { ApiPointProperty } from "../../utils/decorator";
 
 export class CourseNodeDTO {
-    @IsPoint()
     @ApiPointProperty({ description: "방향 전환 일어나는 곳 위치" })
     location: [number, number];
 
-    @IsNumber()
     @ApiProperty({
         type: "number",
         description: "출발 지점에서 방향 전환 지점까지의 길이 (m)"
     })
     progress: number;
 
-    @IsNumber()
     @ApiProperty({
         type: "number",
         minimum: -180,

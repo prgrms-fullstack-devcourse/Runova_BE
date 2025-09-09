@@ -35,10 +35,10 @@ export class RunningRecord extends ImmutableEntityBase {
   @Column({ name: "end_at", type: "timestamptz" })
   endAt: Date;
 
-  @Column({ type: "float8", generatedType: "STORED" })
+  @Column({ type: "float8", generatedType: "STORED", asExpression: `ST_Length(path::geography)` })
   distance: number;
 
-  @Column({ type: "float8", generatedType: "STORED" })
+  @Column({ type: "float8", generatedType: "STORED", asExpression: `EXTRACT(EPOCH FROM (endAt - startAt))` })
   duration: number;
 
   @Column({ type: "float8" })

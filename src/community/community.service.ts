@@ -20,31 +20,11 @@ import { CreateCommentDto, UpdateCommentDto } from "./dto/comment.dto";
 import { CursorQuery } from "./dto/cursor.dto";
 import { encodeCursor, decodeCursor } from "./utils/cursor.util";
 
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-
 type CursorResult<T> = { items: T[]; nextCursor: string | null };
-type PostWithUrl = Post & { imageUrl: string };
-
 const DEFAULT_LIMIT = 20;
-const URL_EXPIRES_SEC = 60 * 5;
 
 @Injectable()
 export class CommunityService {
-  private readonly awsRegion = process.env.AWS_REGION?.trim();
-  private readonly awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID?.trim();
-  private readonly awsSecret = process.env.AWS_SECRET_ACCESS_KEY?.trim();
-  private readonly s3Bucket = process.env.S3_BUCKET?.trim();
-  private readonly cdnDomain = process.env.CLOUDFRONT_DOMAIN?.trim();
-
-  private readonly s3 = new S3Client({
-    region: this.awsRegion,
-    credentials: {
-      accessKeyId: this.awsAccessKeyId!,
-      secretAccessKey: this.awsSecret!,
-    },
-  });
-
   constructor(
     @InjectRepository(Post) private readonly postRepo: Repository<Post>,
     @InjectRepository(Comment)
@@ -86,51 +66,31 @@ export class CommunityService {
     return { items, nextCursor };
   }
 
-  private async buildImageUrlFromKey(key?: string | null): Promise<string> {
-    if (!key) return "";
-    if (!this.s3Bucket) throw new Error("S3_BUCKET not set");
-    return `${this.cdnDomain}/${key}`;
-  }
-
-  private assertOwnPostImageKey(authorId: number, key?: string | null): void {
-    if (!key) return;
-    const expectedPrefix = `posts/${authorId}/`;
-    if (!key.startsWith(expectedPrefix)) {
-      throw new BadRequestException("Invalid imageKey prefix");
-    }
-  }
-
-  async createPost(authorId: number, dto: CreatePostDto): Promise<PostWithUrl> {
-    this.assertOwnPostImageKey(authorId, dto.imageKey);
-
+  async createPost(authorId: number, dto: CreatePostDto): Promise<Post> {
     const entity = this.postRepo.create({
       authorId,
       type: dto.type,
       title: dto.title,
       content: dto.content,
-      imageKey: dto.imageKey ?? null,
+      imageUrl: dto.imageUrl ?? null,
       routeId: dto.routeId ?? null,
       likeCount: 0,
       commentCount: 0,
       isDeleted: false,
     });
-
-    const saved = await this.postRepo.save(entity);
-    return {
-      ...saved,
-      imageUrl: await this.buildImageUrlFromKey(saved.imageKey),
-    };
+    return await this.postRepo.save(entity);
   }
 
   async listPostsCursor(
     query: CursorQuery,
     filter: ListPostsFilter
-  ): Promise<CursorResult<PostWithUrl>> {
+  ): Promise<CursorResult<Post>> {
     const limit = query.limit ?? DEFAULT_LIMIT;
 
     const queryBuilder = this.postRepo
       .createQueryBuilder("p")
       .where("p.isDeleted = false");
+
     if (filter.type)
       queryBuilder.andWhere("p.type = :type", { type: filter.type });
     if (filter.authorId)
@@ -149,31 +109,18 @@ export class CommunityService {
       .take(limit + 1);
 
     const rows: Post[] = await queryBuilder.getMany();
-    const { items, nextCursor } = this.sliceWithNextCursor(rows, limit);
-
-    const itemsWithUrl: PostWithUrl[] = await Promise.all(
-      items.map(async (p) => ({
-        ...p,
-        imageUrl: await this.buildImageUrlFromKey(p.imageKey),
-      }))
-    );
-
-    return { items: itemsWithUrl, nextCursor };
+    return this.sliceWithNextCursor(rows, limit);
   }
 
-  async getPost(id: number): Promise<PostWithUrl> {
-    const post = await this.findActivePostOrThrow(id);
-    return {
-      ...post,
-      imageUrl: await this.buildImageUrlFromKey(post.imageKey),
-    };
+  async getPost(id: number): Promise<Post> {
+    return this.findActivePostOrThrow(id);
   }
 
   async updatePost(
     id: number,
     editorId: number,
     dto: UpdatePostDto
-  ): Promise<PostWithUrl> {
+  ): Promise<Post> {
     const post = await this.postRepo.findOne({ where: { id } });
     if (!post || post.isDeleted) throw new NotFoundException("Post not found");
     if (post.authorId !== editorId) {
@@ -183,17 +130,9 @@ export class CommunityService {
     if (dto.type) post.type = dto.type as PostType;
     if (dto.content !== undefined) post.content = dto.content;
     if (dto.routeId !== undefined) post.routeId = dto.routeId;
+    if (dto.imageUrl !== undefined) post.imageUrl = dto.imageUrl;
 
-    if (dto.imageKey !== undefined) {
-      this.assertOwnPostImageKey(editorId, dto.imageKey);
-      post.imageKey = dto.imageKey ?? null;
-    }
-
-    const saved = await this.postRepo.save(post);
-    return {
-      ...saved,
-      imageUrl: await this.buildImageUrlFromKey(saved.imageKey),
-    };
+    return await this.postRepo.save(post);
   }
 
   async deletePost(id: number, requesterId: number): Promise<void> {
@@ -257,8 +196,7 @@ export class CommunityService {
       .take(limit + 1);
 
     const rows: Comment[] = await queryBuilder.getMany();
-    const { items, nextCursor } = this.sliceWithNextCursor(rows, limit);
-    return { items, nextCursor };
+    return this.sliceWithNextCursor(rows, limit);
   }
 
   async createComment(

@@ -18,7 +18,7 @@ export class CreatePostDto {
   @IsOptional()
   @IsString()
   @MaxLength(512)
-  imageKey?: string | null;
+  imageUrl?: string | null;
 
   @ApiPropertyOptional()
   @IsInt()
@@ -49,7 +49,7 @@ export class UpdatePostDto {
   @IsOptional()
   @IsString()
   @MaxLength(512)
-  imageKey?: string | null;
+  imageUrl?: string | null;
 
   @ApiPropertyOptional()
   @IsInt()

@@ -1,2 +1,2 @@
 export * from "./running.records.controller";
-export * from "./running.statistics.controller";
+export * from "./running.dashboards.controller";

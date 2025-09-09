@@ -6,12 +6,12 @@ export class PagingOptions {
     @IsInt()
     @IsOptional()
     @Transform(({ value }) => value && Number(value))
-    @ApiProperty({ type: "integer", required: false, default: 0 })
+    @ApiProperty({ type: "integer", required: false })
     cursor?: number;
 
     @IsInt()
     @IsOptional()
     @Transform(({ value }) => value && Number(value))
-    @ApiProperty({ type: "integer", required: false, default: 10 })
+    @ApiProperty({ type: "integer", required: false })
     limit?: number;
 }

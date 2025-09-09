@@ -10,8 +10,9 @@ import { Body, Controller, Get, Inject, Param, Post, Query, UseGuards } from "@n
 import { AuthGuard } from "@nestjs/passport";
 import { RunningRecordsService } from "../service";
 import { CreateRunningRecordBody, SearchRunningRecordsQuery, SearchRunningRecordsResponse } from "../api";
-import { User } from "../../utils/decorator";
+import { Cached, Caching, User } from "../../utils/decorator";
 import { RunningRecordDTO } from "../dto";
+import { HOUR_IN_MS } from "../../common/constants/datetime";
 
 @ApiTags("Running")
 @Controller("/api/running/records")
@@ -52,20 +53,26 @@ export class RunningRecordsController {
         return this.recordsService.getRunningRecord(id, userId);
     }
 
-    @Get("/users")
+    @Get("/")
     @ApiOperation({ summary: "유저 러닝 기록 검색" })
     @ApiBearerAuth()
     @ApiQuery({ type: SearchRunningRecordsQuery, required: false })
     @ApiOkResponse({ type: SearchRunningRecordsResponse })
     @ApiForbiddenResponse()
-    async searchUserRunningRecords(
+    @Caching({ ttl: HOUR_IN_MS })
+    async searchRunningRecords(
         @User("userId") userId: number,
         @Query() query?: SearchRunningRecordsQuery,
+        @Cached() data?: SearchRunningRecordsResponse,
     ): Promise<SearchRunningRecordsResponse> {
-        const q = query ?? {};
+        if (data) return data;
 
         const results = await this.recordsService
-            .searchRunningRecords({ userId, ...q });
+            .searchRunningRecords({
+                userId,
+                period: { since: query?.since, until: query?.until },
+                paging: { cursor: query?.cursor, limit: query?.limit },
+            });
 
         return { results };
     }

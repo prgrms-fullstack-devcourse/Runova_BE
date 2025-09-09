@@ -1,6 +1,6 @@
 import { SelectQueryBuilder } from "typeorm";
-import { CompletedCourse, CourseBookmark } from "../../modules/courses";
-import { PagingOptions } from "../../common/paging";
+import { CourseBookmark } from "../../modules/courses";
+import { PagingOptions } from "../../common/types";
 
 export function setSelect<E extends object>(
     qb: SelectQueryBuilder<E>,
@@ -9,14 +9,9 @@ export function setSelect<E extends object>(
         return qb
             .select("course.id", "id")
             .addSelect("course.title", "title")
-            .addSelect("course.imageURL", "imageURL")
+            .addSelect("course.imageUrl", "imageUrl")
             .addSelect(
-            `
-                    jsonb_build_object(
-                        'lon', ST_X(course.departure),
-                        'lat', ST_Y(course.departure),
-                    )
-                `,
+            `ST_AsGeoJSON(course.departure)::jsonb.coordinates`,
                 "departure"
             )
             .addSelect("course.length", "length")
@@ -42,24 +37,6 @@ export function setSelectBookmarked<E extends object>(
         })
             `,
         "bookmarked"
-    );
-}
-
-export function setSelectCompleted<E extends object>(
-    qb: SelectQueryBuilder<E>,
-    userId: number,
-): SelectQueryBuilder<E> {
-    return qb.addSelect(
-        `
-            EXISTS(${
-            qb.subQuery()
-                .select("1")
-                .from(CompletedCourse, "cc")
-                .where("cc.courseId = course.id")
-                .andWhere("cc.userId = :userId", { userId })
-        })
-            `,
-        "completed"
     );
 }
 

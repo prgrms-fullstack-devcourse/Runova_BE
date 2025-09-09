@@ -1,18 +1,45 @@
-import { Coordinates } from "../../common/geo";
 import { CourseNodeDTO, InspectPathResult } from "../dto";
-import converter from "../../config/proj4";
+import converter from "../../common/geo/converter";
 
-export function inspectPath(
-    path: Coordinates[],
-): InspectPathResult {
-   const segments: [number, number][] = __makeSegments(path);
-   const nodes: CourseNodeDTO[] = [];
-   let length = 0;
-   let prevSeg: [number, number] = [0, 0];
+export function inspectPath(path: [number, number][]): InspectPathResult {
+    const path5179: [number, number][] = path.map(p => converter.forward(p));
+    const wkt5179 = __makeWKT(5179, path5179);
+    const nodes = __makeCourseNodes(path, __makeSegments(path5179));
+    return { wkt5179, nodes };
+}
 
-   segments.forEach((seg, i) => {
-       const east = seg[0] - prevSeg[0];
-       const north = seg[1] - prevSeg[1];
+function __makeSegments(path: [number, number][]): [number, number][] {
+    const segments: [number, number][] = [];
+
+    for (let  i = 0; i !== path.length - 1; ++i) {
+        const [x1, y1] = path[i];
+        const [x2, y2] = path[i + 1];
+        segments.push([x2 - x1, y2 - y1]);
+    }
+
+    return segments;
+}
+
+function __makeWKT(srid: number, line: [number, number][]): string {
+
+    const inner = line
+        .map(p => p.join(' '))
+        .join(',');
+
+    return `SRID=${srid};LINESTRING(${inner})`;
+}
+
+function __makeCourseNodes(
+    path: [number, number][],
+    segments5179: [number, number][],
+): CourseNodeDTO[] {
+    const nodes: CourseNodeDTO[] = [];
+    let length = 0;
+    let prevSeg: [number, number] = [0, 0];
+
+    segments5179.forEach((seg, i) => {
+        const east = seg[0] - prevSeg[0];
+        const north = seg[1] - prevSeg[1];
 
         nodes.push({
             location: path[i],
@@ -30,34 +57,6 @@ export function inspectPath(
         bearing: 0
     });
 
-   return { length, nodes };
+    return nodes;
 }
-
-function __makeSegments(path: Coordinates[]): [number, number][] {
-
-    const line = path.map(loc => {
-        const pos: [number, number] = [loc.lon, loc.lat];
-        return converter.forward(pos);
-    });
-
-    const segments: [number, number][] = [];
-
-    for (let  i = 0; i !== line.length - 1; ++i) {
-        const [x1, y1] = line[i];
-        const [x2, y2] = line[i + 1];
-        segments.push([x2 - x1, y2 - y1]);
-    }
-
-    return segments;
-}
-
-
-
-
-
-
-
-
-
-
 

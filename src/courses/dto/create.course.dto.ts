@@ -1,9 +1,7 @@
-import { ArrayMinSize, IsString, IsUrl, ValidateNested } from "class-validator";
-import { Type } from "class-transformer";
-import { Coordinates } from "../../common/geo";
-import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
+import { IsString, IsUrl } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
+import { ApiLineProperty, IsLine } from "../../utils/decorator";
 
-@ApiExtraModels(Coordinates)
 export class CreateCourseDTO {
     userId: number;
 
@@ -13,11 +11,9 @@ export class CreateCourseDTO {
 
     @IsUrl()
     @ApiProperty({ type: "string", required: true })
-    imageURL: string;
+    imageUrl: string;
 
-    @ArrayMinSize(2)
-    @ValidateNested({ each: true })
-    @Type(() => Coordinates)
-    @ApiProperty({ type: [Coordinates], required: true, maxItems: 2 })
-    path: Coordinates[];
+    @IsLine()
+    @ApiLineProperty({ required: true })
+    path: [number, number][];
 }

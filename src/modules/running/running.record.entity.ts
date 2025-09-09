@@ -1,4 +1,4 @@
-import { EntityBase, ImmutableEntityBase } from "../../common/entity";
+import { ImmutableEntityBase } from "../../common/entity";
 import {
   Column,
   Entity,
@@ -8,8 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { User } from "../users";
-import { Course } from "../courses";
-import { Coordinates, LineStringColumn } from "../../common/geo";
+import { LineStringColumn } from "../../common/geo";
 
 @Entity("running_records")
 export class RunningRecord extends ImmutableEntityBase {
@@ -24,16 +23,11 @@ export class RunningRecord extends ImmutableEntityBase {
   @JoinColumn({ name: "user_id" })
   user: User;
 
-  @Index()
-  @Column({ name: "course_id", type: "int", nullable: true })
-  courseId: number | null;
-
-  @ManyToOne(() => Course, { onDelete: "SET NULL" })
-  @JoinColumn({ name: "course_id" })
-  course: Course | null;
-
   @LineStringColumn()
-  path: Coordinates[];
+  path: [number, number][];
+
+  @Column({ name: "art_url", type: "varchar" })
+  artUrl: string;
 
   @Column({ name: "start_at", type: "timestamptz" })
   startAt: Date;
@@ -41,8 +35,11 @@ export class RunningRecord extends ImmutableEntityBase {
   @Column({ name: "end_at", type: "timestamptz" })
   endAt: Date;
 
-  @Column({ type: "float8" })
+  @Column({ type: "float8", generatedType: "STORED", asExpression: `ST_Length(path::geography)` })
   distance: number;
+
+  @Column({ type: "float8", generatedType: "STORED", asExpression: `EXTRACT(EPOCH FROM (endAt - startAt))` })
+  duration: number;
 
   @Column({ type: "float8" })
   pace: number;

@@ -1,32 +1,18 @@
-import { Inject, Injectable, OnModuleDestroy } from "@nestjs/common";
-import { Coordinates } from "../../common/geo";
+import { Inject, Injectable } from "@nestjs/common";
+import { WorkerPoolService } from "../../config/workerpool";
 import { InspectPathResult } from "../dto";
-import { pool, Pool } from "workerpool";
-import { ConfigService } from "@nestjs/config";
 import { inspectPath } from "./inspect.path.service.internal";
 
 @Injectable()
-export class InspectPathService implements OnModuleDestroy{
-    private readonly pool: Pool;
+export class InspectPathService {
 
     constructor(
-        @Inject(ConfigService)
-        config: ConfigService,
-    ) {
-        this.pool = pool({
-                workerType: "thread",
-                maxWorkers: config.get<number>("POOL_MAX_WORKERS") ?? 10,
-                maxQueueSize: config.get<number>("POOL_MAX_QUEUE_SIZE") ?? 30,
-        });
+       @Inject(WorkerPoolService)
+       private readonly poolService: WorkerPoolService,
+    ) {}
+
+    async inspectPath(path: [number, number][]): Promise<InspectPathResult> {
+        return await this.poolService.exec(inspectPath, path);
     }
-
-    async onModuleDestroy(): Promise<void> {
-        await this.pool.terminate(true);
-    }
-
-
-    async inspect(path: Coordinates[]): Promise<InspectPathResult> {
-        return inspectPath(path);
-    }
-
 }
+

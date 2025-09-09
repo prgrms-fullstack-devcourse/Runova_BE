@@ -1,6 +1,6 @@
 import { ApiProperty, IntersectionType, PickType } from "@nestjs/swagger";
 import { IsInt } from "class-validator";
-import { RunningDashboardDTO } from "./running.dashboard.dto";
+import { RunningAggregationDTO } from "./running.aggregation.dto";
 import { Clazz } from "../../utils";
 
 class RecordsCnt {
@@ -10,15 +10,15 @@ class RecordsCnt {
 }
 
 export type RunningStatisticsDTO<
-    K extends keyof RunningDashboardDTO
-> = RecordsCnt & Pick<RunningDashboardDTO, K>;
+    K extends keyof RunningAggregationDTO
+> = RecordsCnt & Pick<RunningAggregationDTO, K>;
 
 export function RunningStatisticsSchema<
-    K extends keyof RunningDashboardDTO
+    K extends keyof RunningAggregationDTO
 >(props: K[]): Clazz<RunningStatisticsDTO<K>> {
     return IntersectionType(
         RecordsCnt,
-        PickType(RunningDashboardDTO, props)
+        PickType(RunningAggregationDTO, props)
     ) as Clazz<RunningStatisticsDTO<K>>;
 }
 

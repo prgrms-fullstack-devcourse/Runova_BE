@@ -7,6 +7,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { LoggingInterceptor } from "./common/interceptor";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+import "./common/geo/converter";
 
 async function bootstrap() {
   initializeTransactionalContext();

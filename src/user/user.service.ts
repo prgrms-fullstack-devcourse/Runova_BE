@@ -40,10 +40,8 @@ export class UserService {
 
   private async buildImageUrlFromKey(key?: string | null): Promise<string> {
     if (!key) return "";
-    if (this.cdnDomain) return `${this.cdnDomain}/${key}`;
     if (!this.s3Bucket) throw new Error("S3_BUCKET not set");
-    const cmd = new GetObjectCommand({ Bucket: this.s3Bucket, Key: key });
-    return getSignedUrl(this.s3, cmd, { expiresIn: URL_EXPIRES_SEC });
+    return `${this.cdnDomain}/${key}`;
   }
 
   private async buildAvatarDisplayUrl(

@@ -21,7 +21,7 @@ export class WorkerPoolService implements OnModuleDestroy {
         await this.pool.terminate(true);
     }
 
-    async exec<F extends (...args: any[]) => any>(
+    async exec<F extends (...args: unknown[]) => unknown>(
         f: F,
         ...args: Parameters<F>
     ): Promise<Awaited<ReturnType<F>>> {

@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
@@ -49,7 +49,8 @@ export class CoursesService {
             .returning("id")
             .execute();
 
-        const courseId: number = result.generatedMaps[0].id;
+        Logger.debug(result, CoursesService.name);
+        const courseId: number = result.raw[0].id;
 
         await this.nodesRepo.insert(
             nodes.map(node =>

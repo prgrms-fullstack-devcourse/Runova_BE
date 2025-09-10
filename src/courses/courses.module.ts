@@ -10,8 +10,13 @@ import { CoursesController } from "./controller";
 import { RunningRecord } from "../modules/running";
 import { RunningDashboardsService } from "../running/service";
 import { RunningModule } from "../running/running.module";
+import { WorkerPoolModule, WorkerPoolService } from "../config/workerpool";
+import { resolve } from "node:path";
 
-const __EXTERNAL_PROVIDERS = [RunningDashboardsService];
+const __EXTERNAL_PROVIDERS = [
+    WorkerPoolService,
+    RunningDashboardsService
+];
 
 @Module({
   imports: [
@@ -21,6 +26,7 @@ const __EXTERNAL_PROVIDERS = [RunningDashboardsService];
           CourseBookmark,
           RunningRecord,
       ]),
+      WorkerPoolModule.register(resolve(__dirname, "/worker/inspect.path.worker.js")),
       forwardRef(() => RunningModule),
   ],
   providers: [

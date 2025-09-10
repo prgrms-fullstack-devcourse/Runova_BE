@@ -42,7 +42,7 @@ export class SearchCoursesController {
             .searchUserCourses({ userId, pace, paging: query });
     }
 
-    @Get("/search/bookmarked")
+    @Get("/bookmarked")
     @ApiOperation({ summary: "북마크한 경로 검색" })
     @ApiBearerAuth()
     @ApiQuery({ type: BasicPagingOptions, required: false })
@@ -59,7 +59,7 @@ export class SearchCoursesController {
             .searchBookmarkedCourses({ userId, pace, paging: query });
     }
 
-    @Get("/search/adjacent")
+    @Get("/adjacent")
     @ApiOperation({ summary: "주변 경로 검색" })
     @ApiBearerAuth()
     @ApiQuery({ type: SearchAdjacentCoursesQuery, required: true })

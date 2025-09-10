@@ -6,17 +6,19 @@ import {
     ApiOperation, ApiParam, ApiQuery,
     ApiTags
 } from "@nestjs/swagger";
-import { Body, Controller, Get, Inject, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Param, Post, Query, UseGuards, UseInterceptors } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { RunningRecordsService } from "../service";
 import { CreateRunningRecordBody, SearchRunningRecordsQuery, SearchRunningRecordsResponse } from "../api";
 import { Cached, Caching, User } from "../../utils/decorator";
 import { RunningRecordDTO } from "../dto";
 import { HOUR_IN_MS } from "../../common/constants/datetime";
+import { CacheInterceptor } from "../../common/interceptor";
 
 @ApiTags("Running")
 @Controller("/api/running/records")
 @UseGuards(AuthGuard("jwt"))
+@UseInterceptors(CacheInterceptor)
 export class RunningRecordsController {
 
     constructor(

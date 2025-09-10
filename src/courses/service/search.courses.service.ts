@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Course, CourseBookmark } from "../../modules/courses";
 import { Repository, SelectQueryBuilder } from "typeorm";
@@ -49,8 +49,6 @@ export class SearchCoursesService {
         return qb.getRawMany<CourseDTO>();
     }
 
-
-
     async searchAdjacentCourses(
         dto: SearchAdjacentCoursesDTO
     ): Promise<CourseDTO[]> {
@@ -59,25 +57,20 @@ export class SearchCoursesService {
         const qb: SelectQueryBuilder<Course> = this.coursesRepo
             .createQueryBuilder("course");
 
-        qb.addCommonTableExpression(
-                `
-                SELECT ST_SetSRID(ST_MakePoint(:...coords), 4326) AS geom
-                `,
-                "location"
-            ).setParameter("coords", location)
-            .addFrom("location", "loc");
-
         setSelect(qb, pace);
         setSelectBookmarked(qb, userId);
 
-        const distExpr = `course.departure::geography <-> loc.geom::geography`;
-        qb.addSelect(distExpr, "distance");
+        const locExpr = `ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)`;
+        const distExpr = `course.departure::geography <-> ${locExpr}::geography`;
 
-        qb.where(`ST_DWithin(course.departure, loc.geom, :radius)`, { radius });
+        qb.addSelect(distExpr, "distance")
+            .setParameters({ lon: location[0], lat: location[1] });
+
+        qb.where(`ST_DWithin(course.departure, ${locExpr}, :radius)`, { radius });
 
         if (paging?.cursor) {
             qb.andWhere(
-                `(${distExpr}) > :distance OR ((${distExpr}) = :kId AND course.id < :id)`,
+                `(${distExpr}) > :distance OR ((${distExpr}) = :distance AND course.id < :id)`,
                 paging.cursor,
             );
         }
@@ -86,7 +79,9 @@ export class SearchCoursesService {
         qb.addOrderBy(`course.id`, "DESC");
         qb.take(paging?.limit ?? 10);
 
-        return qb.getRawMany<CourseDTO>();
+        const result = await qb.getRawMany<CourseDTO>();
+        Logger.debug(result, SearchCoursesService.name);
+        return result;
     }
 }
 

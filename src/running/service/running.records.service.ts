@@ -4,16 +4,15 @@ import { RunningRecord } from "../../modules/running";
 import {
     Between,
     FindManyOptions,
-    FindOptionsWhere,
+    FindOptionsWhere, LessThan,
     LessThanOrEqual,
-    MoreThan,
     MoreThanOrEqual,
     Repository
 } from "typeorm";
 import { Transactional } from "typeorm-transactional";
 import { CreateRunningRecordDTO, RunningRecordDTO, SearchRunningRecordsDTO } from "../dto";
 import { omit } from "../../utils/object";
-import { Period } from "../../common/types";
+import { Cursor, Period } from "../../common/types";
 
 @Injectable()
 export class RunningRecordsService {
@@ -38,7 +37,6 @@ export class RunningRecordsService {
         return omit(record, ["userId", "user", "createdAt"]);
     }
 
-    // 메모리 낭비적 구현, 개선 필요
     async searchRunningRecords(
         dto: SearchRunningRecordsDTO
     ): Promise<RunningRecordDTO[]> {
@@ -67,7 +65,7 @@ function __makeFindOptions(
 function __makeFindOptionsWhere(
     userId: number,
     period?: Period,
-    cursor?: number,
+    cursor?: Cursor,
 ): FindOptionsWhere<RunningRecord> {
     const where: FindOptionsWhere<RunningRecord> = { userId };
 
@@ -78,7 +76,6 @@ function __makeFindOptionsWhere(
     else if (period?.until)
         where.createdAt = LessThanOrEqual(period.until);
 
-    cursor && (where.id = MoreThan(cursor));
+    cursor && (where.id = LessThan(cursor.id));
     return where;
 }
-

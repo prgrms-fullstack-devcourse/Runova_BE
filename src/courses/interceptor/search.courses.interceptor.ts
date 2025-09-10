@@ -1,17 +1,16 @@
 import { CallHandler, ExecutionContext, Inject, Injectable, NestInterceptor } from "@nestjs/common";
 import { SearchCoursesResponse } from "../api";
-import { map, Observable } from "rxjs";
+import { Observable } from "rxjs";
 import { GetRecentPaceService } from "../service";
 import { HOUR_IN_MS } from "../../common/constants/datetime";
 import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
-import { CourseDTO } from "../dto";
 
 const __TTL = 12 * HOUR_IN_MS;
 
 @Injectable()
 export class SearchCoursesInterceptor
     implements NestInterceptor<
-        CourseDTO[],
+        SearchCoursesResponse,
         SearchCoursesResponse
     >
 {
@@ -25,7 +24,7 @@ export class SearchCoursesInterceptor
 
     async intercept(
         ctx: ExecutionContext,
-        next: CallHandler<CourseDTO[]>
+        next: CallHandler<SearchCoursesResponse>
     ): Promise<Observable<SearchCoursesResponse>> {
         const req = ctx.switchToHttp().getRequest();
         req.user.pace = await this.getPace(req.user.userId);
@@ -34,12 +33,7 @@ export class SearchCoursesInterceptor
             req.cached = req.cached.results;
         }
 
-        return next.handle().pipe(
-            map(results => {
-                const nextCursor = __makeNextCursor(results);
-                return { results, nextCursor };
-            })
-        )
+        return next.handle();
     }
 
     private async getPace(userId: number): Promise<number> {
@@ -57,17 +51,4 @@ export class SearchCoursesInterceptor
 
 function __makeKey(userId: number): string {
     return `user:${userId}:pace`;
-}
-
-function __makeNextCursor(
-    results: CourseDTO[],
-): string | null {
-    const last = results.at(-1);
-    if (!last) return null;
-
-    return JSON.stringify(
-        last.distance === null
-            ?  { id: last.id }
-            : { id: last.id, distance: last.distance }
-    );
 }

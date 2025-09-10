@@ -11,6 +11,7 @@ import { CacheInterceptor } from "../../common/interceptor";
 @ApiTags("Running", "Dashboards")
 @Controller("/api/running/dashboards")
 @UseGuards(AuthGuard("jwt"))
+@UseInterceptors(CacheInterceptor)
 export class RunningDashboardsController {
 
     constructor(
@@ -25,7 +26,6 @@ export class RunningDashboardsController {
     @ApiOkResponse({ type: RunningDashboardDTO })
     @ApiForbiddenResponse()
     @Caching({ ttl: HOUR_IN_MS })
-    @UseInterceptors(CacheInterceptor)
     async getRunningDashboard(
         @User("userId") userId: number,
         @Query() query?: Period,

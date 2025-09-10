@@ -6,7 +6,7 @@ export function workerPoolOptionsFactory(
 ): WorkerPoolOptions {
     return {
         workerType: "thread",
-        maxWorkers: config.get<number>("POOL_MAX_WORKERS") ?? 10,
+        maxWorkers: config.get<number>("POOL_MAX_WORKERS") ?? 5,
         maxQueueSize: config.get<number>("POOL_MAX_QUEUE_SIZE") ?? 30,
     };
 }

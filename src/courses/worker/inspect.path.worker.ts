@@ -1,6 +1,7 @@
 import type { CourseNodeDTO, InspectPathResult } from "../dto";
 import converter from "../../common/geo/converter";
 import workerpool from "workerpool";
+import { isMainThread, parentPort } from 'node:worker_threads';
 
 export function inspectPath(path: [number, number][]): InspectPathResult {
     const path5179: [number, number][] = path.map(p => converter.forward(p));
@@ -61,5 +62,8 @@ function __makeCourseNodes(
     return nodes;
 }
 
-workerpool.worker({ inspectPath });
+const hasIPC = typeof (process as any).send === 'function';
+const inWorkerThread = !isMainThread && typeof parentPort !== 'undefined' && parentPort !== null;
+if (hasIPC || inWorkerThread) workerpool.worker({ inspectPath });
+
 

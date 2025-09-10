@@ -1,6 +1,6 @@
 import { SelectQueryBuilder } from "typeorm";
 import { CourseBookmark } from "../../modules/courses";
-import { PagingOptions } from "../../common/types";
+import { Cursor, PagingOptions } from "../../common/types";
 
 export function setSelect<E extends object>(
     qb: SelectQueryBuilder<E>,
@@ -46,9 +46,9 @@ export function setSelectBookmarked<E extends object>(
 
 export function setPagingOptions<E extends object>(
     qb: SelectQueryBuilder<E>,
-    options: PagingOptions,
+    options: PagingOptions<Cursor>,
 ): SelectQueryBuilder<E> {
-    options.cursor && qb.andWhere("course.id < :cursor", { cursor: options.cursor });
+    options.cursor && qb.andWhere("course.id < :lastId", { cursor: options.cursor.lastId });
     qb.limit(options.limit);
     return qb;
 }

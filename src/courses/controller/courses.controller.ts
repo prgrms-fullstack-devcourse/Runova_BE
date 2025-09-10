@@ -24,11 +24,10 @@ import { CourseBookmarksService, CoursesService, SearchCoursesService } from "..
 import { Cached, Caching, User } from "../../utils/decorator";
 import {
     CreateCourseBody,
-    SearchAdjacentCoursesQuery,
+    SearchAdjacentCoursesQuery, SearchCoursesQuery,
     SearchCoursesResponse, UpdateBookmarkResponse, UpdateCourseBody
 } from "../api";
 import { AuthGuard } from "@nestjs/passport";
-import { PagingOptions } from "../../common/types";
 import { CourseTopologyDTO } from "../dto";
 import { HOUR_IN_MS, MINUTE_IN_MS } from "../../common/constants/datetime";
 import { CacheInterceptor } from "../../common/interceptor";
@@ -66,7 +65,7 @@ export class CoursesController {
     @Get("/search/users")
     @ApiOperation({ summary: "내가 만든 경로 검색" })
     @ApiBearerAuth()
-    @ApiQuery({ type: PagingOptions, required: false })
+    @ApiQuery({ type: SearchCoursesQuery, required: false })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
     @Caching({ ttl: 15 * MINUTE_IN_MS })
@@ -74,7 +73,7 @@ export class CoursesController {
     async searchUserCourses(
         @User("userId") userId: number,
         @User("pace") pace: number,
-        @Query() query?: PagingOptions,
+        @Query() query?: SearchCoursesQuery,
         @Cached() cached?: SearchCoursesResponse,
     ): Promise<SearchCoursesResponse> {
         if (cached) return cached;
@@ -88,7 +87,7 @@ export class CoursesController {
     @Get("/search/bookmarked")
     @ApiOperation({ summary: "북마크한 경로 검색" })
     @ApiBearerAuth()
-    @ApiQuery({ type: PagingOptions, required: false })
+    @ApiQuery({ type: SearchCoursesQuery, required: false })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
     @Caching({ ttl: 15 * MINUTE_IN_MS })
@@ -96,7 +95,7 @@ export class CoursesController {
     async searchBookmarkedCourses(
         @User("userId") userId: number,
         @User("pace") pace: number,
-        @Query() query?: PagingOptions,
+        @Query() query?: SearchCoursesQuery,
         @Cached() cached?: SearchCoursesResponse,
     ): Promise<SearchCoursesResponse> {
         if (cached) return cached;

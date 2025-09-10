@@ -7,11 +7,7 @@ import {
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Course, CourseBookmark, CourseNode } from "../modules/courses";
 import { CoursesController } from "./controller";
-import { RunningRecord } from "../modules/running";
-import { RunningDashboardsService } from "../running/service";
-import { RunningModule } from "../running/running.module";
-
-const __EXTERNAL_PROVIDERS = [RunningDashboardsService];
+import { SearchCoursesInterceptor } from "./interceptor";
 
 @Module({
   imports: [
@@ -19,17 +15,15 @@ const __EXTERNAL_PROVIDERS = [RunningDashboardsService];
           Course,
           CourseNode,
           CourseBookmark,
-          RunningRecord,
       ]),
-      forwardRef(() => RunningModule),
   ],
   providers: [
-      ...__EXTERNAL_PROVIDERS,
       CoursesService,
       CourseBookmarksService,
       SearchCoursesService,
       GetRecentPaceService,
       InspectPathService,
+      SearchCoursesInterceptor,
   ],
   controllers: [CoursesController],
 })

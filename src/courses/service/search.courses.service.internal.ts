@@ -20,7 +20,7 @@ export function setSelect<E extends object>(
             .addSelect("course.createdAt", "createdAt")
             .innerJoin("course.user", "user")
             .addSelect(
-                `jsonb_build_object('nickname', user.nickname, 'avatarUrl', user.avatarUrl)`,
+                `jsonb_build_object('nickname', "user"."nickname", 'avatarUrl', "user"."avatarUrl")`,
                 "author"
             );
 }

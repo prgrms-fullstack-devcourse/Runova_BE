@@ -26,7 +26,7 @@ const __EXTERNAL_PROVIDERS = [
           CourseBookmark,
           RunningRecord,
       ]),
-      WorkerPoolModule.register(resolve(__dirname, "/worker/inspect.path.worker.js")),
+      WorkerPoolModule.register(resolve(__dirname, "./worker/inspect.path.worker.js")),
       forwardRef(() => RunningModule),
   ],
   providers: [

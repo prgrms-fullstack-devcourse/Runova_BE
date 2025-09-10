@@ -2,8 +2,9 @@
  * Jest tests + performance benchmarks for inspectPath
  */
 
-import { inspectPath } from "./inspect.path.worker";
+import worker from "./inspect.path.worker";
 import converter from "../../common/geo/converter";
+const inspectPath = worker.run;
 
 /** Build a polyline roughly ~10–15km long around central Seoul */
 function buildSamplePath(points = 500): [number, number][] {
@@ -207,10 +208,10 @@ describe("inspectPath", () => {
             const result = inspectPath(path);
             
             // Should be valid LINESTRING format
-            expect(result.wkt5179).toMatch(/^SRID=5179;LINESTRING\([0-9\.\-\s,]+\)$/);
+            expect(result.wkt5179).toMatch(/^SRID=5179;LINESTRING\([0-9.\-\s,]+\)$/);
             
             // Should have correct number of coordinate pairs
-            const coordPairs = result.wkt5179.match(/[0-9\.\-]+\s+[0-9\.\-]+/g);
+            const coordPairs = result.wkt5179.match(/[0-9.\-]+\s+[0-9.\-]+/g);
             expect(coordPairs).toHaveLength(path.length);
         });
 

@@ -2,8 +2,10 @@ import type { CourseNodeDTO, InspectPathResult } from "../dto";
 import converter from "../../common/geo/converter";
 import workerpool from "workerpool";
 import { isMainThread, parentPort } from 'node:worker_threads';
+import { resolve } from "node:path";
+import { DedicatedWorker } from "../../config/workerpool";
 
-export function inspectPath(path: [number, number][]): InspectPathResult {
+function inspectPath(path: [number, number][]): InspectPathResult {
     const path5179: [number, number][] = path.map(p => converter.forward(p));
     const wkt5179 = __makeWKT(5179, path5179);
     const nodes = __makeCourseNodes(path, __makeSegments(path5179));
@@ -62,8 +64,15 @@ function __makeCourseNodes(
     return nodes;
 }
 
+
+
 const hasIPC = typeof (process as any).send === 'function';
 const inWorkerThread = !isMainThread && typeof parentPort !== 'undefined' && parentPort !== null;
 if (hasIPC || inWorkerThread) workerpool.worker({ inspectPath });
+
+export default {
+    run: inspectPath,
+    filename: resolve(__filename),
+} as DedicatedWorker<typeof inspectPath>;
 
 

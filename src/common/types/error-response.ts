@@ -7,3 +7,5 @@ export interface ErrorResponseBody {
   timestamp: string; // ISO
   requestId?: string; // (선택) X-Request-Id 등
 }
+
+

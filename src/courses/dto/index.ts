@@ -4,5 +4,6 @@ export * from "./course.topology.dto";
 export * from "./create.course.dto";
 export * from "./search.courses.dto";
 export * from "./search.adjacent.courses.dto";
+export * from "./search.adjacent.courses.cursor";
 export * from "./update.course.dto";
 export * from "./inspect.path.result";

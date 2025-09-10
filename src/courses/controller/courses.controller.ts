@@ -8,7 +8,6 @@ import {
     Patch,
     Post,
     Put,
-    Query,
     UseGuards,
     UseInterceptors
 } from "@nestjs/common";
@@ -17,22 +16,16 @@ import {
     ApiBearerAuth,
     ApiBody,
     ApiCreatedResponse, ApiForbiddenResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse,
-    ApiOperation, ApiParam, ApiQuery, ApiResetContentResponse,
+    ApiOperation, ApiParam, ApiResetContentResponse,
     ApiTags
 } from "@nestjs/swagger";
-import { CourseBookmarksService, CoursesService, SearchCoursesService } from "../service";
+import { CourseBookmarksService, CoursesService } from "../service";
 import { Cached, Caching, User } from "../../utils/decorator";
-import {
-    CreateCourseBody,
-    SearchAdjacentCoursesQuery,
-    SearchCoursesResponse, UpdateBookmarkResponse, UpdateCourseBody
-} from "../api";
+import { CreateCourseBody, UpdateBookmarkResponse, UpdateCourseBody } from "../api";
 import { AuthGuard } from "@nestjs/passport";
-import { PagingOptions } from "../../common/types";
 import { CourseTopologyDTO } from "../dto";
-import { HOUR_IN_MS, MINUTE_IN_MS } from "../../common/constants/datetime";
+import { HOUR_IN_MS } from "../../common/constants/datetime";
 import { CacheInterceptor } from "../../common/interceptor";
-import { SearchCoursesInterceptor } from "../interceptor";
 
 @ApiTags("Courses")
 @Controller("/api/courses")
@@ -43,8 +36,6 @@ export class CoursesController {
     constructor(
         @Inject(CoursesService)
         private readonly coursesService: CoursesService,
-        @Inject(SearchCoursesService)
-        private readonly searchCoursesService: SearchCoursesService,
         @Inject(CourseBookmarksService)
         private readonly bookmarksService: CourseBookmarksService,
     ) {}
@@ -63,71 +54,7 @@ export class CoursesController {
         await this.coursesService.createCourse({ userId, ...body });
     }
 
-    @Get("/search/users")
-    @ApiOperation({ summary: "내가 만든 경로 검색" })
-    @ApiBearerAuth()
-    @ApiQuery({ type: PagingOptions, required: false })
-    @ApiOkResponse({ type: SearchCoursesResponse })
-    @ApiForbiddenResponse()
-    @Caching({ ttl: 15 * MINUTE_IN_MS })
-    @UseInterceptors(SearchCoursesInterceptor)
-    async searchUserCourses(
-        @User("userId") userId: number,
-        @User("pace") pace: number,
-        @Query() query?: PagingOptions,
-        @Cached() cached?: SearchCoursesResponse,
-    ): Promise<SearchCoursesResponse> {
-        if (cached) return cached;
 
-        const results = await this.searchCoursesService
-            .searchUserCourses({ userId, pace, paging: query });
-
-        return { results };
-    }
-
-    @Get("/search/bookmarked")
-    @ApiOperation({ summary: "북마크한 경로 검색" })
-    @ApiBearerAuth()
-    @ApiQuery({ type: PagingOptions, required: false })
-    @ApiOkResponse({ type: SearchCoursesResponse })
-    @ApiForbiddenResponse()
-    @Caching({ ttl: 15 * MINUTE_IN_MS })
-    @UseInterceptors(SearchCoursesInterceptor)
-    async searchBookmarkedCourses(
-        @User("userId") userId: number,
-        @User("pace") pace: number,
-        @Query() query?: PagingOptions,
-        @Cached() cached?: SearchCoursesResponse,
-    ): Promise<SearchCoursesResponse> {
-        if (cached) return cached;
-
-        const results = await this.searchCoursesService
-            .searchBookmarkedCourses({ userId, pace, paging: query });
-
-        return { results };
-    }
-
-    @Get("/search/adjacent")
-    @ApiOperation({ summary: "주변 경로 검색" })
-    @ApiBearerAuth()
-    @ApiQuery({ type: SearchAdjacentCoursesQuery, required: true })
-    @ApiOkResponse({ type: SearchCoursesResponse })
-    @ApiForbiddenResponse()
-    @Caching({ ttl: 15 * MINUTE_IN_MS })
-    @UseInterceptors(SearchCoursesInterceptor)
-    async searchAdjacentCourses(
-       @User("userId") userId: number,
-       @User("pace") pace: number,
-       @Query() query: SearchAdjacentCoursesQuery,
-       @Cached() cached?: SearchCoursesResponse,
-    ): Promise<SearchCoursesResponse> {
-        if (cached) return cached;
-
-        const results = await this.searchCoursesService
-            .searchAdjacentCourses({ userId, pace, ...query });
-
-        return { results };
-    }
 
     @Get("/:id/topology")
     @ApiOperation({ summary: "경로 노드(경로의 양 끝 점과 방향 전환이 발생하는 점들)와 경로의 모형(polygon) 조회"})

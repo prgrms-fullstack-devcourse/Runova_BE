@@ -62,7 +62,7 @@ export class CoursesService {
     async getCourseTopology(id: number): Promise<CourseTopologyDTO> {
 
         const course = await this.coursesRepo.findOne({
-            select: ["id", "shape", "nodes"],            
+            select: ["id", "shape", "nodes"],
             where: { id },
             relations: { nodes: true },
         });

@@ -1,15 +1,9 @@
 import type { CourseNodeDTO, InspectPathResult } from "../dto";
-import proj from "proj4";
-
-const __WGS84 = "EPSG:4326";
-const __UTM_K = "EPSG:5179";
-const __PROJ = "+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996 +x_0=1000000 +y_0=2000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs";
-
-proj.defs(__UTM_K, __PROJ);
-const __converter = proj(__WGS84, __UTM_K);
+import converter from "../../common/geo/converter";
+import { worker } from "workerpool";
 
 export function inspectPath(path: [number, number][]): InspectPathResult {
-    const path5179: [number, number][] = path.map(p => __converter.forward(p));
+    const path5179: [number, number][] = path.map(p => converter.forward(p));
     const wkt5179 = __makeWKT(5179, path5179);
     const nodes = __makeCourseNodes(path, __makeSegments(path5179));
     return { wkt5179, nodes };
@@ -66,4 +60,7 @@ function __makeCourseNodes(
 
     return nodes;
 }
+
+worker({ inspectPath });
+
 

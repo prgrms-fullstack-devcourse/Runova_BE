@@ -1,7 +1,7 @@
-import { PagingOptions } from "../../common/types";
+import { BasicPagingOptions } from "../../common/types";
 
-export class SearchCoursesDTO {
+export interface SearchCoursesDTO {
     userId: number;
     pace: number;
-    paging?: PagingOptions;
+    paging?: BasicPagingOptions;
 }

@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsDate, IsNumber } from "class-validator";
-import { Type } from "class-transformer";
 import { ApiLineProperty, IsLine } from "../../utils/decorator";
+import { Type } from "class-transformer";
 
 export class CreateRunningRecordDTO {
     userId: number;
@@ -11,7 +11,7 @@ export class CreateRunningRecordDTO {
     path: [number, number][];
 
     @IsDate()
-    @Type(() => Date)    
+    @Type(() => Date)
     @ApiProperty({ type: Date, required: true, description: "러닝 시작 일시"})
     startAt: Date;
 

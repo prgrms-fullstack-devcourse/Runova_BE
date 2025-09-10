@@ -13,7 +13,7 @@ export class CourseBookmarksService {
     ) {}
 
     @Transactional()
-    async updateBookmark(userId: number, courseId: number): Promise<boolean> {
+    async updateBookmark(courseId: number, userId: number): Promise<boolean> {
 
         const bookmark = await this.bookmarksRepo
             .createQueryBuilder("bookmark")

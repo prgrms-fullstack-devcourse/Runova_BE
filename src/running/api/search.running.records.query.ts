@@ -1,6 +1,6 @@
-import { IntersectionType, OmitType } from "@nestjs/swagger";
-import { SearchRunningRecordsDTO } from "../dto";
-import { PagingOptions, Period } from "../../common/types";
+import { IntersectionType } from "@nestjs/swagger";
+import { BasicPagingOptions, Period } from "../../common/types";
 
-export class SearchRunningRecordsQuery
-    extends IntersectionType(Period, PagingOptions) {}
+export class SearchRunningRecordsQuery extends IntersectionType(
+    Period, BasicPagingOptions,
+) {}

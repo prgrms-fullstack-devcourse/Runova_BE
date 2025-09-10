@@ -28,6 +28,11 @@ export class SearchCoursesInterceptor
     ): Promise<Observable<SearchCoursesResponse>> {
         const req = ctx.switchToHttp().getRequest();
         req.user.pace = await this.getPace(req.user.userId);
+
+        if (req.cached?.results) {
+            req.cached = req.cached.results;
+        }
+
         return next.handle();
     }
 

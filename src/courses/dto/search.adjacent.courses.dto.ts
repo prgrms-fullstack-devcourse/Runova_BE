@@ -2,9 +2,6 @@ import { ApiProperty } from "@nestjs/swagger";
 import { Transform, Type } from "class-transformer";
 import { IsNumber, Min } from "class-validator";
 import { IsPoint } from "../../utils/decorator";
-import { SearchCoursesDTO } from "./search.courses.dto";
-import { PagingOptions } from "../../common/types";
-import { SearchAdjacentCoursesCursor } from "./search.adjacent.courses.cursor";
 
 export class SearchAdjacentCoursesDTO {
     userId: number;
@@ -29,6 +26,4 @@ export class SearchAdjacentCoursesDTO {
     @Type(() => Number)
     @ApiProperty({ type: "number", required: true, minimum: 100, description: "검색 반경(m)" })
     radius: number;
-
-    paging?: PagingOptions<SearchAdjacentCoursesCursor>;
 }

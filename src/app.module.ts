@@ -15,7 +15,6 @@ import { CacheModule } from "@nestjs/cache-manager";
 import { cacheOptionsFactory } from "./config/cache";
 import { FilesModule } from "./files/files.module";
 import Redis from "iovalkey";
-import { WorkerPoolModule } from "./config/workerpool";
 import { UserModule } from "./user/user.module";
 
 @Module({
@@ -35,7 +34,6 @@ import { UserModule } from "./user/user.module";
       useFactory: cacheOptionsFactory,
       inject: [Redis],
     }),
-    WorkerPoolModule,
     AuthModule,
     CommunityModule,
     CoursesModule,

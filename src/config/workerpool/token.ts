@@ -1,0 +1,2 @@
+
+export const WORKER_POOL_OPTIONS = Symbol("WORKER_POOL_OPTIONS");

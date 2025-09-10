@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { WorkerPoolService } from "../../config/workerpool";
 import { InspectPathResult } from "../dto";
-import { inspectPath } from "./inspect.path.service.internal";
+import { inspectPath } from "../worker/inspect.path.worker";
 
 @Injectable()
 export class InspectPathService {
@@ -12,8 +12,7 @@ export class InspectPathService {
     ) {}
 
     async inspectPath(path: [number, number][]): Promise<InspectPathResult> {
-        return inspectPath(path);
-        //return await this.poolService.exec(inspectPath, path);
+        return await this.poolService.exec(inspectPath, path);
     }
 }
 

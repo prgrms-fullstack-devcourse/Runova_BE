@@ -1,20 +1,14 @@
-import { Inject, Injectable, OnModuleDestroy } from "@nestjs/common";
-import { Pool, pool } from "workerpool";
-import { ConfigService } from "@nestjs/config";
+import { OnModuleDestroy } from "@nestjs/common";
+import { Pool, pool, WorkerPoolOptions } from "workerpool";
 
-@Injectable()
 export class WorkerPoolService implements OnModuleDestroy {
     private readonly pool: Pool;
 
     constructor(
-        @Inject(ConfigService)
-        config: ConfigService,
+        workerPath: string,
+        options: WorkerPoolOptions,
     ) {
-        this.pool = pool({
-            workerType: "thread",
-            maxWorkers: config.get<number>("POOL_MAX_WORKERS") ?? 10,
-            maxQueueSize: config.get<number>("POOL_MAX_QUEUE_SIZE") ?? 30,
-        });
+        this.pool = pool(workerPath, options);
     }
 
     async onModuleDestroy(): Promise<void> {
@@ -25,6 +19,6 @@ export class WorkerPoolService implements OnModuleDestroy {
         f: F,
         ...args: Parameters<F>
     ): Promise<Awaited<ReturnType<F>>> {
-        return await this.pool.exec<F>(f, args);
+        return await this.pool.exec(f.name, args);
     }
 }

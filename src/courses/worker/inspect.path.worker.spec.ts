@@ -2,7 +2,7 @@
  * Jest tests + performance benchmarks for inspectPath
  */
 
-import { inspectPath } from "./inspect.path.service.internal";
+import { inspectPath } from "./inspect.path.worker";
 import converter from "../../common/geo/converter";
 
 /** Build a polyline roughly ~10–15km long around central Seoul */

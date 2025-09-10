@@ -16,15 +16,3 @@ export async function plainToInstanceOrReject<T extends object>(
     await validateOrReject(instance, options?.validate);
     return instance;
 }
-
-export async function plainsToInstancesOrReject<T extends object>(
-    cls: Clazz<T>,
-    plains: any[],
-    options?: TransformAndValidateOptions,
-): Promise<T[]> {
-    return Promise.all(
-        plains.map(plain =>
-            plainToInstanceOrReject(cls, plain, options)
-        )
-    );
-}

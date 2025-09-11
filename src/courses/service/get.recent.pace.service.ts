@@ -35,7 +35,7 @@ export class GetRecentPaceService {
             )
             .getRawOne<{ recentPace: number }>();
 
-        return result?.recentPace ?? this.defaultPace;
+        return result?.recentPace || this.defaultPace;
     }
 
 }

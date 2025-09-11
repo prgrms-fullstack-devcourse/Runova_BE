@@ -1,9 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
+import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { Course, CourseBookmark } from "../../modules/courses";
-import { Repository, SelectQueryBuilder } from "typeorm";
+import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
 import { CourseDTO, SearchAdjacentCoursesDTO, SearchCoursesDTO } from "../dto";
 import { setSelect, setSelectBookmarked } from "./search.courses.service.internal";
+import { RunningRecord } from "../../modules/running";
 
 @Injectable()
 export class SearchCoursesService {
@@ -13,6 +14,8 @@ export class SearchCoursesService {
         private readonly coursesRepo: Repository<Course>,
         @InjectRepository(CourseBookmark)
         private readonly bookmarksRepo: Repository<CourseBookmark>,
+        @InjectDataSource()
+        private readonly ds: DataSource,
     ) {}
 
     async searchUserCourses(dto: SearchCoursesDTO): Promise<CourseDTO[]> {
@@ -42,6 +45,25 @@ export class SearchCoursesService {
         setSelect(qb, pace);
         qb.addSelect(`true`, "bookmarked");
         qb.where("bookmark.userId = :userId", { userId });
+        paging?.cursor && qb.andWhere(`course.id < :id`, paging.cursor);
+        qb.orderBy(`course.id`, "DESC");
+        qb.take(paging?.limit ?? 10);
+
+        return qb.getRawMany<CourseDTO>();
+    }
+
+    async searchCompletedCourses(dto: SearchCoursesDTO): Promise<CourseDTO[]> {
+        const { userId, pace, paging } = dto;
+
+        const qb = this.ds
+            .createQueryBuilder()
+            .from(RunningRecord, "record")
+            .innerJoin(`record.course`, "course")
+            .where(`record.userId = :userId`, { userId })
+            .andWhere(`record.courseId IS NOT NULL`);
+
+        setSelect(qb, pace);
+        setSelectBookmarked(qb, userId);
         paging?.cursor && qb.andWhere(`course.id < :id`, paging.cursor);
         qb.orderBy(`course.id`, "DESC");
         qb.take(paging?.limit ?? 10);

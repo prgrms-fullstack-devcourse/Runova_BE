@@ -2,18 +2,25 @@ import {
     ApiBadRequestResponse,
     ApiBearerAuth,
     ApiBody,
-    ApiCreatedResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiOkResponse,
-    ApiOperation, ApiParam, ApiQuery,
+    ApiConflictResponse,
+    ApiCreatedResponse,
+    ApiForbiddenResponse,
+    ApiNotFoundResponse,
+    ApiOkResponse,
+    ApiOperation,
+    ApiParam,
+    ApiQuery,
     ApiTags
 } from "@nestjs/swagger";
-import { Body, Controller, Get, Inject, Param, Post, Query, UseGuards, UseInterceptors } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Logger, Param, Post, Query, UseGuards, UseInterceptors } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { RunningRecordsService } from "../service";
-import { CreateRunningRecordBody, SearchRunningRecordsQuery, SearchRunningRecordsResponse } from "../api";
+import { RecordRunningBody, RecordRunningQuery, SearchRunningRecordsQuery, SearchRunningRecordsResponse } from "../api";
 import { Cached, Caching, User } from "../../utils/decorator";
-import { RunningRecordDTO } from "../dto";
+import { RunningRecordDTO, RunningRecordPreviewDTO } from "../dto";
 import { HOUR_IN_MS } from "../../common/constants/datetime";
 import { CacheInterceptor } from "../../common/interceptor";
+import { SearchRunningRecordsInterceptor } from "../interceptor";
 
 @ApiTags("Running")
 @Controller("/api/running/records")
@@ -29,19 +36,26 @@ export class RunningRecordsController {
     @Post("/")
     @ApiOperation({ summary: "러닝 기록 저장" })
     @ApiBearerAuth()
-    @ApiBody({ type: CreateRunningRecordBody, required: true })
+    @ApiQuery({ type: RecordRunningQuery, required: false })
+    @ApiBody({ type: RecordRunningBody, required: true })
     @ApiCreatedResponse()
     @ApiBadRequestResponse()
     @ApiForbiddenResponse()
-    async createRunningRecord(
+    @ApiNotFoundResponse({ description: "존재하지 않는 courseId" })
+    @ApiConflictResponse({ description: "courseId에 해당하는 경로의 모양과 실제 러닝 경로가 많이 다름" })
+    async recordRunning(
         @User("userId") userId: number,
-        @Body() body: CreateRunningRecordBody,
+        @Body() body: RecordRunningBody,
+        @Query() query?: RecordRunningQuery,
     ): Promise<void> {
+        Logger.debug(query, RunningRecordsController.name);
+        const courseId = query?.courseId;
+
         await this.recordsService
-            .createRunningRecord({ userId, ...body });
+            .createRunningRecord({ userId, courseId, ...body });
     }
 
-    @Get("/detail/:id")
+    @Get("/:id")
     @ApiOperation({ summary: "러닝 기록 상세 정보 조회" })
     @ApiBearerAuth()
     @ApiParam({ name: "id", type: "integer", required: true, description: "조회할 러닝 기록 아이디" })
@@ -62,20 +76,19 @@ export class RunningRecordsController {
     @ApiOkResponse({ type: SearchRunningRecordsResponse })
     @ApiForbiddenResponse()
     @Caching({ ttl: HOUR_IN_MS })
+    @UseInterceptors(SearchRunningRecordsInterceptor)
     async searchRunningRecords(
         @User("userId") userId: number,
         @Query() query?: SearchRunningRecordsQuery,
-        @Cached() data?: SearchRunningRecordsResponse,
-    ): Promise<SearchRunningRecordsResponse> {
-        if (data) return data;
+        @Cached() cached?: SearchRunningRecordsResponse,
+    ): Promise<SearchRunningRecordsResponse | RunningRecordPreviewDTO[]> {
+        if (cached) return cached;
 
-        const results = await this.recordsService
+        return await this.recordsService
             .searchRunningRecords({
                 userId,
                 period: { since: query?.since, until: query?.until },
                 paging: { cursor: query?.cursor, limit: query?.limit },
             });
-
-        return { results };
     }
 }

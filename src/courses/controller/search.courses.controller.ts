@@ -31,7 +31,7 @@ export class SearchCoursesController {
     @ApiBearerAuth()
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    @Caching({ ttl: 15 * MINUTE_IN_MS })
+    @Caching({ ttl: 1.5 * MINUTE_IN_MS })
     async searchUserCourses(
         @User("userId") userId: number,
         @User("pace") pace: number,
@@ -48,7 +48,7 @@ export class SearchCoursesController {
     @ApiQuery({ type: BasicPagingOptions, required: false })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    @Caching({ ttl: 15 * MINUTE_IN_MS })
+    @Caching({ ttl: 1.5 * MINUTE_IN_MS })
     async searchBookmarkedCourses(
         @User("userId") userId: number,
         @User("pace") pace: number,
@@ -59,13 +59,30 @@ export class SearchCoursesController {
             .searchBookmarkedCourses({ userId, pace, paging: query });
     }
 
+    @Get("/completed")
+    @ApiOperation({ summary: "완주한 경로 검색" })
+    @ApiBearerAuth()
+    @ApiQuery({ type: BasicPagingOptions, required: false })
+    @ApiOkResponse({ type: SearchCoursesResponse })
+    @ApiForbiddenResponse()
+    @Caching({ ttl: 1.5 * MINUTE_IN_MS })
+    async searchCompletedCourses(
+        @User("userId") userId: number,
+        @User("pace") pace: number,
+        @Query() query?: BasicPagingOptions,
+        @Cached() cached?: SearchCoursesResponse,
+    ): Promise<CourseDTO[] | SearchCoursesResponse> {
+        return cached ?? await this.searchCoursesService
+            .searchCompletedCourses({ userId, pace, paging: query });
+    }
+
     @Get("/adjacent")
     @ApiOperation({ summary: "주변 경로 검색" })
     @ApiBearerAuth()
     @ApiQuery({ type: SearchAdjacentCoursesQuery, required: true })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    @Caching({ ttl: 15 * MINUTE_IN_MS })
+    @Caching({ ttl: 1.5 * MINUTE_IN_MS })
     async searchAdjacentCourses(
         @User("userId") userId: number,
         @User("pace") pace: number,

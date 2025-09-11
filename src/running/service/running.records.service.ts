@@ -1,18 +1,11 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { RunningRecord } from "../../modules/running";
-import {
-    Between,
-    FindManyOptions,
-    FindOptionsWhere, LessThan,
-    LessThanOrEqual,
-    MoreThanOrEqual,
-    Repository
-} from "typeorm";
+import { Between, FindOptionsWhere, LessThan, LessThanOrEqual, MoreThanOrEqual, Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
-import { CreateRunningRecordDTO, RunningRecordDTO, SearchRunningRecordsDTO } from "../dto";
-import { omit } from "../../utils/object";
+import { CreateRunningRecordDTO, RunningRecordDTO, RunningRecordPreviewDTO, SearchRunningRecordsDTO } from "../dto";
 import { Cursor, Period } from "../../common/types";
+import { ContainsPathService } from "./contains.path.service";
 
 @Injectable()
 export class RunningRecordsService {
@@ -20,46 +13,71 @@ export class RunningRecordsService {
     constructor(
        @InjectRepository(RunningRecord)
        private readonly recordsRepo: Repository<RunningRecord>,
+       @Inject(ContainsPathService)
+       private readonly containsPathService: ContainsPathService,
     ) {}
 
     // --ToDo 별자리 이미지 생성 로직 추가
     @Transactional()
     async createRunningRecord(dto: CreateRunningRecordDTO): Promise<void> {
+
+        if (dto.courseId !== undefined) {
+
+            const containsPath = await this.containsPathService
+                .containsPath(dto.courseId, dto.path);
+
+            if(!containsPath) throw new ConflictException();
+        }
+
         await this.recordsRepo.save(dto);
     }
 
     async getRunningRecord(id: number, userId: number): Promise<RunningRecordDTO> {
 
         const record = await this.recordsRepo
-            .findOne({ where: { id, userId }, cache: true });
+            .createQueryBuilder("record")
+            .select(`record.id`, "id")
+            .addSelect(`record.artUrl`, "artUrl")
+            .addSelect(`record.imageUrl`, "imageUrl")
+            .addSelect(`record.startAt`, "startAt")
+            .addSelect(`record.endAt`, "endAt")
+            .addSelect(`record.duration`, "duration")
+            .addSelect(`record.distance`, "distance")
+            .addSelect(`record.calories`, "calories")
+            .addSelect(`record.pace`, "pace")
+            .leftJoin(`record.course`, "course")
+            .addSelect(
+                `
+                CASE 
+                    WHEN course IS NULL THEN NULL
+                    ELSE jsonb_build_object('id', course.id, 'title', course.title)
+                END
+                `,
+                "course"
+            )
+            .where(`record.id = :id`, { id })
+            .andWhere(`record.userId = :userId`, { userId })
+            .getRawOne<RunningRecordDTO>();
 
         if (!record) throw new NotFoundException();
-        return omit(record, ["userId", "user", "createdAt"]);
+        return record;
     }
 
     async searchRunningRecords(
         dto: SearchRunningRecordsDTO
-    ): Promise<RunningRecordDTO[]> {
+    ): Promise<RunningRecordPreviewDTO[]> {
+        const { userId, period, paging } = dto;
 
-        const records = await this.recordsRepo.find(
-            __makeFindOptions(dto)
-        );
-
-        return records.map(record =>
-            omit(record, ["userId", "createdAt", "user"])
-        );
+        return await this.recordsRepo
+            .find({
+                select: ["id", "artUrl", "imageUrl"],
+                where: __makeFindOptionsWhere(
+                    userId, period, paging?.cursor
+                ),
+                order: { id: "DESC" },
+                take: paging?.limit,
+            });
     }
-}
-
-function __makeFindOptions(
-    dto: SearchRunningRecordsDTO
-): FindManyOptions<RunningRecord> {
-    const { userId, period, paging } = dto;
-
-    const where: FindOptionsWhere<RunningRecord>
-        = __makeFindOptionsWhere(userId, period, paging?.cursor);
-
-    return { where, take: paging?.limit };
 }
 
 function __makeFindOptionsWhere(

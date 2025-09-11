@@ -20,7 +20,7 @@ export class RunningDashboardsService {
 
         const qb = this.ds.createQueryBuilder()
             .select(`COUNT(record)`, "nRecords")
-            .addSelect(`SUM(record.distance`, "totalDistance")
+            .addSelect(`SUM(record.distance)`, "totalDistance")
             .addSelect(`SUM(record.duration)`, "totalDuration")
             .addSelect(`SUM(record.calories)`, "totalCalories")
             .addSelect(`AVG(record.pace)`, "meanPace");

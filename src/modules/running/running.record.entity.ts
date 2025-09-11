@@ -9,6 +9,7 @@ import {
 } from "typeorm";
 import { User } from "../users";
 import { LineStringColumn } from "../../common/geo";
+import { Course } from "../courses";
 
 @Entity("running_records")
 export class RunningRecord extends ImmutableEntityBase {
@@ -23,11 +24,22 @@ export class RunningRecord extends ImmutableEntityBase {
   @JoinColumn({ name: "user_id" })
   user: User;
 
+  @Index()
+  @Column({ name: "course_id", type: "int", nullable: true })
+  courseId: number | null;
+
+  @ManyToOne(() => Course, { onDelete: "SET NULL" })
+  @JoinColumn({ name: "course_id" })
+  course: Course | null;
+
   @LineStringColumn()
   path: [number, number][];
 
   @Column({ name: "art_url", type: "varchar" })
   artUrl: string;
+
+  @Column({ name: "image_url", type: "varchar" })
+  imageUrl: string;
 
   @Column({ name: "start_at", type: "timestamptz" })
   startAt: Date;

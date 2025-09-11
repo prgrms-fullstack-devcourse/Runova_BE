@@ -1,8 +1,16 @@
 import { ApiExtraModels, ApiProperty } from "@nestjs/swagger";
-import { RunningRecordDTO } from "../dto";
+import { RunningRecordPreviewDTO } from "../dto";
+import { Cursor } from "../../common/types";
 
-@ApiExtraModels(RunningRecordDTO)
+@ApiExtraModels(RunningRecordPreviewDTO, Cursor)
 export class SearchRunningRecordsResponse {
-    @ApiProperty({ type: [RunningRecordDTO] })
-    results: RunningRecordDTO[];
+    @ApiProperty({ type: [RunningRecordPreviewDTO] })
+    results: RunningRecordPreviewDTO[];
+
+    @ApiProperty({
+        type: Cursor,
+        nullable: true,
+        description: "다음 페이지 커서"
+    })
+    nextCursor: Cursor | null;
 }

@@ -55,7 +55,7 @@ function __SubQueryFactory<E extends object>(
 
         sqb.select("*")
             .from(RunningRecord, "record")
-            .where(`record.userId = := userId`, { userId });
+            .where(`record.userId = :userId`, { userId });
 
         since && sqb.andWhere(`record.createdAt >= :since`, { since });
         until && sqb.andWhere(`record.createdAt <= :until`, { until });

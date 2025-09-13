@@ -22,5 +22,8 @@
     "moduleResolution": "node",
     "lib": ["ES2023", "ESNext"],
   },
-  "include": ["src/**/*", "test/**/*"]
+  "include": [
+    "src/**/*",
+    "test/**/*"
+  ]
 }

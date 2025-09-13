@@ -41,7 +41,7 @@ export class CoursesService {
                 length: nodes.at(-1)!.progress,
                 departure: nodes[0].location,
                 shape: () => `  
-                        ST_Transform(ST_Buffer(ST_GeomFromText(:wkt), :radius), 4326)  
+                        ST_Transform(ST_Buffer(ST_GeomFromText(:wkt), :radius, 'endcap=flat join=round'), 4326)  
                 `,
             })
             .setParameters({ wkt: wkt5179, radius: this.courseRadius })

@@ -1,6 +1,5 @@
 import {
   Injectable,
-  BadRequestException,
   NotFoundException,
   ForbiddenException,
 } from "@nestjs/common";
@@ -10,26 +9,33 @@ import {
   Repository,
   SelectQueryBuilder,
   ObjectLiteral,
+  In,
 } from "typeorm";
 import { Post, PostType } from "../modules/posts/post.entity";
 import { Comment } from "../modules/posts/comment.entity";
 import { PostLike } from "../modules/posts/post-like.entity";
-
+import { User } from "../modules/users/user.entity";
 import { CreatePostDto, UpdatePostDto, ListPostsFilter } from "./dto/post.dto";
 import { CreateCommentDto, UpdateCommentDto } from "./dto/comment.dto";
 import { CursorQuery } from "./dto/cursor.dto";
 import { encodeCursor, decodeCursor } from "./utils/cursor.util";
 
 type CursorResult<T> = { items: T[]; nextCursor: string | null };
+
+type AuthorBrief = { id: number; nickname: string; imageUrl: string | null };
+
+type PostWithoutAuthor = Omit<Post, "author">;
+type PostWithAuthor = PostWithoutAuthor & { authorInfo: AuthorBrief };
+
 const DEFAULT_LIMIT = 20;
 
 @Injectable()
 export class CommunityService {
   constructor(
-    @InjectRepository(Post) private readonly postRepo: Repository<Post>,
-    @InjectRepository(Comment)
-    private readonly commentRepo: Repository<Comment>,
-    private readonly dataSource: DataSource
+      @InjectRepository(Post) private readonly postRepo: Repository<Post>,
+      @InjectRepository(Comment)
+      private readonly commentRepo: Repository<Comment>,
+      private readonly dataSource: DataSource
   ) {}
 
   private async findActivePostOrThrow(postId: number): Promise<Post> {
@@ -41,28 +47,28 @@ export class CommunityService {
   }
 
   private applyCursorWhereDesc<T extends ObjectLiteral>(
-    queryBuilder: SelectQueryBuilder<T>,
-    alias: string,
-    cursorStr?: string | null
+      queryBuilder: SelectQueryBuilder<T>,
+      alias: string,
+      cursorStr?: string | null
   ): void {
     const cursor = decodeCursor(cursorStr ?? null);
     if (!cursor) return;
 
     queryBuilder.andWhere(
-      `(${alias}.createdAt < :cursorAt OR (${alias}.createdAt = :cursorAt AND ${alias}.id < :cursorId))`,
-      { cursorAt: cursor.createdAt, cursorId: cursor.id }
+        `(${alias}.createdAt < :cursorAt OR (${alias}.createdAt = :cursorAt AND ${alias}.id < :cursorId))`,
+        { cursorAt: cursor.createdAt, cursorId: cursor.id }
     );
   }
 
   private sliceWithNextCursor<T extends { id: number; createdAt: Date }>(
-    rows: T[],
-    limit: number
+      rows: T[],
+      limit: number
   ): { items: T[]; nextCursor: string | null } {
     const hasMore = rows.length > limit;
     const items = hasMore ? rows.slice(0, limit) : rows;
     const last = items[items.length - 1];
     const nextCursor =
-      hasMore && last ? encodeCursor(last.createdAt, last.id) : null;
+        hasMore && last ? encodeCursor(last.createdAt, last.id) : null;
     return { items, nextCursor };
   }
 
@@ -81,15 +87,60 @@ export class CommunityService {
     return await this.postRepo.save(entity);
   }
 
+  private async getAuthorsMap(
+      authorIds: number[]
+  ): Promise<Map<number, AuthorBrief>> {
+    if (authorIds.length === 0) return new Map();
+    const uniq = Array.from(new Set(authorIds));
+    const userRepo = this.dataSource.getRepository(User);
+
+    const users = await userRepo.find({
+      where: { id: In(uniq) },
+      select: ["id", "nickname", "imageUrl"],
+    });
+
+    const map = new Map<number, AuthorBrief>();
+    for (const u of users) {
+      map.set(u.id, {
+        id: u.id,
+        nickname: u.nickname,
+        imageUrl: u.imageUrl ?? null,
+      });
+    }
+    return map;
+  }
+
+  private async attachAuthors(posts: Post[]): Promise<PostWithAuthor[]> {
+    const authorIds = posts.map((p) => p.authorId);
+    const authorsMap = await this.getAuthorsMap(authorIds);
+
+    return posts.map((p): PostWithAuthor => {
+      const { author: _ignored, ...rest } = p as Post & { author?: unknown };
+      return {
+        ...(rest as PostWithoutAuthor),
+        authorInfo: authorsMap.get(p.authorId) ?? {
+          id: 0,
+          nickname: "탈퇴회원",
+          imageUrl: null,
+        },
+      };
+    });
+  }
+
+  private async attachAuthor(post: Post): Promise<PostWithAuthor> {
+    const [wrapped] = await this.attachAuthors([post]);
+    return wrapped;
+  }
+
   async listPostsCursor(
-    query: CursorQuery,
-    filter: ListPostsFilter
-  ): Promise<CursorResult<Post>> {
+      query: CursorQuery,
+      filter: ListPostsFilter
+  ): Promise<CursorResult<PostWithAuthor>> {
     const limit = query.limit ?? DEFAULT_LIMIT;
 
     const queryBuilder = this.postRepo
-      .createQueryBuilder("p")
-      .where("p.isDeleted = false");
+        .createQueryBuilder("p")
+        .where("p.isDeleted = false");
 
     if (filter.type)
       queryBuilder.andWhere("p.type = :type", { type: filter.type });
@@ -104,22 +155,26 @@ export class CommunityService {
 
     this.applyCursorWhereDesc(queryBuilder, "p", query.cursor);
     queryBuilder
-      .orderBy("p.createdAt", "DESC")
-      .addOrderBy("p.id", "DESC")
-      .take(limit + 1);
+        .orderBy("p.createdAt", "DESC")
+        .addOrderBy("p.id", "DESC")
+        .take(limit + 1);
 
     const rows: Post[] = await queryBuilder.getMany();
-    return this.sliceWithNextCursor(rows, limit);
+
+    const { items, nextCursor } = this.sliceWithNextCursor(rows, limit);
+    const withAuthors = await this.attachAuthors(items);
+    return { items: withAuthors, nextCursor };
   }
 
-  async getPost(id: number): Promise<Post> {
-    return this.findActivePostOrThrow(id);
+  async getPost(id: number): Promise<PostWithAuthor> {
+    const post = await this.findActivePostOrThrow(id);
+    return this.attachAuthor(post);
   }
 
   async updatePost(
-    id: number,
-    editorId: number,
-    dto: UpdatePostDto
+      id: number,
+      editorId: number,
+      dto: UpdatePostDto
   ): Promise<Post> {
     const post = await this.postRepo.findOne({ where: { id } });
     if (!post || post.isDeleted) throw new NotFoundException("Post not found");
@@ -147,8 +202,8 @@ export class CommunityService {
   }
 
   async togglePostLike(
-    postId: number,
-    userId: number
+      postId: number,
+      userId: number
   ): Promise<{ liked: boolean; likeCount: number }> {
     await this.findActivePostOrThrow(postId);
 
@@ -172,37 +227,37 @@ export class CommunityService {
   }
 
   async listCommentsCursor(
-    postId: number,
-    query: CursorQuery
+      postId: number,
+      query: CursorQuery
   ): Promise<CursorResult<Comment>> {
     await this.findActivePostOrThrow(postId);
 
     const limit = query.limit ?? DEFAULT_LIMIT;
     const queryBuilder = this.commentRepo
-      .createQueryBuilder("c")
-      .where("c.postId = :postId", { postId });
+        .createQueryBuilder("c")
+        .where("c.postId = :postId", { postId });
 
     const cursor = decodeCursor(query.cursor ?? null);
     if (cursor) {
       queryBuilder.andWhere(
-        "(c.createdAt > :cursorAt OR (c.createdAt = :cursorAt AND c.id > :cursorId))",
-        { cursorAt: cursor.createdAt, cursorId: cursor.id }
+          "(c.createdAt > :cursorAt OR (c.createdAt = :cursorAt AND c.id > :cursorId))",
+          { cursorAt: cursor.createdAt, cursorId: cursor.id }
       );
     }
 
     queryBuilder
-      .orderBy("c.createdAt", "ASC")
-      .addOrderBy("c.id", "ASC")
-      .take(limit + 1);
+        .orderBy("c.createdAt", "ASC")
+        .addOrderBy("c.id", "ASC")
+        .take(limit + 1);
 
     const rows: Comment[] = await queryBuilder.getMany();
     return this.sliceWithNextCursor(rows, limit);
   }
 
   async createComment(
-    postId: number,
-    authorId: number,
-    dto: CreateCommentDto
+      postId: number,
+      authorId: number,
+      dto: CreateCommentDto
   ): Promise<Comment> {
     await this.findActivePostOrThrow(postId);
 
@@ -211,7 +266,7 @@ export class CommunityService {
       const postRepo = trx.getRepository(Post);
 
       const saved = await commentRepo.save(
-        commentRepo.create({ postId, authorId, content: dto.content })
+          commentRepo.create({ postId, authorId, content: dto.content })
       );
       await postRepo.increment({ id: postId }, "commentCount", 1);
       return saved;
@@ -219,9 +274,9 @@ export class CommunityService {
   }
 
   async updateComment(
-    id: number,
-    editorId: number,
-    dto: UpdateCommentDto
+      id: number,
+      editorId: number,
+      dto: UpdateCommentDto
   ): Promise<Comment> {
     const comment = await this.commentRepo.findOne({ where: { id } });
     if (!comment) throw new NotFoundException("Comment not found");

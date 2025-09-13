@@ -1,6 +1,5 @@
 import {
   Injectable,
-  BadRequestException,
   NotFoundException,
   ForbiddenException,
 } from "@nestjs/common";
@@ -10,17 +9,24 @@ import {
   Repository,
   SelectQueryBuilder,
   ObjectLiteral,
+  In,
 } from "typeorm";
 import { Post, PostType } from "../modules/posts/post.entity";
 import { Comment } from "../modules/posts/comment.entity";
 import { PostLike } from "../modules/posts/post-like.entity";
-
+import { User } from "../modules/users/user.entity";
 import { CreatePostDto, UpdatePostDto, ListPostsFilter } from "./dto/post.dto";
 import { CreateCommentDto, UpdateCommentDto } from "./dto/comment.dto";
 import { CursorQuery } from "./dto/cursor.dto";
 import { encodeCursor, decodeCursor } from "./utils/cursor.util";
 
 type CursorResult<T> = { items: T[]; nextCursor: string | null };
+
+type AuthorBrief = { id: number; nickname: string; imageUrl: string | null };
+
+type PostWithoutAuthor = Omit<Post, "author">;
+type PostWithAuthor = PostWithoutAuthor & { authorInfo: AuthorBrief };
+
 const DEFAULT_LIMIT = 20;
 
 @Injectable()
@@ -81,10 +87,55 @@ export class CommunityService {
     return await this.postRepo.save(entity);
   }
 
+  private async getAuthorsMap(
+    authorIds: number[]
+  ): Promise<Map<number, AuthorBrief>> {
+    if (authorIds.length === 0) return new Map();
+    const uniq = Array.from(new Set(authorIds));
+    const userRepo = this.dataSource.getRepository(User);
+
+    const users = await userRepo.find({
+      where: { id: In(uniq) },
+      select: ["id", "nickname", "imageUrl"],
+    });
+
+    const map = new Map<number, AuthorBrief>();
+    for (const u of users) {
+      map.set(u.id, {
+        id: u.id,
+        nickname: u.nickname,
+        imageUrl: u.imageUrl ?? null,
+      });
+    }
+    return map;
+  }
+
+  private async attachAuthors(posts: Post[]): Promise<PostWithAuthor[]> {
+    const authorIds = posts.map((p) => p.authorId);
+    const authorsMap = await this.getAuthorsMap(authorIds);
+
+    return posts.map((p): PostWithAuthor => {
+      const { author: _ignored, ...rest } = p as Post & { author?: unknown };
+      return {
+        ...(rest as PostWithoutAuthor),
+        authorInfo: authorsMap.get(p.authorId) ?? {
+          id: 0,
+          nickname: "탈퇴회원",
+          imageUrl: null,
+        },
+      };
+    });
+  }
+
+  private async attachAuthor(post: Post): Promise<PostWithAuthor> {
+    const [wrapped] = await this.attachAuthors([post]);
+    return wrapped;
+  }
+
   async listPostsCursor(
     query: CursorQuery,
     filter: ListPostsFilter
-  ): Promise<CursorResult<Post>> {
+  ): Promise<CursorResult<PostWithAuthor>> {
     const limit = query.limit ?? DEFAULT_LIMIT;
 
     const queryBuilder = this.postRepo
@@ -109,11 +160,15 @@ export class CommunityService {
       .take(limit + 1);
 
     const rows: Post[] = await queryBuilder.getMany();
-    return this.sliceWithNextCursor(rows, limit);
+
+    const { items, nextCursor } = this.sliceWithNextCursor(rows, limit);
+    const withAuthors = await this.attachAuthors(items);
+    return { items: withAuthors, nextCursor };
   }
 
-  async getPost(id: number): Promise<Post> {
-    return this.findActivePostOrThrow(id);
+  async getPost(id: number): Promise<PostWithAuthor> {
+    const post = await this.findActivePostOrThrow(id);
+    return this.attachAuthor(post);
   }
 
   async updatePost(

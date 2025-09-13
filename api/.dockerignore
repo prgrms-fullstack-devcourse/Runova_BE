@@ -1,7 +1,7 @@
 .git
 node_modules
 dist
-Dockerfile
+server/Dockerfile
 docker-compose.yml
 *.log
 .env*

@@ -4,8 +4,8 @@ import { worker } from "workerpool";
 
 export function inspectPath(path: [number, number][]): InspectPathResult {
     const path5179: [number, number][] = path.map(p => converter.forward(p));
-    const wkt5179 = __makeWKT(5179, path5179);
-    const nodes = __makeCourseNodes(path, __makeSegments(path5179));
+    const wkt5179: string = __makeWKT(5179, path5179);
+    const nodes: CourseNodeDTO[] = __makeCourseNodes(path, __makeSegments(path5179));
     return { wkt5179, nodes };
 }
 

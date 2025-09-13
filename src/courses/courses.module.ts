@@ -8,6 +8,10 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { Course, CourseBookmark, CourseNode } from "../modules/courses";
 import { CoursesController, SearchCoursesController } from "./controller";
 import { SearchCoursesInterceptor, SearchCoursesResponseInterceptor } from "./interceptor";
+import { WorkersPoolModule, WorkersPoolService } from "../config/workerpool";
+import { resolve } from "node:path";
+
+const __EXTERNAL_PROVIDERS = [WorkersPoolService];
 
 @Module({
   imports: [
@@ -16,8 +20,12 @@ import { SearchCoursesInterceptor, SearchCoursesResponseInterceptor } from "./in
           CourseNode,
           CourseBookmark,
       ]),
+      WorkersPoolModule.register(
+          resolve(__dirname, "worker/inspect.path.worker.js")
+      ),
   ],
   providers: [
+      ...__EXTERNAL_PROVIDERS,
       CoursesService,
       CourseBookmarksService,
       SearchCoursesService,

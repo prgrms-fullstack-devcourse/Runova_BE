@@ -22,7 +22,7 @@ export class CoursesService {
         @Inject(ConfigService)
         config: ConfigService,
     ) {
-        this.courseRadius = config.get<number>("COURSE_RADIUS") ?? 6;
+        this.courseRadius = config.get<number>("COURSE_RADIUS") ?? 12;
     }
 
     @Transactional()

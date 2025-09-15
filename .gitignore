@@ -133,6 +133,7 @@ web_modules/
 server/.env
 .env.migration
 .env.development
+.env.production
 .env.test.local
 .env.production.local
 .env.local

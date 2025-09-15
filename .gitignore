@@ -20,7 +20,7 @@ lerna-debug.log*
 /.nyc_output
 
 # IDEs and editors
-/.idea
+/api/.idea
 .project
 .classpath
 .c9/
@@ -36,7 +36,7 @@ lerna-debug.log*
 !.vscode/extensions.json
 
 # dotenv environment variable files
-.env
+server/.env
 .env.development
 .env.test.local
 .env.production
@@ -130,7 +130,7 @@ web_modules/
 .yarn-integrity
 
 # dotenv environment variable files
-.env
+server/.env
 .env.migration
 .env.development
 .env.test.local

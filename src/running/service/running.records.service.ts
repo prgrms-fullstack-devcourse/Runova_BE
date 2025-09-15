@@ -6,6 +6,7 @@ import { Transactional } from "typeorm-transactional";
 import { CreateRunningRecordDTO, RunningRecordDTO, RunningRecordPreviewDTO, SearchRunningRecordsDTO } from "../dto";
 import { Cursor, Period } from "../../common/types";
 import { ContainsPathService } from "./contains.path.service";
+import { GenerateArtUrlService } from "./generate.art.url.service";
 
 @Injectable()
 export class RunningRecordsService {
@@ -15,9 +16,10 @@ export class RunningRecordsService {
        private readonly recordsRepo: Repository<RunningRecord>,
        @Inject(ContainsPathService)
        private readonly containsPathService: ContainsPathService,
+       @Inject(GenerateArtUrlService)
+       private readonly generateArtUrlService: GenerateArtUrlService,
     ) {}
 
-    // --ToDo 별자리 이미지 생성 로직 추가
     @Transactional()
     async createRunningRecord(dto: CreateRunningRecordDTO): Promise<void> {
 
@@ -29,7 +31,10 @@ export class RunningRecordsService {
             if(!containsPath) throw new ConflictException();
         }
 
-        await this.recordsRepo.save(dto);
+        const artUrl = await this.generateArtUrlService
+            .generateArtUrl(dto.userId, dto.path);
+
+        await this.recordsRepo.save(Object.assign(dto, { artUrl }));
     }
 
     async getRunningRecord(id: number, userId: number): Promise<RunningRecordDTO> {

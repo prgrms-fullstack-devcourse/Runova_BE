@@ -1,10 +1,10 @@
 .git
 node_modules
 dist
-Dockerfile
+server/Dockerfile
 docker-compose.yml
 *.log
-.env*
+.env
 etc/ssl/certs/*.pem
 runova.pem
 server.sh

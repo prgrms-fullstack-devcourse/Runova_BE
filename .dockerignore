@@ -1,0 +1,10 @@
+.git
+node_modules
+dist
+server/Dockerfile
+docker-compose.yml
+*.log
+.env
+etc/ssl/certs/*.pem
+runova.pem
+server.sh

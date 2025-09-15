@@ -10,7 +10,7 @@
     "downlevelIteration": true,
     "target": "ES2023",
     "sourceMap": true,
-    "outDir": "./api/dist",
+    "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,

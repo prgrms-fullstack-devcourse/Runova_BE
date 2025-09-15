@@ -9,8 +9,7 @@ export function drawBgStars(
 ): void {
   const nStars = Math.floor((width * height) / density);
 
-  Array.of({ length: nStars })
-    .values()
+  Array.from({ length: nStars })
     .map((): BgStarDTO => ({
       color,
       cx: __generateRandNum(0, width),

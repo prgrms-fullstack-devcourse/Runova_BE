@@ -18,13 +18,13 @@ export class CourseBookmarksService {
         const bookmark = await this.bookmarksRepo
             .createQueryBuilder("bookmark")
             .select("bookmark.id", "id")
-            .where("bookmark.userId = :userId", { userId })
-            .andWhere("bookmark.courseId = :courseId", { courseId })
-            .getOne();
+            .where(`bookmark.courseId = :courseId`,  { courseId })
+            .andWhere(`bookmark.userId = :userId`, { userId })
+            .getRawOne<Pick<CourseBookmark, "id">>();
 
         bookmark
             ? await this.bookmarksRepo.delete(bookmark.id)
-            : await this.bookmarksRepo.insert({ userId, courseId });
+            : await this.bookmarksRepo.insert({ courseId, userId });
 
         return !bookmark;
     }

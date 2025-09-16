@@ -12,6 +12,7 @@ const __BASE_URL = "https://test.com";
 const makeExecutionContext = (
     method: "GET" | "POST" | "PUT" | "PATCH" |"DELETE",
     path: string,
+    user?: { userId: number }
 ): ExecutionContext => {
     const url = new URL(`${__BASE_URL}${path}`);
 
@@ -19,7 +20,8 @@ const makeExecutionContext = (
         method,
         originalUrl: path,
         path: url.pathname,
-        query: Object.fromEntries(url.searchParams.entries())
+        query: Object.fromEntries(url.searchParams.entries()),
+        user
     };
 
     return {
@@ -110,6 +112,95 @@ describe(CacheInterceptor.name, () => {
         expect(ctx2.switchToHttp().getRequest().cached)
             .toEqual(data2);
     })
+
+    it('should generate different cache keys when personal option is enabled', async () => {
+        const mockPath = "/test";
+        const mockData1 = { foo: 1 };
+        const mockData2 = { foo: 2 };
+        const user1 = { userId: 123 };
+        const user2 = { userId: 456 };
+
+        const ctx1 = makeExecutionContext("GET", mockPath, user1);
+        const ctx2 = makeExecutionContext("GET", mockPath, user2);
+
+        const handler1: CallHandler = { handle: () => of(mockData1) };
+        const handler2: CallHandler = { handle: () => of(mockData2) };
+        reflector.get.mockReturnValue({ personal: true });
+
+        const result1$ = await interceptor.intercept(ctx1, handler1);
+        await firstValueFrom(result1$);
+
+        const result2$ = await interceptor.intercept(ctx2, handler2);
+        await firstValueFrom(result2$);
+
+        const expectedKey1 = mockPath + '?' + MD5({ userId: '123' });
+        const expectedKey2 = mockPath + '?' + MD5({ userId: '456' });
+
+        expect(__storage[expectedKey1]).toEqual(mockData1);
+        expect(__storage[expectedKey2]).toEqual(mockData2);
+        expect(__storage[expectedKey1]).not.toBe(__storage[expectedKey2]);
+    });
+
+    it('should use same cache key when personal option is disabled for different users', async () => {
+        const mockPath = "/test";
+        const mockData = { foo: 1 };
+        const user1 = { userId: 123 };
+        const user2 = { userId: 456 };
+
+        const ctx1 = makeExecutionContext("GET", mockPath, user1);
+        const ctx2 = makeExecutionContext("GET", mockPath, user2);
+
+        const handler: CallHandler = { handle: () => of(mockData) };
+        reflector.get.mockReturnValue({ personal: false });
+
+        const result1$ = await interceptor.intercept(ctx1, handler);
+        await firstValueFrom(result1$);
+
+        const result2$ = await interceptor.intercept(ctx2, handler);
+        await firstValueFrom(result2$);
+
+        const expectedKey = mockPath + '?' + MD5({});
+
+        expect(__storage[expectedKey]).toEqual(mockData);
+        expect(ctx2.switchToHttp().getRequest().cached).toEqual(mockData);
+    });
+
+    it('should include userId in cache key along with query params when personal is true', async () => {
+        const mockPath = "/test";
+        const mockQs = "param1=value1&param2=value2";
+        const mockData = { foo: 1 };
+        const user = { userId: 789 };
+
+        const ctx = makeExecutionContext("GET", [mockPath, mockQs].join('?'), user);
+        const handler: CallHandler = { handle: () => of(mockData) };
+        reflector.get.mockReturnValue({ personal: true });
+
+        const result$ = await interceptor.intercept(ctx, handler);
+        await firstValueFrom(result$);
+
+        const expectedKey = mockPath + '?' + MD5({
+            param1: 'value1',
+            param2: 'value2',
+            userId: '789'
+        });
+
+        expect(__storage[expectedKey]).toEqual(mockData);
+    });
+
+    it('should not cache for non-GET requests regardless of personal option', async () => {
+        const mockPath = "/test";
+        const mockData = { foo: 1 };
+        const user = { userId: 123 };
+
+        const ctx = makeExecutionContext("POST", mockPath, user);
+        const handler: CallHandler = { handle: () => of(mockData) };
+        reflector.get.mockReturnValue({ personal: true });
+
+        const result$ = await interceptor.intercept(ctx, handler);
+        await firstValueFrom(result$);
+
+        expect(Object.keys(__storage)).toHaveLength(0);
+    });
 
 
 })

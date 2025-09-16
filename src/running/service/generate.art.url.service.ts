@@ -1,19 +1,15 @@
-import { Inject, Injectable } from "@nestjs/common";
-import { FilesService } from "../../files/files.service";
+import { Injectable } from "@nestjs/common";
 import Piscina from "piscina";
 import { resolve } from "node:path";
-import { UploadType } from "../../common/constants/upload-type.enum";
+import { GenerateArtDTO } from "../../art/dto";
 
 @Injectable()
 export class GenerateArtUrlService {
-    private readonly piscina: Piscina<Float32Array, ArrayBuffer>;
+    private readonly piscina: Piscina<GenerateArtDTO, string>;
 
-    constructor(
-       @Inject(FilesService)
-       private readonly filesService: FilesService,
-    ) {
+    constructor() {
         this.piscina = new Piscina({
-            filename: resolve(__dirname, "../../art/worker.js")
+            filename: resolve(__dirname, "../../art/worker.js"),
         });
     }
 
@@ -21,33 +17,9 @@ export class GenerateArtUrlService {
         userId: number,
         path: [number, number][],
     ): Promise<string> {
-
-        const svg = await this.piscina.run(
-            Float32Array.from(path.flat()),
-        );
-
-        const { url: artUrl } = await this.filesService
-            .getPresignedUrl(
-                UploadType.ART,
-                "image/svg",
-                svg.byteLength,
-                userId,
-            );
-
-        await __uploadArt(artUrl, svg);
-        return artUrl;
+        const points: Float32Array = Float32Array.from(path.flat());
+        return await this.piscina.run({ userId, points });
     }
-
 }
 
 
-async function __uploadArt(url: string, svg: ArrayBuffer) {
-
-    const res = await fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": "image/svg", "Content-Length": String(svg.byteLength) },
-        body: new Uint8Array(svg),
-    });
-
-    if (!res.ok) throw new Error(`S3 PUT failed: ${res.status} ${res.statusText}`);
-}

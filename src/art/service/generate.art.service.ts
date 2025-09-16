@@ -1,18 +1,18 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Layout } from "../style";
-import { drawBgStars, drawLine, fitPointsToCanvas } from "./internal";
+import { covertPointsToUTMK, drawBgStars, drawLine, fitPointsToCanvas } from "./internal";
 import { Canvas, CanvasRenderingContext2D } from "skia-canvas";
 import { ConstellationStyleService } from "./constellation.style.service";
 
 @Injectable()
-export class ConstellationService {
+export class GenerateArtService {
 
   constructor(
     @Inject(ConstellationStyleService)
     private readonly styleService: ConstellationStyleService,
   ) {}
 
-  async generateConstellation(path: Float32Array): Promise<Buffer> {
+  async generatePNG(points: Float32Array): Promise<Uint8Array> {
     const { layout, bgColor, bgStarStyle, lineStyle } = this.styleService.get();
 
     const canvas = new Canvas(layout.width, layout.height);
@@ -21,18 +21,20 @@ export class ConstellationService {
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, layout.width, layout.height);
     drawBgStars(ctx, layout, bgStarStyle);
-    drawLine(ctx, __normalizePath(path, layout), lineStyle);
+    drawLine(ctx, __normalizePoints(points, layout), lineStyle);
 
-    return canvas.toBuffer("svg");
+    const buf: Buffer = await canvas.toBuffer("png");
+    return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
   }
 }
 
-function __normalizePath(
-  path: Float32Array,
+function __normalizePoints(
+  points: Float32Array,
   layout: Layout,
 ): Float32Array {
-  fitPointsToCanvas(path, layout)
-  return path;
+  covertPointsToUTMK(points)
+  fitPointsToCanvas(points, layout)
+  return points;
 }
 
 

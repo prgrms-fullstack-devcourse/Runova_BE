@@ -1,34 +1,24 @@
-import { Inject, Injectable, OnModuleDestroy } from "@nestjs/common";
+import { Injectable, OnModuleDestroy } from "@nestjs/common";
 import { InspectPathResult } from "../dto";
-import { ConfigService } from "@nestjs/config";
-import { Pool, WorkerPoolOptions, pool } from "workerpool";
 import { resolve } from "node:path";
+import Piscina from "piscina";
 
 @Injectable()
 export class InspectPathService implements OnModuleDestroy {
-    private readonly pool: Pool;
+    private readonly piscina: Piscina<[number, number][], InspectPathResult>;
 
-    constructor(
-       @Inject(ConfigService)
-       config: ConfigService,
-    ) {
-        const workerPath: string = resolve(__dirname, "../worker/inspect.path.worker.js");
-
-        const options: WorkerPoolOptions = {
-            workerType: "thread",
-            maxWorkers: config.get<number>("POOL_MAX_WORKERS") ?? 5,
-            maxQueueSize: config.get<number>("POOL_MAX_QUEUE_SIZE") ?? 30,
-        };
-
-        this.pool = pool(workerPath, options);
+    constructor() {
+        this.piscina = new Piscina({
+            filename: resolve(__dirname, "../worker/inspect.path.worker.js"),
+        });
     }
 
     async onModuleDestroy(): Promise<void> {
-        await this.pool.terminate(true);
+        await this.piscina.close({ force: true });
     }
 
     async inspectPath(path: [number, number][]): Promise<InspectPathResult> {
-        return await this.pool.exec("inspectPath", [path]);
+        return await this.piscina.run(path);
     }
 }
 

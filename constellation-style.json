@@ -1,0 +1,25 @@
+{
+  "bgColor": "#0b1020",
+  "layout": { "width": 600, "height": 800, "margin": 100 },
+  "bgStarStyle": {
+    "color": "#ffffff",
+    "density": 6000,
+    "minRadius": 0.15,
+    "maxRadius": 0.50,
+    "minAlpha": 0.4,
+    "maxAlpha": 1.7
+  },
+  "lineStyle": {
+    "color": "#ffffff",
+    "width": 2.4,
+    "glowStyle": {
+      "baseColor": "#cddcff",
+      "width": 2.4,
+      "layers": [
+        { "blur": 24, "alpha": 0.24 },
+        { "blur": 12, "alpha": 0.32 },
+        { "blur": 6, "alpha": 0.28 }
+      ]
+    }
+  }
+}

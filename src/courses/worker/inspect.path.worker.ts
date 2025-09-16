@@ -1,13 +1,5 @@
 import type { CourseNodeDTO, InspectPathResult } from "../dto";
-import converter from "../../common/geo/converter";
-import { worker } from "workerpool";
-
-export function inspectPath(path: [number, number][]): InspectPathResult {
-    const path5179: [number, number][] = path.map(p => converter.forward(p));
-    const wkt5179: string = __makeWKT(5179, path5179);
-    const nodes: CourseNodeDTO[] = __makeCourseNodes(path, __makeSegments(path5179));
-    return { wkt5179, nodes };
-}
+import { convertToUTMK } from "../../common/geo";
 
 function __makeSegments(path: [number, number][]): [number, number][] {
     const segments: [number, number][] = [];
@@ -61,6 +53,12 @@ function __makeCourseNodes(
     return nodes;
 }
 
-worker({ inspectPath });
+export default function (path: [number, number][]): InspectPathResult {
+    const path5179: [number, number][] = path.map(convertToUTMK);
+    const wkt5179: string = __makeWKT(5179, path5179);
+    const nodes: CourseNodeDTO[] = __makeCourseNodes(path, __makeSegments(path5179));
+    return { wkt5179, nodes };
+};
+
 
 

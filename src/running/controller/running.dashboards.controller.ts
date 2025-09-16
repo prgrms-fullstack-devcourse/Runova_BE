@@ -25,7 +25,7 @@ export class RunningDashboardsController {
     @ApiQuery({ type: Period, required: false })
     @ApiOkResponse({ type: RunningDashboardDTO })
     @ApiForbiddenResponse()
-    @Caching({ ttl: HOUR_IN_MS })
+    @Caching({ ttl: HOUR_IN_MS, personal: true })
     async getRunningDashboard(
         @User("userId") userId: number,
         @Query() query?: Period,

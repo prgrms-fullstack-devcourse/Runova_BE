@@ -4,6 +4,8 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { UploadType } from "../common/constants/upload-type.enum";
 import { randomUUID } from "crypto";
 
+
+
 @Injectable()
 export class FilesService {
   private readonly s3 = new S3Client({
@@ -36,7 +38,7 @@ export class FilesService {
 
     const url = await getSignedUrl(this.s3, command);
 
-    return { url, key, bucket };
+    return { url, key, bucket, region: process.env.AWS_REGION! };
   }
 }
 

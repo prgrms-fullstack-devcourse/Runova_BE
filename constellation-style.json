@@ -1,6 +1,6 @@
 {
   "bgColor": "#0b1020",
-  "layout": { "width": 1000, "height": 800, "margin": 100 },
+  "layout": { "width": 600, "height": 800, "margin": 100 },
   "bgStarStyle": {
     "color": "#ffffff",
     "density": 6000,

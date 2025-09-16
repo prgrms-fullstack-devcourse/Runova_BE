@@ -1,5 +1,5 @@
 import "./instrument";
-import { NestFactory } from "@nestjs/core";
+import { APP_FILTER, NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import process from "node:process";
 import { NestExpressApplication } from "@nestjs/platform-express";
@@ -7,6 +7,7 @@ import { initializeTransactionalContext } from "typeorm-transactional";
 import { ValidationPipe } from "@nestjs/common";
 import { LoggingInterceptor } from "./common/interceptor";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { SentryGlobalFilter } from "@sentry/nestjs/setup";
 
 async function bootstrap() {
   initializeTransactionalContext();
@@ -15,6 +16,7 @@ async function bootstrap() {
   app.set("trust_proxy", true);
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.useGlobalInterceptors(new LoggingInterceptor());
+  app.useGlobalFilters(new SentryGlobalFilter(app.getHttpAdapter()));
 
   const config = new DocumentBuilder()
     .setTitle("Runova API")

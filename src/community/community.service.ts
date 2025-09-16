@@ -19,13 +19,14 @@ import { CreatePostDto, UpdatePostDto, ListPostsFilter } from "./dto/post.dto";
 import { CreateCommentDto, UpdateCommentDto } from "./dto/comment.dto";
 import { CursorQuery } from "./dto/cursor.dto";
 import { encodeCursor, decodeCursor } from "./utils/cursor.util";
-
-type CursorResult<T> = { items: T[]; nextCursor: string | null };
-
-type AuthorBrief = { id: number; nickname: string; imageUrl: string | null };
-
-type PostWithoutAuthor = Omit<Post, "author">;
-type PostWithAuthor = PostWithoutAuthor & { authorInfo: AuthorBrief };
+import {
+  AuthorBrief,
+  CommentWithAuthor,
+  CommentWithoutAuthor,
+  CursorResult,
+  PostWithAuthor,
+  PostWithoutAuthor,
+} from "./types/types";
 
 const DEFAULT_LIMIT = 20;
 
@@ -132,6 +133,32 @@ export class CommunityService {
     return wrapped;
   }
 
+  private async attachAuthorsToComments(
+    comments: Comment[]
+  ): Promise<CommentWithAuthor[]> {
+    const authorIds = comments.map((c) => c.authorId);
+    const authorsMap = await this.getAuthorsMap(authorIds);
+
+    return comments.map((c): CommentWithAuthor => {
+      const { author: _ignored, ...rest } = c as Comment & { author?: unknown };
+      return {
+        ...(rest as CommentWithoutAuthor),
+        authorInfo: authorsMap.get(c.authorId) ?? {
+          id: 0,
+          nickname: "탈퇴회원",
+          imageUrl: null,
+        },
+      };
+    });
+  }
+
+  private async attachAuthorToComment(
+    comment: Comment
+  ): Promise<CommentWithAuthor> {
+    const [wrapped] = await this.attachAuthorsToComments([comment]);
+    return wrapped;
+  }
+
   async listPostsCursor(
     query: CursorQuery,
     filter: ListPostsFilter
@@ -229,7 +256,7 @@ export class CommunityService {
   async listCommentsCursor(
     postId: number,
     query: CursorQuery
-  ): Promise<CursorResult<Comment>> {
+  ): Promise<CursorResult<CommentWithAuthor>> {
     await this.findActivePostOrThrow(postId);
 
     const limit = query.limit ?? DEFAULT_LIMIT;
@@ -251,14 +278,17 @@ export class CommunityService {
       .take(limit + 1);
 
     const rows: Comment[] = await queryBuilder.getMany();
-    return this.sliceWithNextCursor(rows, limit);
+
+    const { items, nextCursor } = this.sliceWithNextCursor(rows, limit);
+    const withAuthors = await this.attachAuthorsToComments(items);
+    return { items: withAuthors, nextCursor };
   }
 
   async createComment(
     postId: number,
     authorId: number,
     dto: CreateCommentDto
-  ): Promise<Comment> {
+  ): Promise<CommentWithAuthor> {
     await this.findActivePostOrThrow(postId);
 
     return this.dataSource.transaction(async (trx) => {
@@ -269,7 +299,7 @@ export class CommunityService {
         commentRepo.create({ postId, authorId, content: dto.content })
       );
       await postRepo.increment({ id: postId }, "commentCount", 1);
-      return saved;
+      return this.attachAuthorToComment(saved);
     });
   }
 
@@ -277,14 +307,15 @@ export class CommunityService {
     id: number,
     editorId: number,
     dto: UpdateCommentDto
-  ): Promise<Comment> {
+  ): Promise<CommentWithAuthor> {
     const comment = await this.commentRepo.findOne({ where: { id } });
     if (!comment) throw new NotFoundException("Comment not found");
     if (comment.authorId !== editorId) {
       throw new ForbiddenException("No permission to edit this comment");
     }
     comment.content = dto.content;
-    return this.commentRepo.save(comment);
+    const saved = await this.commentRepo.save(comment);
+    return this.attachAuthorToComment(saved);
   }
 
   async deleteComment(id: number, requesterId: number): Promise<void> {

@@ -4,7 +4,7 @@ import { GlowStyle, LineStyle } from "../../style";
 export function drawLine(
   ctx: CanvasRenderingContext2D,
   points: Float32Array,
-  { width, color, glowStyle }: LineStyle
+  { width, color, glowStyle }: Readonly<LineStyle>,
 ): void {
   __strokeLine(ctx, points, width, color);
   __addGlowEffect(ctx, points, glowStyle);
@@ -27,7 +27,7 @@ function __strokeLine(
 function __addGlowEffect(
   ctx: CanvasRenderingContext2D,
   points: Float32Array,
-  { baseColor, width, layers }: GlowStyle,
+  { baseColor, width, layers }: Readonly<GlowStyle>,
 ): void {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";

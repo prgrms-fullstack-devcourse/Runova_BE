@@ -2,7 +2,7 @@ import { Layout } from "../../style";
 
 export function fitPointsToCanvas(
   points: Float32Array,
-  { width, height, margin = 0 }: Layout,
+  { width, height, margin = 0 }: Readonly<Layout>,
 ): void {
 
   const [xMin, yMin, xMax, yMax] = __findBounds(points);

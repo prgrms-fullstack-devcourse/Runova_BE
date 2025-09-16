@@ -28,8 +28,8 @@ function projectLengthKm(coords: [number, number][]): number {
     for (let i = 1; i < coords.length; i++) {
         const a = coords[i - 1];
         const b = coords[i];
-        const [ax, ay] = convertToUTMK(a)as [number, number];
-        const [bx, by] = convertToUTMK(b) as [number, number];
+        const [ax, ay] = convertToUTMK(...a)as [number, number];
+        const [bx, by] = convertToUTMK(...b) as [number, number];
         const dx = bx - ax;
         const dy = by - ay;
         sumM += Math.hypot(dx, dy);
@@ -98,7 +98,7 @@ describe("inspectPath", () => {
             expect(result.nodes[0].progress).toBe(0);
             expect(result.nodes[0].bearing).toBe(0);
             
-            const [x, y] = convertToUTMK(singlePoint);
+            const [x, y] = convertToUTMK(...singlePoint);
             expect(result.wkt5179).toBe(`SRID=5179;LINESTRING(${x} ${y})`);
         });
 
@@ -139,7 +139,7 @@ describe("inspectPath", () => {
     describe("Coordinate system accuracy", () => {
         it("WKT coordinates match proj4 conversion", () => {
             const sample: [number, number] = [126.9780, 37.5665]; // Seoul City Hall
-            const [x, y] = convertToUTMK(sample);
+            const [x, y] = convertToUTMK(...sample);
             
             // Verify coordinates are reasonable for Seoul area (Korean coordinate system 5179)
             expect(x).toBeGreaterThan(900000); // Western Seoul

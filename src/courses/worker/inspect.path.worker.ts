@@ -54,7 +54,11 @@ function __makeCourseNodes(
 }
 
 export default function (path: [number, number][]): InspectPathResult {
-    const path5179: [number, number][] = path.map(convertToUTMK);
+
+    const path5179: [number, number][] = path.map(([lon, lat]) =>
+        convertToUTMK(lon, lat)
+    );
+
     const wkt5179: string = __makeWKT(5179, path5179);
     const nodes: CourseNodeDTO[] = __makeCourseNodes(path, __makeSegments(path5179));
     return { wkt5179, nodes };

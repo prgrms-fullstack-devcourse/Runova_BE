@@ -16,9 +16,12 @@ import { cacheOptionsFactory } from "./config/cache";
 import { FilesModule } from "./files/files.module";
 import Redis from "iovalkey";
 import { UserModule } from "./user/user.module";
+import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
+import { APP_FILTER } from "@nestjs/core";
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: join(__dirname, "..", ".env"),
@@ -41,7 +44,7 @@ import { UserModule } from "./user/user.module";
     FilesModule,
     UserModule,
   ],
-  providers: [],
+  providers: [{ provide: APP_FILTER, useClass: SentryGlobalFilter, }],
   controllers: [],
 })
 export class AppModule {}

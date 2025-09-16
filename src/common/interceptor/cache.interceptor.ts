@@ -39,16 +39,14 @@ export class CacheInterceptor implements NestInterceptor {
                         .catch(err => this.logger.error(err));
                 }
             })
-        );
-    }
-}
-
 function __extractKey(ctx: ExecutionContext, personal?: boolean): string | null {
     const req: Request = ctx.switchToHttp().getRequest();
     if (req.method !== "GET") return null;
 
-    const query = req.query ?? {};
-    personal && (query.userId = String(req.user!["userId"]));
+    const query = { ...(req.query ?? {}) };
+    if (personal && req.user?.userId) {
+        query.userId = String(req.user.userId);
+    }
 
     return req.path + '?' + MD5(query);
 }

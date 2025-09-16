@@ -4,6 +4,7 @@ import { Clazz } from "../clazz";
 export interface CachingOptions {
     ttl?: number;
     schema?: Clazz<any>;
+    personal?: boolean;
 }
 
 export const Caching: ReflectableDecorator<CachingOptions, CachingOptions>

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { FilesService } from "../../files/files.service";
-import Piscina, { move } from "piscina";
+import Piscina from "piscina";
 import { resolve } from "node:path";
 import { UploadType } from "../../common/constants/upload-type.enum";
 
@@ -23,7 +23,7 @@ export class GenerateArtUrlService {
     ): Promise<string> {
 
         const svg = await this.piscina.run(
-            move(Float32Array.from(path.flat())) as Float32Array,
+            Float32Array.from(path.flat()),
         );
 
         const { url: artUrl } = await this.filesService

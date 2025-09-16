@@ -1,9 +1,8 @@
 import { INestApplicationContext } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { ArtModule } from "./art.module";
-import { ConstellationsService, SaveConstellationService } from "./service";
+import { ConstellationService } from "./service";
 import { move } from "piscina";
-import { GenerateArtDTO } from "./dto";
 
 let __app: INestApplicationContext;
 
@@ -12,17 +11,20 @@ async function __getAppContext(): Promise<INestApplicationContext> {
   return __app;
 }
 
-export default async function (dto: GenerateArtDTO): Promise<string> {
-  const { userId, points } = dto;
-
-  if (points.length % 2 !== 0) throw RangeError("Length should be even");
-  if (points.length  < 4) throw RangeError("Length should be greater than 4");
+export default async function (path: Float32Array): Promise<ArrayBuffer> {
+  if (path.length % 2 !== 0) throw RangeError("Length should be even");
+  if (path.length  < 4) throw RangeError("Length should be greater than 4");
 
   const app: INestApplicationContext = await __getAppContext();
 
-  const svg: Uint8Array = await app.get(ConstellationsService)
-    .generateConstellation(points);
+  const buf: Buffer = await app.get(ConstellationService)
+    .generateConstellation(path);
 
-  return await app.get(SaveConstellationService)
-      .saveToS3(userId, svg);
+  const result = buf.buffer
+    .slice(
+      buf.byteOffset,
+      buf.byteOffset + buf.byteLength
+    ) as ArrayBuffer;
+
+  return move(result) as ArrayBuffer;
 }

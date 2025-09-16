@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Layout } from "../style";
-import { covertPointsToUTMK, drawBgStars, drawLine, fitPointsToCanvas } from "./internal";
+import { convertPointsToUTMK, drawBgStars, drawLine, fitPointsToCanvas } from "./internal";
 import { Canvas, CanvasRenderingContext2D } from "skia-canvas";
 import { ConstellationStyleService } from "./constellation.style.service";
 
@@ -32,7 +32,7 @@ function __normalizePoints(
   points: Float32Array,
   layout: Layout,
 ): Float32Array {
-  covertPointsToUTMK(points)
+  convertPointsToUTMK(points)
   fitPointsToCanvas(points, layout)
   return points;
 }

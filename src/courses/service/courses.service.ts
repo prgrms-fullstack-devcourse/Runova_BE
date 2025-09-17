@@ -90,16 +90,3 @@ export class CoursesService {
     }
 }
 
-function __makeWKT(points: Float32Array, srid: number): string {
-
-    const inner: string
-        = [...__generatePointExpressions(points)].join(',');
-
-    return `SRID=${srid};LINESTRING(${inner})`;
-}
-
-function* __generatePointExpressions(points: Float32Array): IterableIterator<string> {
-    for (let i = 0; i < points.length - 1; i += 2)
-        yield `${points[i]} ${points[i + 1]}`;
-}
-

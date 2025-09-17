@@ -18,7 +18,6 @@ import Redis from "iovalkey";
 import { UserModule } from "./user/user.module";
 import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
 import { APP_FILTER } from "@nestjs/core";
-import { PiscinaModule } from "./config/piscina";
 
 @Module({
   imports: [
@@ -32,7 +31,6 @@ import { PiscinaModule } from "./config/piscina";
       dataSourceFactory: typeormDataSourceFactory,
       inject: [ConfigService],
     }),
-    PiscinaModule,
     RedisModule,
     CacheModule.registerAsync({
       isGlobal: true,

@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from "@nestjs/common";
 import { ConstellationStyle } from "../style";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { deepFreeze } from "../../../utils/object";
+import { deepFreeze } from "../../utils/object";
 
 @Injectable()
 export class ConstellationStyleService implements OnModuleInit {

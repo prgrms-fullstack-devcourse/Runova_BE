@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { GenerateArtService, ConstellationStyleService, SaveArtService } from "./service";
 import { HttpModule } from "@nestjs/axios";
-import { FilesModule } from "../../files/files.module";
+import { FilesModule } from "../files/files.module";
 
 @Module({
   imports: [

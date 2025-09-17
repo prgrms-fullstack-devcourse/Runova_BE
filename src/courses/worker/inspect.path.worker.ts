@@ -1,64 +1,23 @@
-import type { CourseNodeDTO, InspectPathResult } from "../dto";
-import { convertToUTMK } from "../../common/geo";
+import { InspectPathResult } from "../dto";
+import { move } from "piscina";
+import { inspectSegments, makeSegments, makeWKT } from "./internal";
+import { convertPointsToUTMK } from "../../utils/convert.points.to.utm-k";
 
-function __makeSegments(path: [number, number][]): [number, number][] {
-    const segments: [number, number][] = [];
+export default function (path: Float32Array): InspectPathResult {
 
-    for (let  i = 0; i !== path.length - 1; ++i) {
-        const [x1, y1] = path[i];
-        const [x2, y2] = path[i + 1];
-        segments.push([x2 - x1, y2 - y1]);
-    }
+    if (path.length % 2 !== 0)
+        throw RangeError("Length of path should be even");
 
-    return segments;
+    if (path.length < 4)
+        throw RangeError("Length of path should be greater than 4");
+
+    const path5179: Float32Array = convertPointsToUTMK(path);
+    const wkt5179 = makeWKT(path5179, 5179);
+    const { progresses, bearings } = inspectSegments(makeSegments(path5179));
+
+    return {
+        wkt5179,
+        progresses: move(progresses) as Float32Array,
+        bearings: move(bearings) as Float32Array,
+    };
 }
-
-function __makeWKT(srid: number, line: [number, number][]): string {
-
-    const inner = line
-        .map(p => p.join(' '))
-        .join(',');
-
-    return `SRID=${srid};LINESTRING(${inner})`;
-}
-
-function __makeCourseNodes(
-    path: [number, number][],
-    segments5179: [number, number][],
-): CourseNodeDTO[] {
-    const nodes: CourseNodeDTO[] = [];
-    let length = 0;
-    let prevSeg: [number, number] = [0, 0];
-
-    segments5179.forEach((seg, i) => {
-        const east = seg[0] - prevSeg[0];
-        const north = seg[1] - prevSeg[1];
-
-        nodes.push({
-            location: path[i],
-            progress: length,
-            bearing: (Math.atan2(east, north) * 180) / Math.PI
-        });
-
-        length += Math.hypot(...seg);
-        prevSeg = seg;
-    });
-
-    nodes.push({
-        location: path.at(-1)!,
-        progress: length,
-        bearing: 0
-    });
-
-    return nodes;
-}
-
-export default function (path: [number, number][]): InspectPathResult {
-    const path5179: [number, number][] = path.map(convertToUTMK);
-    const wkt5179: string = __makeWKT(5179, path5179);
-    const nodes: CourseNodeDTO[] = __makeCourseNodes(path, __makeSegments(path5179));
-    return { wkt5179, nodes };
-};
-
-
-

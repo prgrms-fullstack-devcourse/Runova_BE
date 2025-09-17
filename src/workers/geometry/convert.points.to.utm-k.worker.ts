@@ -1,6 +1,5 @@
 import proj, { type Converter } from "proj4";
 import { move } from "piscina";
-import ndarray, { NdArray } from "ndarray";
 
 const __WGS84 = "EPSG:4326";
 const __UTM_K = "EPSG:5179";
@@ -11,7 +10,6 @@ const __converter: Converter = proj(__WGS84, __UTM_K);
 
 export default function (points: Float32Array): Float32Array {
     const points5179 = new Float32Array(points.length);
-    const mat: NdArray<Float32Array> = ndarray(points5179);
 
     for (let i = 0; i < points.length - 1; i += 2) {
         const [x, y] = __converter.forward([points[i], points[i + 1]]);

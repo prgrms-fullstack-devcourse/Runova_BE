@@ -2,7 +2,6 @@ import { INestApplicationContext } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { ArtModule } from "./art.module";
 import { GenerateArtService, SaveArtService } from "./service";
-import { move } from "piscina";
 import { GenerateArtDTO } from "./dto";
 
 let __app: INestApplicationContext;
@@ -21,7 +20,7 @@ export default async function (dto: GenerateArtDTO): Promise<string> {
   const app: INestApplicationContext = await __getAppContext();
 
   const png: Uint8Array = await app.get(GenerateArtService)
-    .generatePNG(points);
+      .generatePNG(points);
 
   return await app.get(SaveArtService).saveToS3(userId, png);
 }

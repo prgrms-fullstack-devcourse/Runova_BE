@@ -5,20 +5,21 @@ import Piscina from "piscina";
 
 @Injectable()
 export class InspectPathService implements OnModuleDestroy {
-    private readonly piscina: Piscina<[number, number][], InspectPathResult>;
+    private readonly convertPointsWorkers: Piscina<>
+    private readonly inspectPathWorkers: Piscina<[number, number][], InspectPathResult>;
 
     constructor() {
-        this.piscina = new Piscina({
+        this.inspectPathWorkers = new Piscina({
             filename: resolve(__dirname, "../worker/inspect.path.worker.js"),
         });
     }
 
     async onModuleDestroy(): Promise<void> {
-        await this.piscina.close({ force: true });
+        await this.inspectPathWorkers.close({ force: true });
     }
 
     async inspectPath(path: [number, number][]): Promise<InspectPathResult> {
-        return await this.piscina.run(path);
+        return await this.inspectPathWorkers.run(path);
     }
 }
 

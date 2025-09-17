@@ -9,6 +9,7 @@ proj.defs(__UTM_K, __PROJ);
 const __converter: Converter = proj(__WGS84, __UTM_K);
 
 export default function (points: Float32Array): Float32Array {
+    if (points.length % 2 !== 0) throw Error("Length of points must be even");
     const points5179 = new Float32Array(points.length);
 
     for (let i = 0; i < points.length - 1; i += 2) {

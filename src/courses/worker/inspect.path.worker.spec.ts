@@ -1,367 +1,245 @@
-/**
- * Jest tests + performance benchmarks for inspectPath
- */
-
 import inspectPath from "./inspect.path.worker";
-import { convertToUTMK } from "../../common/geo";
 
-/** Build a polyline roughly ~10–15km long around central Seoul */
-function buildSamplePath(points = 500): [number, number][] {
-    // Start near Gyeongbokgung
-    const start: [number, number] = [126.9769, 37.5796];
-    const end: [number, number] = [127.0350, 37.5000]; // toward Gangnam
-    const path: [number, number][] = [];
-    for (let i = 0; i < points; i++) {
-        const t = i / (points - 1);
-        // Simple easing with a small sinusoidal wiggle to avoid perfectly straight line
-        const lon = start[0] + (end[0] - start[0]) * t + 0.002 * Math.sin(10 * t * Math.PI);
-        const lat = start[1] + (end[1] - start[1]) * t + 0.002 * Math.cos(8 * t * Math.PI);
-        path.push([lon, lat]);
-    }
+// Mock the move function from piscina to return the original array for testing
+jest.mock("piscina", () => ({
+    move: (array: any) => array
+}));
 
-    return path;
-}
-
-function projectLengthKm(coords: [number, number][]): number {
-    // Sum Euclidean distances after projecting to 5179 (meters), then convert to km
-    let sumM = 0;
-    for (let i = 1; i < coords.length; i++) {
-        const a = coords[i - 1];
-        const b = coords[i];
-        const [ax, ay] = convertToUTMK(a)as [number, number];
-        const [bx, by] = convertToUTMK(b) as [number, number];
-        const dx = bx - ax;
-        const dy = by - ay;
-        sumM += Math.hypot(dx, dy);
-    }
-    return sumM / 1000;
-}
-
-describe("inspectPath", () => {
-
+describe("inspect.path.worker", () => {
     describe("Basic functionality", () => {
-        const path = buildSamplePath(200);
-        const result = inspectPath(path);
+        it("should return correct structure with progress and bearing arrays", () => {
+            const path = new Float32Array([0, 0, 10, 0, 10, 10]);
+            const result = inspectPath(path);
 
-        it("returns correct structure", () => {
-            expect(result).toHaveProperty('wkt5179');
-            expect(result).toHaveProperty('nodes');
-            expect(typeof result.wkt5179).toBe('string');
-            expect(Array.isArray(result.nodes)).toBe(true);
+            expect(result).toHaveProperty("progress");
+            expect(result).toHaveProperty("bearing");
+            expect(result.progresses).toBeInstanceOf(Float32Array);
+            expect(result.bearings).toBeInstanceOf(Float32Array);
         });
 
-        it("generates WKT string with correct SRID", () => {
-            expect(result.wkt5179).toMatch(/^SRID=5179;LINESTRING\(/);
-            expect(result.wkt5179).toMatch(/\)$/);
+        it("should calculate correct array lengths", () => {
+            const path = new Float32Array([0, 0, 10, 0, 10, 10, 0, 10]);
+            const result = inspectPath(path);
+
+            expect(result.progresses).toHaveLength(4); // path.length / 2
+            expect(result.bearings).toHaveLength(4);   // same as progress
         });
 
-        it("includes all path points as nodes", () => {
-            expect(result.nodes).toHaveLength(path.length);
+        it("should start progress at 0", () => {
+            const path = new Float32Array([0, 0, 10, 0, 10, 10]);
+            const result = inspectPath(path);
+
+            expect(result.progresses[0]).toBe(0);
         });
 
-        it("first node starts at progress 0", () => {
-            expect(result.nodes[0].progress).toBe(0);
+        it("should set last bearing to 0", () => {
+            const path = new Float32Array([0, 0, 10, 0, 10, 10]);
+            const result = inspectPath(path);
+
+            expect(result.bearings[result.bearings.length - 1]).toBe(0);
         });
 
-        it("final node has bearing 0", () => {
-            const lastNode = result.nodes[result.nodes.length - 1];
-            expect(lastNode.bearing).toBe(0);
-        });
+        it("should calculate progress values that increase monotonically", () => {
+            const path = new Float32Array([0, 0, 10, 0, 10, 10, 0, 10]);
+            const result = inspectPath(path);
 
-        it("progress increases monotonically", () => {
-            for (let i = 1; i < result.nodes.length; i++) {
-                expect(result.nodes[i].progress).toBeGreaterThanOrEqual(result.nodes[i - 1].progress);
+            for (let i = 1; i < result.progresses.length; i++) {
+                expect(result.progresses[i]).toBeGreaterThanOrEqual(result.progresses[i - 1]);
             }
         });
+    });
 
-        it("locations match input path", () => {
-            for (let i = 0; i < path.length; i++) {
-                expect(result.nodes[i].location).toEqual(path[i]);
-            }
-            // Final node should have last path location
-            expect(result.nodes[result.nodes.length - 1].location).toEqual(path[path.length - 1]);
+    describe("Mathematical calculations", () => {
+        it("should calculate correct distance for simple horizontal line", () => {
+            const path = new Float32Array([0, 0, 10, 0]);
+            const result = inspectPath(path);
+
+            expect(result.progresses[0]).toBe(0);
+            expect(result.progresses[1]).toBe(10);
+        });
+
+        it("should calculate correct distance for simple vertical line", () => {
+            const path = new Float32Array([0, 0, 0, 10]);
+            const result = inspectPath(path);
+
+            expect(result.progresses[0]).toBe(0);
+            expect(result.progresses[1]).toBe(10);
+        });
+
+        it("should calculate correct distance for diagonal line", () => {
+            const path = new Float32Array([0, 0, 3, 4]);
+            const result = inspectPath(path);
+
+            expect(result.progresses[0]).toBe(0);
+            expect(result.progresses[1]).toBe(5); // 3-4-5 triangle
+        });
+
+        it("should calculate bearings in degrees", () => {
+            const path = new Float32Array([0, 0, 10, 0, 10, 10]);
+            const result = inspectPath(path);
+
+            expect(result.bearings[0]).toBeCloseTo(90); // East
+            expect(result.bearings[1]).toBeCloseTo(-45);  // Direction change from east to north
+            expect(result.bearings[2]).toBe(0);         // Last bearing always 0
+        });
+
+        it("should handle complex path with multiple segments", () => {
+            const path = new Float32Array([0, 0, 10, 0, 20, 10, 30, 10]);
+            const result = inspectPath(path);
+
+            expect(result.progresses).toHaveLength(4);
+            expect(result.bearings).toHaveLength(4);
+            expect(result.progresses[0]).toBe(0);
+            expect(result.progresses[result.progresses.length - 1]).toBeGreaterThan(0);
         });
     });
 
     describe("Edge cases", () => {
-        it("handles empty path", () => {
-            expect(() => inspectPath([])).toThrow();
-            // Empty paths are likely not supported by the current implementation
+        it("should throw error for odd-length path", () => {
+            const path = new Float32Array([0, 0, 10]);
+            expect(() => inspectPath(path)).toThrow(RangeError);
+            expect(() => inspectPath(path)).toThrow("Length of path should be even");
         });
 
-        it("handles single point", () => {
-            const singlePoint: [number, number] = [126.9780, 37.5665];
-            const result = inspectPath([singlePoint]);
-            
-            expect(result.nodes).toHaveLength(1);
-            expect(result.nodes[0].location).toEqual(singlePoint);
-            expect(result.nodes[0].progress).toBe(0);
-            expect(result.nodes[0].bearing).toBe(0);
-            
-            const [x, y] = convertToUTMK(singlePoint);
-            expect(result.wkt5179).toBe(`SRID=5179;LINESTRING(${x} ${y})`);
+        it("should throw error for path with length < 4", () => {
+            const path = new Float32Array([0, 0]);
+            expect(() => inspectPath(path)).toThrow(RangeError);
+            expect(() => inspectPath(path)).toThrow("Length of path should be greater than 4");
         });
 
-        it("handles two points", () => {
-            const twoPoints: [number, number][] = [
-                [126.9780, 37.5665], // Seoul City Hall
-                [126.9790, 37.5675]  // Nearby point
-            ];
-            const result = inspectPath(twoPoints);
-            
-            expect(result.nodes).toHaveLength(2); // 2 path points
-            expect(result.nodes[0].progress).toBe(0);
-            expect(result.nodes[1].progress).toBeGreaterThan(0);
-            expect(result.nodes[1].bearing).toBe(0); // Final node has bearing 0
-        });
-
-        it("handles duplicate consecutive points", () => {
-            const pathWithDupes: [number, number][] = [];
-            const pivot: [number, number] = [126.978, 37.5665];
-            
-            for (let i = 0; i < 20; i++) {
-                pathWithDupes.push([...pivot]); // All same point
-            }
-            // Add a different final point
-            pathWithDupes[pathWithDupes.length - 1] = [pivot[0] + 1e-5, pivot[1]];
-            
-            const result = inspectPath(pathWithDupes);
-            
-            expect(result.nodes).toHaveLength(pathWithDupes.length);
-            // Most nodes should have very small progress increments (or 0)
-            for (let i = 1; i < result.nodes.length - 2; i++) {
-                const progressDiff = result.nodes[i + 1].progress - result.nodes[i].progress;
-                expect(progressDiff).toBeLessThan(1); // Less than 1 meter between duplicates
-            }
-        });
-    });
-
-    describe("Coordinate system accuracy", () => {
-        it("WKT coordinates match proj4 conversion", () => {
-            const sample: [number, number] = [126.9780, 37.5665]; // Seoul City Hall
-            const [x, y] = convertToUTMK(sample);
-            
-            // Verify coordinates are reasonable for Seoul area (Korean coordinate system 5179)
-            expect(x).toBeGreaterThan(900000); // Western Seoul
-            expect(x).toBeLessThan(1000000); // Eastern Seoul
-            expect(y).toBeGreaterThan(1900000); // Southern Seoul
-            expect(y).toBeLessThan(2000000); // Northern Seoul
-
-            const result = inspectPath([sample]);
-            expect(result.wkt5179).toContain(`${x} ${y}`);
-        });
-
-        it("distance calculations are reasonable", () => {
-            const path = buildSamplePath(100);
+        it("should handle minimum valid path (2 points)", () => {
+            const path = new Float32Array([0, 0, 10, 0]);
             const result = inspectPath(path);
-            
-            // Calculated length should be close to our projected length
-            const finalProgress = result.nodes[result.nodes.length - 1].progress;
-            const expectedLengthKm = projectLengthKm(path);
-            
-            expect(finalProgress / 1000).toBeCloseTo(expectedLengthKm, 0); // Within 1km
+
+            expect(result.progresses).toHaveLength(2);
+            expect(result.bearings).toHaveLength(2);
+            expect(result.progresses[0]).toBe(0);
+            expect(result.progresses[1]).toBe(10);
+            expect(result.bearings[1]).toBe(0);
+        });
+
+        it("should handle duplicate consecutive points", () => {
+            const path = new Float32Array([0, 0, 0, 0, 10, 0]);
+            const result = inspectPath(path);
+
+            expect(result.progresses[0]).toBe(0);
+            expect(result.progresses[1]).toBe(0); // No distance for duplicate points
+            expect(result.progresses[2]).toBe(10);
+        });
+
+        it("should handle path with zero-length segments", () => {
+            const path = new Float32Array([5, 5, 5, 5, 5, 15]);
+            const result = inspectPath(path);
+
+            expect(result.progresses[0]).toBe(0);
+            expect(result.progresses[1]).toBe(0); // Zero length segment
+            expect(result.progresses[2]).toBe(10); // 10 units up
         });
     });
 
     describe("Bearing calculations", () => {
-        it("calculates correct bearings for cardinal directions", () => {
-            // Path going east then north
-            const path: [number, number][] = [
-                [126.9780, 37.5665], // Start
-                [126.9790, 37.5665], // Go east
-                [126.9790, 37.5675], // Go north
-            ];
-            
-            const result = inspectPath(path);
-            
-            // Bearings should represent direction changes
-            expect(result.nodes).toHaveLength(3);
-            expect(typeof result.nodes[0].bearing).toBe('number');
-            expect(typeof result.nodes[1].bearing).toBe('number');
-            expect(typeof result.nodes[2].bearing).toBe('number');
-            expect(result.nodes[2].bearing).toBe(0); // Final node always 0
-        });
-
-        it("bearing values are within valid range", () => {
-            const path = buildSamplePath(50);
-            const result = inspectPath(path);
-            
-            result.nodes.forEach((node, i) => {
-                expect(node.bearing).toBeGreaterThanOrEqual(-180);
-                expect(node.bearing).toBeLessThanOrEqual(180);
-                if (i === result.nodes.length - 1) {
-                    expect(node.bearing).toBe(0); // Final node
-                }
-            });
-        });
-    });
-
-    describe("WKT generation", () => {
-        it("generates valid WKT format", () => {
-            const path: [number, number][] = [
-                [126.9780, 37.5665],
-                [126.9790, 37.5675],
-                [126.9800, 37.5685]
-            ];
-            
-            const result = inspectPath(path);
-            
-            // Should be valid LINESTRING format
-            expect(result.wkt5179).toMatch(/^SRID=5179;LINESTRING\([0-9\.\-\s,]+\)$/);
-            
-            // Should have correct number of coordinate pairs
-            const coordPairs = result.wkt5179.match(/[0-9\.\-]+\s+[0-9\.\-]+/g);
-            expect(coordPairs).toHaveLength(path.length);
-        });
-
-        it("handles empty path gracefully", () => {
-            expect(() => inspectPath([])).toThrow();
-            // Empty paths should be validated before calling this function
-        });
-    });
-});
-
-describe("Performance benchmarks", () => {
-    const PERFORMANCE_ITERATIONS = 50;
-    const TEST_SIZES = [100, 500, 1000, 2000, 5000];
-
-    describe("Scalability tests", () => {
-        TEST_SIZES.forEach(size => {
-            it(`performs efficiently with ${size} points`, () => {
-                const path = buildSamplePath(size);
-                const times: number[] = [];
-
-                for (let i = 0; i < PERFORMANCE_ITERATIONS; i++) {
-                    const start = performance.now();
-                    inspectPath(path);
-                    const end = performance.now();
-                    times.push(end - start);
-                }
-
-                const avg = times.reduce((a, b) => a + b) / times.length;
-                const sorted = times.sort((a, b) => a - b);
-                const p95 = sorted[Math.floor(sorted.length * 0.95)];
-                const p99 = sorted[Math.floor(sorted.length * 0.99)];
-
-                console.log(
-                    `[inspectPath] SIZE=${size}: avg=${avg.toFixed(3)}ms, p95=${p95.toFixed(3)}ms, p99=${p99.toFixed(3)}ms`
-                );
-
-                // Performance expectations (adjust based on your requirements)
-                expect(avg).toBeLessThan(size * 0.01); // Should be roughly O(n) with small constant
-                expect(p95).toBeLessThan(size * 0.02);
-                expect(p99).toBeLessThan(size * 0.05);
-            });
-        });
-    });
-
-    describe("Memory efficiency", () => {
-        it("handles large paths without excessive memory usage", () => {
-            const LARGE_SIZE = 10000;
-            const path = buildSamplePath(LARGE_SIZE);
-
-            // Measure memory before
-            if (global.gc) {
-                global.gc();
-            }
-            const memBefore = process.memoryUsage();
-
-            // Run the function
+        it("should calculate correct bearing for cardinal directions", () => {
+            const path = new Float32Array([
+                0, 0,   // Start
+                10, 0,  // East
+                10, 10, // North
+                0, 10   // West
+            ]);
             const result = inspectPath(path);
 
-            // Measure memory after
-            const memAfter = process.memoryUsage();
-
-            // Verify result is complete
-            expect(result.nodes).toHaveLength(LARGE_SIZE);
-            expect(result.wkt5179).toContain('SRID=5179;LINESTRING');
-
-            // Memory usage should be reasonable (this is a rough check)
-            const memDiff = memAfter.heapUsed - memBefore.heapUsed;
-            console.log(`Memory usage for ${LARGE_SIZE} points: ${(memDiff / 1024 / 1024).toFixed(2)}MB`);
-            
-            // Should not use excessive memory (adjust threshold as needed)
-            expect(memDiff).toBeLessThan(100 * 1024 * 1024); // Less than 100MB
+            expect(result.bearings[0]).toBeCloseTo(90);   // East direction
+            expect(result.bearings[1]).toBeCloseTo(-45);  // Direction change from east to north
+            expect(result.bearings[2]).toBeCloseTo(-135); // Direction change from north to west
+            expect(result.bearings[3]).toBe(0);           // Last always 0
         });
-    });
 
-    describe("Algorithmic complexity", () => {
-        it("shows linear time complexity O(n)", () => {
-            const results: { size: number; avgTime: number }[] = [];
+        it("should handle bearing calculations for diagonal movements", () => {
+            const path = new Float32Array([0, 0, 10, 10, 20, 0]);
+            const result = inspectPath(path);
 
-            [100, 200, 400, 800].forEach(size => {
-                const path = buildSamplePath(size);
-                const times: number[] = [];
+            expect(result.bearings[0]).toBeCloseTo(45);   // Northeast direction
+            expect(result.bearings[1]).toBeCloseTo(180);  // Direction change (south)
+            expect(result.bearings[2]).toBe(0);           // Last always 0
+        });
 
-                for (let i = 0; i < 20; i++) {
-                    const start = performance.now();
-                    inspectPath(path);
-                    const end = performance.now();
-                    times.push(end - start);
-                }
+        it("should keep bearings within valid range", () => {
+            const path = new Float32Array([0, 0, -10, 0, -10, -10, 0, -10, 10, -10]);
+            const result = inspectPath(path);
 
-                const avgTime = times.reduce((a, b) => a + b) / times.length;
-                results.push({ size, avgTime });
-            });
-
-            // Check that time grows roughly linearly with input size
-            for (let i = 1; i < results.length; i++) {
-                const prev = results[i - 1];
-                const curr = results[i];
-                const sizeRatio = curr.size / prev.size;
-                const timeRatio = curr.avgTime / prev.avgTime;
-
-                console.log(`Size ratio: ${sizeRatio.toFixed(2)}, Time ratio: ${timeRatio.toFixed(2)}`);
-                
-                // Time ratio should be roughly proportional to size ratio (within reasonable bounds)
-                expect(timeRatio).toBeLessThan(sizeRatio * 2); // Allow for some overhead
-                expect(timeRatio).toBeGreaterThan(sizeRatio * 0.5); // But should scale somewhat
+            for (let i = 0; i < result.bearings.length - 1; i++) {
+                expect(result.bearings[i]).toBeGreaterThanOrEqual(-180);
+                expect(result.bearings[i]).toBeLessThanOrEqual(180);
             }
         });
     });
 
-    describe("Stress tests", () => {
-        it("handles repeated calls efficiently", () => {
-            const path = buildSamplePath(1000);
-            const ITERATIONS = 100;
-            const times: number[] = [];
+    describe("Performance and memory", () => {
+        it("should handle large paths efficiently", () => {
+            const size = 10000;
+            const path = new Float32Array(size);
 
-            for (let i = 0; i < ITERATIONS; i++) {
-                const start = performance.now();
-                const result = inspectPath(path);
-                const end = performance.now();
-                
-                times.push(end - start);
-                
-                // Verify result is consistent
-                expect(result.nodes).toHaveLength(1000);
-                expect(result.nodes[0].progress).toBe(0);
-                expect(result.nodes[result.nodes.length - 1].bearing).toBe(0);
+            for (let i = 0; i < size; i += 2) {
+                path[i] = i / 2;
+                path[i + 1] = Math.sin(i / 100) * 10;
             }
-
-            const avgTime = times.reduce((a, b) => a + b) / times.length;
-            const maxTime = Math.max(...times);
-            const minTime = Math.min(...times);
-
-            console.log(`Repeated calls: avg=${avgTime.toFixed(3)}ms, min=${minTime.toFixed(3)}ms, max=${maxTime.toFixed(3)}ms`);
-
-            // Performance should be consistent
-            expect(maxTime - minTime).toBeLessThan(avgTime * 2); // Max shouldn't be more than 2x avg
-        });
-
-        it("handles edge case performance", () => {
-            // Test with many duplicate points (potential performance trap)
-            const duplicatePath: [number, number][] = Array(1000).fill([126.978, 37.5665]);
-            duplicatePath.push([126.979, 37.5665]); // One different point at the end
 
             const start = performance.now();
-            const result = inspectPath(duplicatePath);
+            const result = inspectPath(path);
             const end = performance.now();
 
-            expect(result.nodes).toHaveLength(1001);
-            expect(end - start).toBeLessThan(50); // Should handle duplicates efficiently
+            expect(result.progresses).toHaveLength(size / 2);
+            expect(result.bearings).toHaveLength(size / 2);
+            expect(end - start).toBeLessThan(100); // Should complete in <100ms
+        });
 
-            console.log(`Duplicate points performance: ${(end - start).toFixed(3)}ms`);
+        it("should maintain precision for small increments", () => {
+            const path = new Float32Array([
+                0, 0,
+                0.001, 0.001,
+                0.002, 0.002
+            ]);
+            const result = inspectPath(path);
+
+            expect(result.progresses[0]).toBe(0);
+            expect(result.progresses[1]).toBeCloseTo(Math.sqrt(2) * 0.001, 6);
+            expect(result.progresses[2]).toBeCloseTo(Math.sqrt(2) * 0.002, 6);
+        });
+    });
+
+    describe("Zero-copy behavior with piscina", () => {
+        it("should return Float32Array instances that can be transferred", () => {
+            const path = new Float32Array([0, 0, 10, 0, 10, 10]);
+            const result = inspectPath(path);
+
+            expect(result.progresses.buffer).toBeDefined();
+            expect(result.bearings.buffer).toBeDefined();
+            expect(result.progresses).toBeInstanceOf(Float32Array);
+            expect(result.bearings).toBeInstanceOf(Float32Array);
+        });
+
+        it("should maintain array properties after move operation", () => {
+            const path = new Float32Array([0, 0, 10, 0, 10, 10, 0, 10]);
+            const result = inspectPath(path);
+
+            expect(result.progresses).toHaveLength(4);
+            expect(result.bearings).toHaveLength(4);
+            expect(result.progresses.byteLength).toBe(16); // 4 * 4 bytes
+            expect(result.bearings.byteLength).toBe(16);
+        });
+    });
+
+    describe("Internal segment calculation", () => {
+        it("should create correct segment vectors", () => {
+            const path = new Float32Array([0, 0, 10, 5, 20, 15]);
+            const result = inspectPath(path);
+
+            expect(result.progresses[0]).toBe(0);
+
+            const expectedDist1 = Math.sqrt(10*10 + 5*5);
+            const expectedDist2 = Math.sqrt(10*10 + 10*10);
+
+            expect(result.progresses[1]).toBeCloseTo(expectedDist1);
+            expect(result.progresses[2]).toBeCloseTo(expectedDist1 + expectedDist2);
         });
     });
 });

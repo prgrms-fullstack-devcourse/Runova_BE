@@ -1,12 +1,13 @@
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
-import { Course, CourseNode } from "../../modules/courses";
+import { Course } from "../../modules/courses";
 import { CourseTopologyDTO, CreateCourseDTO, UpdateCourseDTO } from "../dto";
 import { InspectPathService } from "./inspect.path.service";
 import { pick } from "../../utils/object";
 import { ConfigService } from "@nestjs/config";
+import { CourseNodesService } from "./course.nodes.service";
 
 @Injectable()
 export class CoursesService {
@@ -15,10 +16,10 @@ export class CoursesService {
     constructor(
         @InjectRepository(Course)
         private readonly coursesRepo: Repository<Course>,
-        @InjectRepository(CourseNode)
-        private readonly nodesRepo: Repository<CourseNode>,
         @Inject(InspectPathService)
         private readonly inspectPathService: InspectPathService,
+        @Inject(CourseNodesService)
+        private readonly nodesService: CourseNodesService,
         @Inject(ConfigService)
         config: ConfigService,
     ) {
@@ -27,9 +28,9 @@ export class CoursesService {
 
     @Transactional()
     async createCourse(dto: CreateCourseDTO): Promise<void> {
-        const { path, ...rest } = dto;
+        const { path, ...values } = dto;
 
-        const { wkt5179, nodes } = await this.inspectPathService
+        const { wkt5179, ...rest } = await this.inspectPathService
             .inspectPath(path);
 
         const result = await this.coursesRepo
@@ -37,11 +38,11 @@ export class CoursesService {
             .insert()
             .into(Course)
             .values({
-                ...rest,
-                length: nodes.at(-1)!.progress,
-                departure: nodes[0].location,
+                ...values,
+                length: rest.progresses.at(-1)!,
+                departure: path[0],
                 shape: () => `  
-                        ST_Transform(ST_Buffer(ST_GeomFromText(:wkt), :radius, 'endcap=flat join=round'), 4326)  
+                        ST_Transform(ST_Buffer(ST_GeomFromText(:wkt)), 4326)  
                 `,
             })
             .setParameters({ wkt: wkt5179, radius: this.courseRadius })
@@ -49,14 +50,12 @@ export class CoursesService {
             .returning("id")
             .execute();
 
-        Logger.debug(result, CoursesService.name);
-        const courseId: number = result.raw[0].id;
       
-        await this.nodesRepo.insert(
-            nodes.map(node =>
-                ({ courseId, ...node })
-            )
-        );
+        await this.nodesService.createCourseNodes({
+            courseId: result.raw[0].id,
+            locations: path,
+            ...rest,
+        })
     }
 
     async getCourseTopology(id: number): Promise<CourseTopologyDTO> {

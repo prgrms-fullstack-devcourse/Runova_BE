@@ -17,6 +17,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/dist ./dist
 COPY package*.json ./
+COPY constellation-style.json ./
 COPY --from=deps /app/node_modules ./node_modules
 
 EXPOSE 3000

@@ -1,11 +1,11 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
 import { InspectPathResult } from "../dto";
 import { resolve } from "node:path";
-import Piscina from "piscina";
+import Piscina, { move } from "piscina";
 
 @Injectable()
 export class InspectPathService implements OnModuleDestroy {
-    private readonly piscina: Piscina<[number, number][], InspectPathResult>;
+    private readonly piscina: Piscina<Float32Array, InspectPathResult>;
 
     constructor() {
         this.piscina = new Piscina({
@@ -18,7 +18,9 @@ export class InspectPathService implements OnModuleDestroy {
     }
 
     async inspectPath(path: [number, number][]): Promise<InspectPathResult> {
-        return await this.piscina.run(path);
+        return await this.piscina.run(
+            move(Float32Array.from(path.flat())) as Float32Array,
+        );
     }
 }
 

@@ -1,5 +1,4 @@
 import { InspectPathResult } from "../dto";
-import { move } from "piscina";
 import { inspectSegments, makeSegments, makeWKT } from "./internal";
 import { convertPointsToUTMK } from "../../utils/convert.points.to.utm-k";
 
@@ -15,9 +14,5 @@ export default function (path: Float32Array): InspectPathResult {
     const wkt5179 = makeWKT(path5179, 5179);
     const { progresses, bearings } = inspectSegments(makeSegments(path5179));
 
-    return {
-        wkt5179,
-        progresses: move(progresses) as Float32Array,
-        bearings: move(bearings) as Float32Array,
-    };
+    return { wkt5179, progresses, bearings };
 }

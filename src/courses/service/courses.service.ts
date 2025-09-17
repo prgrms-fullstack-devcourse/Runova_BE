@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
@@ -30,8 +30,11 @@ export class CoursesService {
     async createCourse(dto: CreateCourseDTO): Promise<void> {
         const { path, ...values } = dto;
 
-        const { wkt5179, ...rest } = await this.inspectPathService
+        const r = await this.inspectPathService
             .inspectPath(path);
+
+        const { wkt5179, ...rest } = r;
+        Logger.debug(r, CoursesService.name);
 
         const result = await this.coursesRepo
             .createQueryBuilder()
@@ -42,7 +45,7 @@ export class CoursesService {
                 length: rest.progresses.at(-1)!,
                 departure: path[0],
                 shape: () => `  
-                        ST_Transform(ST_Buffer(ST_GeomFromText(:wkt)), 4326)  
+                        ST_Transform(ST_Buffer(ST_GeomFromText(:wkt), :radius), 4326)  
                 `,
             })
             .setParameters({ wkt: wkt5179, radius: this.courseRadius })

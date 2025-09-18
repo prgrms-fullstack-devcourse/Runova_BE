@@ -28,8 +28,8 @@ export class CourseDTO {
     @ApiProperty({ type: Author, description: "작성자 정보" })
     author: Author;
 
-    @ApiProperty({ type: "boolean", description: "북마크 여부" })
-    bookmarked: boolean;
+    @ApiProperty({ type: "boolean", nullable: true, description: "북마크 여부" })
+    bookmarked: boolean | null;
 
     @ApiProperty({
         type: "number",

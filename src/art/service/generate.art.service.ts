@@ -32,8 +32,8 @@ function __normalizePoints(
   points: Float32Array,
   layout: Layout,
 ): Float32Array {
-  convertPointsToUTMK(points);
-  fitPointsToCanvas(points, layout);
+  convertPointsToUTMK(points)
+  fitPointsToCanvas(points, layout)
   return points;
 }
 

@@ -20,8 +20,8 @@ export default async function (dto: GenerateArtDTO): Promise<string> {
 
   const app: INestApplicationContext = await __getAppContext();
 
-  const png: Uint8Array = await app.get(GenerateArtService)
-    .generatePNG(points);
+  const art: Uint8Array = await app.get(GenerateArtService)
+    .generate(points);
 
-  return await app.get(SaveArtService).saveToS3(userId, png);
+  return await app.get(SaveArtService).saveToS3(userId, art);
 }

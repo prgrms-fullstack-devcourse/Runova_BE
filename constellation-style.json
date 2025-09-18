@@ -4,10 +4,10 @@
   "bgStarStyle": {
     "color": "#ffffff",
     "density": 6000,
-    "minRadius": 0.15,
-    "maxRadius": 0.50,
-    "minAlpha": 0.4,
-    "maxAlpha": 1.7
+    "minAlpha": 0.15,
+    "maxAlpha": 0.50,
+    "minRadius": 1.7,
+    "maxRadius": 2.1
   },
   "lineStyle": {
     "color": "#ffffff",

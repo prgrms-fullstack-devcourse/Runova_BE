@@ -2,6 +2,7 @@ export * from "./course.dto";
 export * from "./course.node.dto";
 export * from "./course.topology.dto";
 export * from "./create.course.dto";
+export * from "./create.course.nodes.dto";
 export * from "./search.courses.dto";
 export * from "./search.adjacent.courses.dto";
 export * from "./search.adjacent.courses.cursor";

@@ -3,6 +3,8 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
+import { readFile } from "node:fs/promises";
+import { faker } from "@faker-js/faker/locale/ko";
 
 describe('e2e', () => {
   let app: INestApplication<App>;
@@ -18,27 +20,30 @@ describe('e2e', () => {
   });
 
   describe('/api/courses', () => {
-    const mockCourseData = {
-      title: 'Test Course',
-      imageURL: 'https://example.com/image.jpg',
-      path: [
-        { latitude: 37.5665, longitude: 126.9780 },
-        { latitude: 37.5675, longitude: 126.9790 }
-      ]
-    };
 
     let authToken: string;
     let userId: number;
     let courseId: number;
 
     beforeEach(async () => {
-      // Mock authentication - adjust based on your auth implementation
-      // This assumes you have a way to generate test tokens or mock auth
       authToken = 'mock-jwt-token';
-      userId = 1;
+      userId = 8;
     });
 
     describe('POST /api/courses', () => {
+      let mockCourseData: Record<string, any>;
+
+      beforeEach(async () => {
+        const raw = await readFile("../data.json", "utf-8");
+        const path: [number, number][] = JSON.parse(raw).path;
+
+        mockCourseData = {
+          title: 'test course',
+          imageUrl: faker.internet.url(),
+          path,
+        };
+      })
+
       it('should create a new course', async () => {
         const response = await request(app.getHttpServer())
           .post('/api/courses')

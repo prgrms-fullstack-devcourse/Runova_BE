@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import {
-    CourseBookmarksService,
+    CourseBookmarksService, CourseNodesService,
     CoursesService, GetRecentPaceService, InspectPathService,
     SearchCoursesService
 } from './service';
@@ -19,6 +19,7 @@ import { SearchCoursesInterceptor, SearchCoursesResponseInterceptor } from "./in
   ],
   providers: [
       CoursesService,
+      CourseNodesService,
       CourseBookmarksService,
       SearchCoursesService,
       GetRecentPaceService,

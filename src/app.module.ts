@@ -18,7 +18,6 @@ import Redis from "iovalkey";
 import { UserModule } from "./user/user.module";
 import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
 import { APP_FILTER } from "@nestjs/core";
-import { ArtModule } from './art/art.module';
 
 @Module({
   imports: [
@@ -44,7 +43,6 @@ import { ArtModule } from './art/art.module';
     RunningModule,
     FilesModule,
     UserModule,
-    ArtModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: SentryGlobalFilter, }],
   controllers: [],

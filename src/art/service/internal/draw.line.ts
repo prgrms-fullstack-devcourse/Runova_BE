@@ -1,27 +1,13 @@
 import { CanvasRenderingContext2D } from "skia-canvas";
-import { LineStyle } from "../style";
-import { XY } from "../type";
+import { GlowStyle, LineStyle } from "../../style";
 
 export function drawLine(
   ctx: CanvasRenderingContext2D,
-  points: XY[],
-  { alpha, width, glowAlpha, glowBlur }: LineStyle
+  points: Float32Array,
+  { width, color, glowStyle }: LineStyle
 ): void {
-  ctx.save();
-
-  ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
-  ctx.lineWidth = width;
-  ctx.shadowColor = `rgba(255,255,255,${glowAlpha})`;
-  ctx.shadowBlur = glowBlur;
-
-  for (let i = 0; i < points.length - 1; i++) {
-    ctx.beginPath();
-    ctx.moveTo(points[i].x, points[i + 1].y);
-    ctx.lineTo(points[i + 1].x, points[i + 1].y);
-    ctx.stroke();
-  }
-
-  ctx.restore();
+  __strokeLine(ctx, points, width, color);
+  __addGlowEffect(ctx, points, glowStyle);
 }
 
 function __strokeLine(

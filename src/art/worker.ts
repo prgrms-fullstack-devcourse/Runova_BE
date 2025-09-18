@@ -1,6 +1,6 @@
 import { INestApplicationContext } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
-import { ArtWorkerModule } from "./art.worker.module";
+import { ArtModule } from "./art.module";
 import { GenerateArtService, SaveArtService } from "./service";
 import { move } from "piscina";
 import { GenerateArtDTO } from "./dto";
@@ -8,7 +8,7 @@ import { GenerateArtDTO } from "./dto";
 let __app: INestApplicationContext;
 
 async function __getAppContext(): Promise<INestApplicationContext> {
-  if (!__app) __app = await NestFactory.createApplicationContext(ArtWorkerModule);
+  if (!__app) __app = await NestFactory.createApplicationContext(ArtModule);
   return __app;
 }
 

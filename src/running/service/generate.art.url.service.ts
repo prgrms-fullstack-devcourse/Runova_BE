@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import Piscina from "piscina";
 import { resolve } from "node:path";
-import { GenerateArtDTO } from "../../art/worker/dto";
+import { GenerateArtDTO } from "../../art/dto";
 
 @Injectable()
 export class GenerateArtUrlService {

@@ -12,7 +12,7 @@ export class GenerateArtService {
     private readonly styleService: ConstellationStyleService,
   ) {}
 
-  async generatePNG(points: Float32Array): Promise<Uint8Array> {
+  async generate(points: Float32Array): Promise<Uint8Array> {
     const { layout, bgColor, bgStarStyle, lineStyle } = this.styleService.get();
 
     const canvas = new Canvas(layout.width, layout.height);
@@ -23,7 +23,7 @@ export class GenerateArtService {
     drawBgStars(ctx, layout, bgStarStyle);
     drawLine(ctx, __normalizePoints(points, layout), lineStyle);
 
-    const buf: Buffer = await canvas.toBuffer("png");
+    const buf: Buffer = await canvas.toBuffer("svg");
     return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
   }
 }

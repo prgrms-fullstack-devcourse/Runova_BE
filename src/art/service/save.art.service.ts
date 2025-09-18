@@ -18,13 +18,13 @@ export class SaveArtService {
 
         const { url, region, bucket, key } = await this.filesService.getPresignedUrl(
             UploadType.ART,
-            "image/svg",
+            "image/png",
             art.byteLength,
             userId,
         );
 
         await this.httpService.axiosRef.put(url, art, {
-            headers: { "Content-Type": "image/svg", "Content-Length": art.byteLength },
+            headers: { "Content-Type": "image/png", "Content-Length": art.byteLength },
         }).catch(err => {
 
             if (err instanceof AxiosError) {

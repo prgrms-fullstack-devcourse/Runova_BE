@@ -13,17 +13,15 @@ export class GenerateArtService {
   ) {}
 
   async generate(points: Float32Array): Promise<Uint8Array> {
-    const { layout, bgColor, bgStarStyle, lineStyle } = this.styleService.get();
+    const { layout, lineStyle } = this.styleService.get();
 
     const canvas = new Canvas(layout.width, layout.height);
     const ctx: CanvasRenderingContext2D = canvas.getContext("2d");
 
-    ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, layout.width, layout.height);
-    drawBgStars(ctx, layout, bgStarStyle);
     drawLine(ctx, __normalizePoints(points, layout), lineStyle);
 
-    const buf: Buffer = await canvas.toBuffer("svg");
+    const buf: Buffer = await canvas.toBuffer("png");
     return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
   }
 }

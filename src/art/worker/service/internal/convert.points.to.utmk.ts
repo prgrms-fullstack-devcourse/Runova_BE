@@ -1,4 +1,4 @@
-import { convertToUTMK } from "../../../common/geo";
+import { convertToUTMK } from "../../../../common/geo";
 
 export function convertPointsToUTMK(points: Float32Array): void {
 

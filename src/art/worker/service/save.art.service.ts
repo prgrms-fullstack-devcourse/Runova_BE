@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { FilesService } from "../../files/files.service";
+import { FilesService } from "../../../files/files.service";
 import { HttpService } from "@nestjs/axios";
-import { UploadType } from "../../common/constants/upload-type.enum";
+import { UploadType } from "../../../common/constants/upload-type.enum";
 import { AxiosError } from "axios";
 
 @Injectable()

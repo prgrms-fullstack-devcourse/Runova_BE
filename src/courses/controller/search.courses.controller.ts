@@ -1,12 +1,12 @@
 import { ApiBearerAuth, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
-import { Controller, Get, Inject, Logger, Query, UseGuards, UseInterceptors } from "@nestjs/common";
+import { Controller, Get, Inject, Query, UseGuards, UseInterceptors } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { CacheInterceptor } from "../../common/interceptor";
 import { SearchCoursesInterceptor, SearchCoursesResponseInterceptor } from "../interceptor";
 import { SearchCoursesService } from "../service";
 import { SearchAdjacentCoursesQuery, SearchCoursesResponse } from "../api";
 import { Cached, Caching, User } from "../../utils/decorator";
-import { MINUTE_IN_MS, SECOND_IN_MS } from "../../common/constants/datetime";
+import { MINUTE_IN_MS } from "../../common/constants/datetime";
 import { CourseDTO } from "../dto";
 import { BasicPagingOptions } from "../../common/types";
 
@@ -31,14 +31,14 @@ export class SearchCoursesController {
     @ApiBearerAuth()
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    @Caching({ ttl: 15 * MINUTE_IN_MS, personal: true, })
+    @Caching({ ttl: 1.5 * MINUTE_IN_MS })
     async searchUserCourses(
         @User("userId") userId: number,
         @User("pace") pace: number,
         @Query() query?: BasicPagingOptions,
         @Cached() cached?: SearchCoursesResponse,
-    ): Promise<CourseDTO[]> {
-        return cached?.results ?? await this.searchCoursesService
+    ): Promise<CourseDTO[] | SearchCoursesResponse> {
+        return cached ?? await this.searchCoursesService
             .searchUserCourses({ userId, pace, paging: query });
     }
 
@@ -48,14 +48,14 @@ export class SearchCoursesController {
     @ApiQuery({ type: BasicPagingOptions, required: false })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    @Caching({ ttl: 30 * SECOND_IN_MS, personal: true, })
+    @Caching({ ttl: 1.5 * MINUTE_IN_MS })
     async searchBookmarkedCourses(
         @User("userId") userId: number,
         @User("pace") pace: number,
         @Query() query?: BasicPagingOptions,
         @Cached() cached?: SearchCoursesResponse,
-    ): Promise<CourseDTO[]> {
-        return cached?.results ?? await this.searchCoursesService
+    ): Promise<CourseDTO[] | SearchCoursesResponse> {
+        return cached ?? await this.searchCoursesService
             .searchBookmarkedCourses({ userId, pace, paging: query });
     }
 
@@ -65,21 +65,15 @@ export class SearchCoursesController {
     @ApiQuery({ type: BasicPagingOptions, required: false })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    @Caching({ ttl: 15 * MINUTE_IN_MS, personal: true, })
+    @Caching({ ttl: 1.5 * MINUTE_IN_MS })
     async searchCompletedCourses(
         @User("userId") userId: number,
         @User("pace") pace: number,
         @Query() query?: BasicPagingOptions,
         @Cached() cached?: SearchCoursesResponse,
-    ): Promise<CourseDTO[]> {
-       if (cached) {
-           return await this.searchCoursesService
-               .searchCachedCourses(cached.results, userId);
-       }
-       else {
-           return await this.searchCoursesService
-               .searchCompletedCourses({ userId, pace, paging: query });
-       }
+    ): Promise<CourseDTO[] | SearchCoursesResponse> {
+        return cached ?? await this.searchCoursesService
+            .searchCompletedCourses({ userId, pace, paging: query });
     }
 
     @Get("/adjacent")
@@ -94,16 +88,8 @@ export class SearchCoursesController {
         @User("pace") pace: number,
         @Query() query: SearchAdjacentCoursesQuery,
         @Cached() cached?: SearchCoursesResponse,
-    ): Promise<CourseDTO[]> {
-        if (cached) {
-            Logger.debug(cached, SearchCoursesController.name);
-
-            return await this.searchCoursesService
-                .searchCachedCourses(cached.results, userId);
-        }
-        else {
-            return await this.searchCoursesService
-                .searchCompletedCourses({ userId, pace, paging: query });
-        }
+    ): Promise<CourseDTO[] | SearchCoursesResponse> {
+        return cached ?? await this.searchCoursesService
+            .searchAdjacentCourses({ userId, pace, ...query });
     }
 }

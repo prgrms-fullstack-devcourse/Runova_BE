@@ -6,22 +6,18 @@ import { map, Observable } from "rxjs";
 @Injectable()
 export class SearchCoursesResponseInterceptor
     implements NestInterceptor<
-        CourseDTO[],
+        CourseDTO[] | SearchCoursesResponse,
         SearchCoursesResponse
     > {
     intercept(
-        ctx: ExecutionContext,
-        next: CallHandler<CourseDTO[]>
+        _: ExecutionContext,
+        next: CallHandler<CourseDTO[] | SearchCoursesResponse>
     ): Observable<SearchCoursesResponse> {
-
-        const cached: SearchCoursesResponse | undefined
-            = ctx.switchToHttp().getRequest().cached;
-
         return next.handle().pipe(
-            map(results =>
-                cached
-                    ? Object.assign(cached, { results })
-                    : __makeSearchCoursesResponse(results)
+            map(data =>
+                Array.isArray(data)
+                    ? __makeSearchCoursesResponse(data)
+                    : data
             )
         );
     }

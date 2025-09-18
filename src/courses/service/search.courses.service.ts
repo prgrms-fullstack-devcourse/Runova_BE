@@ -24,13 +24,11 @@ export class SearchCoursesService {
         const qb: SelectQueryBuilder<Course>
             = this.coursesRepo.createQueryBuilder("course");
 
-        setSelect(qb, pace)
-            .addSelect(`NULL`, "bookmarked")
-            .addSelect('NULL', "distance");
-
+        setSelect(qb, pace);
+        setSelectBookmarked(qb, userId);
+        qb.addSelect('NULL', "distance")
         qb.where("course.userId = :userId", { userId });
         paging?.cursor && qb.andWhere(`course.id < :id`, paging.cursor);
-
         qb.orderBy(`course.id`, "DESC");
         qb.take(paging?.limit ?? 10);
 
@@ -107,30 +105,5 @@ export class SearchCoursesService {
         Logger.debug(result, SearchCoursesService.name);
         return result;
     }
-
-    async searchCachedCourses(
-        courses: CourseDTO[],
-        userId: number,
-    ): Promise<CourseDTO[]> {
-        if (!courses.length) return courses;
-
-        const bookmarks = await this.bookmarksRepo
-            .createQueryBuilder("bookmark")
-            .select(`bookmark.courseId`, "courseId")
-            .where(
-                `bookmark.courseId IN (:...ids)`,
-                { ids: courses.map(c => c.id) }
-            )
-            .andWhere(`bookmark.userId = :userId`, { userId })
-            .getRawMany<Pick<CourseBookmark, "courseId">>();
-
-        const ids = new Set<number>(bookmarks.map(b => b.courseId));
-
-        for (const course of courses)
-            course.bookmarked = ids.has(course.id);
-
-        return courses;
-    }
-
 }
 

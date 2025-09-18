@@ -31,7 +31,7 @@ export class SearchCoursesController {
     @ApiBearerAuth()
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    @Caching({ ttl: 1.5 * MINUTE_IN_MS })
+    @Caching({ ttl: 1.5 * MINUTE_IN_MS, personal: true })
     async searchUserCourses(
         @User("userId") userId: number,
         @User("pace") pace: number,
@@ -48,7 +48,7 @@ export class SearchCoursesController {
     @ApiQuery({ type: BasicPagingOptions, required: false })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    @Caching({ ttl: 1.5 * MINUTE_IN_MS })
+    @Caching({ ttl: 1.5 * MINUTE_IN_MS, personal: true })
     async searchBookmarkedCourses(
         @User("userId") userId: number,
         @User("pace") pace: number,
@@ -65,7 +65,7 @@ export class SearchCoursesController {
     @ApiQuery({ type: BasicPagingOptions, required: false })
     @ApiOkResponse({ type: SearchCoursesResponse })
     @ApiForbiddenResponse()
-    @Caching({ ttl: 1.5 * MINUTE_IN_MS })
+    @Caching({ ttl: 1.5 * MINUTE_IN_MS, personal: true })
     async searchCompletedCourses(
         @User("userId") userId: number,
         @User("pace") pace: number,

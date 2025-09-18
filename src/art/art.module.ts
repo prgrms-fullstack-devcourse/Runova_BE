@@ -1,16 +1,17 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { RunningRecord } from "../modules/running";
+import { GenerateArtService, ConstellationStyleService, SaveArtService } from "./service";
 import { HttpModule } from "@nestjs/axios";
 import { FilesModule } from "../files/files.module";
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([RunningRecord]),
-        HttpModule.register({}),
-        FilesModule,
-    ],
-    providers: [],
-    controllers: [],
+  imports: [
+      HttpModule.register({}),
+      FilesModule,
+  ],
+  providers: [
+    GenerateArtService,
+    ConstellationStyleService,
+    SaveArtService,
+  ]
 })
 export class ArtModule {}

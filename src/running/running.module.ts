@@ -1,8 +1,14 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { RunningRecord } from "../modules/running";
-import { ContainsPathService, GenerateArtUrlService, RunningDashboardsService, RunningRecordsService } from "./service";
-import { RunningDashboardsController, RunningRecordsController } from "./controller";
+import {
+    ContainsPathService,
+    GenerateArtUrlService,
+    RandomArtUrlService,
+    RunningDashboardsService,
+    RunningRecordsService
+} from "./service";
+import { RandomArtUrlController, RunningDashboardsController, RunningRecordsController } from "./controller";
 import { SearchRunningRecordsInterceptor } from "./interceptor";
 
 @Module({
@@ -14,11 +20,13 @@ import { SearchRunningRecordsInterceptor } from "./interceptor";
         RunningDashboardsService,
         ContainsPathService,
         GenerateArtUrlService,
+        RandomArtUrlService,
         SearchRunningRecordsInterceptor,
     ],
     controllers: [
         RunningRecordsController,
         RunningDashboardsController,
+        RandomArtUrlController,
     ],
     exports: [RunningDashboardsService],
 })

@@ -31,10 +31,9 @@ export class RunningRecordsService {
             if(!containsPath) throw new ConflictException();
         }
 
-        const artUrl = await this.generateArtUrlService
-            .generateArtUrl(dto.userId, dto.path);
-
-        await this.recordsRepo.save(Object.assign(dto, { artUrl }));
+        const { id } = await this.recordsRepo.save(dto);
+        const artUrl = await this.generateArtUrlService.generateArtUrl(id, dto.userId);
+        await this.recordsRepo.update(id, { artUrl });
     }
 
     async getRunningRecord(id: number, userId: number): Promise<RunningRecordDTO> {

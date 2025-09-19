@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { GenerateArtService, ConstellationStyleService, SaveArtService } from "./service";
+import { GenerateArtService, SaveArtService } from "./service";
 import { HttpModule } from "@nestjs/axios";
 import { FilesModule } from "../files/files.module";
+import { ArtOptions } from "./art.options";
 
 @Module({
   imports: [
@@ -9,8 +10,8 @@ import { FilesModule } from "../files/files.module";
       FilesModule,
   ],
   providers: [
+    ArtOptions,
     GenerateArtService,
-    ConstellationStyleService,
     SaveArtService,
   ]
 })

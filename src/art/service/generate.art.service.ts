@@ -1,39 +1,36 @@
-import { Inject, Injectable } from "@nestjs/common";
-import { Layout } from "../style";
-import { convertPointsToUTMK, drawBgStars, drawLine, fitPointsToCanvas } from "./internal";
+import { Inject, Injectable, Logger } from "@nestjs/common";
+import { drawLine, drawStar, fitPointsToCanvas } from "./internal";
 import { Canvas, CanvasRenderingContext2D } from "skia-canvas";
-import { ConstellationStyleService } from "./constellation.style.service";
+import { ArtOptions } from "../art.options";
+import { ArtStyle } from "../style";
 
 @Injectable()
 export class GenerateArtService {
+  private readonly format: "png" | "svg";
+  private readonly style: ArtStyle;
 
   constructor(
-    @Inject(ConstellationStyleService)
-    private readonly styleService: ConstellationStyleService,
-  ) {}
+      @Inject(ArtOptions)
+      options: ArtOptions,
+  ) {
+    Logger.debug(options, GenerateArtService.name);
+    this.format = options.format;
+    this.style = options.style;
+  }
 
   async generate(points: Float32Array): Promise<Uint8Array> {
-    const { layout, lineStyle } = this.styleService.get();
+    const { layout, lineStyle, starStyle } = this.style;
 
     const canvas = new Canvas(layout.width, layout.height);
     const ctx: CanvasRenderingContext2D = canvas.getContext("2d");
 
-    ctx.fillRect(0, 0, layout.width, layout.height);
-    drawLine(ctx, __normalizePoints(points, layout), lineStyle);
+    fitPointsToCanvas(points, layout);
+    drawLine(ctx, points, lineStyle);
 
-    const buf: Buffer = await canvas.toBuffer("png");
+    for (let i = 0; i < points.length - 1; i += 2)
+      drawStar(ctx, points[i], points[i + 1], starStyle);
+
+    const buf: Buffer = await canvas.toBuffer(this.format);
     return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
   }
 }
-
-function __normalizePoints(
-  points: Float32Array,
-  layout: Layout,
-): Float32Array {
-  convertPointsToUTMK(points)
-  fitPointsToCanvas(points, layout)
-  return points;
-}
-
-
-

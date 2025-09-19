@@ -1,7 +1,8 @@
-import { GlowStyle } from "./glow.style";
+
 
 export interface LineStyle {
   width: number;
   color: string;
-  glowStyle: GlowStyle;
+  alpha: number;
+  glow: { blur: number; color: string; };
 }

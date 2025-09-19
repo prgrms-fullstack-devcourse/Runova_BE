@@ -1,0 +1,16 @@
+{
+  "format": "png",
+  "style": {
+    "layout": { "width": 1024, "height": 1024, "margin": 48 },
+    "lineStyle": {
+      "color": "#ffffff", "width": 1.6, "alpha": 0.85,
+      "glow": { "blur": 6, "color": "#ffffff" }
+    },
+    "starStyle": {
+      "core": { "radius": 4, "color": "#ffffff" },
+      "glow": { "radius": 14, "alpha": 1.0, "color": "#ffffff" },
+      "spikes": { "count": 4, "length": 18, "width": 1.2, "alpha": 0.9, "color": "#ffffff" },
+      "scale": 0.75
+    }
+  }
+}

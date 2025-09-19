@@ -20,7 +20,7 @@ export class RandomArtUrlService {
 
         if (!records.length) return null;
 
-        const idx = Math.floor(Math.random() * (records.length));
+        const idx = Math.floor(Math.random() * records.length);
         return records[idx].artUrl;
     }
 }

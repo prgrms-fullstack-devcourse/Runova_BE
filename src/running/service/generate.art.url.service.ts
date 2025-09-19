@@ -20,6 +20,7 @@ export class GenerateArtUrlService {
         const points: Float32Array = Float32Array.from(path.flat());
         return await this.piscina.run({ userId, points });
     }
+
 }
 
 

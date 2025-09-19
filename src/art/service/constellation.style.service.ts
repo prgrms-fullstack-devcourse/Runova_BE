@@ -1,12 +1,12 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
-import { ConstellationStyle } from "../style";
+import { ArtStyle } from "../style";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { deepFreeze } from "../../utils/object";
 
 @Injectable()
 export class ConstellationStyleService implements OnModuleInit {
-  private style: ConstellationStyle;
+  private style: ArtStyle;
 
   async onModuleInit(): Promise<void> {
 
@@ -19,7 +19,7 @@ export class ConstellationStyleService implements OnModuleInit {
     deepFreeze(this.style);
   }
 
-  get(): Readonly<ConstellationStyle> {
+  get(): Readonly<ArtStyle> {
     return this.style;
   }
 }

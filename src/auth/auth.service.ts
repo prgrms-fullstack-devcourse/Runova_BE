@@ -13,6 +13,7 @@ import { DatabaseError } from "pg";
 import { User } from "../modules/users/user.entity";
 import { TokensService } from "./tokens.service";
 import { GoogleService } from "./google.service";
+import { PG_UNIQUE_VIOLATION } from "../common/constants/pg.error.codes";
 
 export interface TokenPair {
   accessToken: string;
@@ -27,8 +28,6 @@ interface RefreshJwtPayload {
 }
 
 type PublicUser = Pick<User, "id" | "nickname" | "email" | "imageUrl">;
-
-const PG_UNIQUE_VIOLATION = "23505";
 
 @Injectable()
 export class AuthService {

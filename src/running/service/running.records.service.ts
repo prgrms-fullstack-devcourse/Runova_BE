@@ -18,10 +18,11 @@ export class RunningRecordsService {
     ) {}
 
     @Transactional()
-    async createRunningRecord(dto: CreateRunningRecordDTO): Promise<void> {
+    async createRunningRecord(dto: CreateRunningRecordDTO): Promise<number> {
         const { id } = await this.recordsRepo.save(dto);
         const artUrl = await this.generateArtUrlService.generateArtUrl(id, dto.userId);
         await this.recordsRepo.update(id, { artUrl });
+        return id;
     }
 
     async getRunningRecord(id: number, userId: number): Promise<RunningRecordDTO> {

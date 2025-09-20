@@ -15,7 +15,13 @@ import {
 import { Body, Controller, Get, Inject, Logger, Param, Post, Query, UseGuards, UseInterceptors } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { RunningRecordsService } from "../service";
-import { RecordRunningBody, RecordRunningQuery, SearchRunningRecordsQuery, SearchRunningRecordsResponse } from "../api";
+import {
+    RecordRunningBody,
+    RecordRunningQuery,
+    RecordRunningResponse,
+    SearchRunningRecordsQuery,
+    SearchRunningRecordsResponse
+} from "../api";
 import { Cached, Caching, User } from "../../utils/decorator";
 import { RunningRecordDTO, RunningRecordPreviewDTO } from "../dto";
 import { HOUR_IN_MS } from "../../common/constants/datetime";
@@ -38,7 +44,7 @@ export class RunningRecordsController {
     @ApiBearerAuth()
     @ApiQuery({ type: RecordRunningQuery, required: false })
     @ApiBody({ type: RecordRunningBody, required: true })
-    @ApiCreatedResponse()
+    @ApiCreatedResponse({ type: RecordRunningResponse })
     @ApiBadRequestResponse()
     @ApiForbiddenResponse()
     @ApiNotFoundResponse({ description: "존재하지 않는 courseId" })
@@ -47,12 +53,14 @@ export class RunningRecordsController {
         @User("userId") userId: number,
         @Body() body: RecordRunningBody,
         @Query() query?: RecordRunningQuery,
-    ): Promise<void> {
+    ): Promise<RecordRunningResponse> {
         Logger.debug(query, RunningRecordsController.name);
         const courseId = query?.courseId;
 
-        await this.recordsService
+        const id = await this.recordsService
             .createRunningRecord({ userId, courseId, ...body });
+
+        return { id };
     }
 
     @Get("/:id")

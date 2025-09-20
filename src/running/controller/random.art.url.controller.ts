@@ -24,10 +24,10 @@ export class RandomArtUrlController {
         @User("userId") userId: number,
     ): Promise<GetRandomArtUrlResponse> {
 
-        const artUrl = await this.randomArtUrlService
+        const results = await this.randomArtUrlService
             .pickRandomArtUrl(userId);
 
-        return { artUrl };
+        return { results };
     }
 
 }

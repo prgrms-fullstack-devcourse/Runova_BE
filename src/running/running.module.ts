@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { RunningRecord } from "../modules/running";
 import {
-    ContainsPathService,
     GenerateArtUrlService,
     RandomArtUrlService,
     RunningDashboardsService,
@@ -18,7 +17,6 @@ import { SearchRunningRecordsInterceptor } from "./interceptor";
     providers: [
         RunningRecordsService,
         RunningDashboardsService,
-        ContainsPathService,
         GenerateArtUrlService,
         RandomArtUrlService,
         SearchRunningRecordsInterceptor,

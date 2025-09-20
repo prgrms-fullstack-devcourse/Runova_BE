@@ -11,17 +11,17 @@ export class RandomArtUrlService {
         private readonly recordsRepo: Repository<RunningRecord>,
     ) {}
 
-    async pickRandomArtUrl(userId: number): Promise<string | null> {
+    async pickRandomArtUrl(userId: number): Promise<string[]> {
 
-        const records = await this.recordsRepo.find({
-            select: ["id", "userId", "artUrl"],
-            where: { userId },
-        });
+        const results = await this.recordsRepo
+            .createQueryBuilder("record")
+            .select(`record.artUrl`, "artUrl")
+            .where(`record.userId = :userId`, { userId })
+            .orderBy(`RANDOM()`)
+            .limit(10)
+            .getRawMany<Pick<RunningRecord, "artUrl">>();
 
-        if (!records.length) return null;
-
-        const idx = Math.floor(Math.random() * records.length);
-        return records[idx].artUrl;
+        return results.map(r => r.artUrl);
     }
 }
 

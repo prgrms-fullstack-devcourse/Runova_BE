@@ -1,11 +1,10 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { RunningRecord } from "../../modules/running";
 import { Between, FindOptionsWhere, LessThan, LessThanOrEqual, MoreThanOrEqual, Repository } from "typeorm";
 import { Transactional } from "typeorm-transactional";
 import { CreateRunningRecordDTO, RunningRecordDTO, RunningRecordPreviewDTO, SearchRunningRecordsDTO } from "../dto";
 import { Cursor, Period } from "../../common/types";
-import { ContainsPathService } from "./contains.path.service";
 import { GenerateArtUrlService } from "./generate.art.url.service";
 
 @Injectable()
@@ -14,23 +13,12 @@ export class RunningRecordsService {
     constructor(
        @InjectRepository(RunningRecord)
        private readonly recordsRepo: Repository<RunningRecord>,
-       @Inject(ContainsPathService)
-       private readonly containsPathService: ContainsPathService,
        @Inject(GenerateArtUrlService)
        private readonly generateArtUrlService: GenerateArtUrlService,
     ) {}
 
     @Transactional()
     async createRunningRecord(dto: CreateRunningRecordDTO): Promise<void> {
-
-        if (dto.courseId !== undefined) {
-
-            const containsPath = await this.containsPathService
-                .containsPath(dto.courseId, dto.path);
-
-            if(!containsPath) throw new ConflictException();
-        }
-
         const { id } = await this.recordsRepo.save(dto);
         const artUrl = await this.generateArtUrlService.generateArtUrl(id, dto.userId);
         await this.recordsRepo.update(id, { artUrl });

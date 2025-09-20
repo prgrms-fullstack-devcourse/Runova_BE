@@ -1,4 +1,4 @@
-import { BasicPagingOptions, PagingOptions, Period } from "../../common/types";
+import { BasicPagingOptions, Period } from "../../common/types";
 
 export class SearchRunningRecordsDTO {
     userId: number;
